@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Prismal</string>
+    <string name="i_see">I see what happened 👀 — the image you generated looks **grainy/static**, almost like random noise rather than smooth ripples. That’s expected if you just took raw random differences (`dx`, `dy`) → they produce a *salt-and-pepper* style normal map. For a **glassy/liquid look**, you want **smooth, continuous distortions** (like water waves), not high-frequency grain. --- ### Why it looks grainy * The base texture you used was pure random noise → each pixel uncorrelated. * When you derive slopes (`dx`, `dy`), it just amplifies that randomness. * The result is a grain normal map, good for **frosted glass** (scattered look), but not for **liquid glass** (smooth rippling). ---</string>
+</resources>
