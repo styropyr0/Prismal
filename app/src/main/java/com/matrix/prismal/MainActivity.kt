@@ -24,9 +24,9 @@ class MainActivity : AppCompatActivity() {
             setCornerRadius(24f)
             setIOR(1.8f)
             setThickness(15f)
-            setNormalStrength(2f)
-            setBlurRadius(1.5f)
-            setChromaticAberration(6f)
+            setNormalStrength(6f)
+            setBlurRadius(1.9f)
+            setChromaticAberration(25f)
             setBrightness(1.05f)
             setShowNormals(false)
         }
