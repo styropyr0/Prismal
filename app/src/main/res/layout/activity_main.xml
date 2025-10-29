@@ -20,16 +20,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/white"
+                android:textSize="28sp"
                 android:text="@string/i_see" />
 
         </LinearLayout>
     </ScrollView>
 
-    <com.matrix.prismal.LiquidGlassButton
+    <com.matrix.prismal.PrismalButton
         android:id="@+id/liquidButton"
-        android:layout_width="150dp"
         android:layout_marginTop="60dp"
-        android:layout_marginStart="50dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_height="150dp" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PRESS"
+            android:textColor="@android:color/white"
+            android:textSize="22sp"
+            android:layout_gravity="center"/>
+
+    </com.matrix.prismal.PrismalButton>
+
 </FrameLayout>

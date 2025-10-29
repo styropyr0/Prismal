@@ -1,43 +1,34 @@
 package com.matrix.prismal
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Bitmap.Config
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var liquidButton: PrismalButton
     private lateinit var rootLayout: FrameLayout
-    private lateinit var liquidButton: LiquidGlassButton
+    private lateinit var label: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         rootLayout = findViewById(R.id.root)
+        label = findViewById(R.id.txt)
         liquidButton = findViewById(R.id.liquidButton)
 
-        val normalMap = BitmapFactory.decodeResource(resources, R.drawable.normal_map)
-        liquidButton.setNormalMap(normalMap)
-
-        liquidButton.post {
-            captureBackgroundAndUpload()
+        liquidButton.apply {
+            setGlassSize(800f, 300f)
+            setCornerRadius(24f)
+            setIOR(1.8f)
+            setThickness(15f)
+            setNormalStrength(2f)
+            setBlurRadius(1.5f)
+            setChromaticAberration(6f)
+            setBrightness(1.05f)
+            setShowNormals(false)
         }
-    }
-
-    private fun captureBackgroundAndUpload() {
-        if (!::liquidButton.isInitialized || liquidButton.width == 0) return
-
-        val bmp = Bitmap.createBitmap(liquidButton.width, liquidButton.height, Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        canvas.translate(-liquidButton.left.toFloat(), -liquidButton.top.toFloat())
-        rootLayout.draw(canvas)
-
-        liquidButton.queueEvent {
-            liquidButton.setBackgroundBitmap(bmp)
-        }
-        liquidButton.requestRender()
     }
 }
