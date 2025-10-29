@@ -28,7 +28,8 @@
     <com.matrix.prismal.LiquidGlassButton
         android:id="@+id/liquidButton"
         android:layout_width="150dp"
-        android:layout_marginEnd="50dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginStart="50dp"
         android:layout_gravity="center_horizontal"
         android:layout_height="150dp" />
 </FrameLayout>
