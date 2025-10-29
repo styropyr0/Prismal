@@ -26,7 +26,7 @@
         </LinearLayout>
     </ScrollView>
 
-    <com.matrix.prismal.PrismalButton
+    <com.matrix.prismal.PrismalFrameLayout
         android:id="@+id/liquidButton"
         android:layout_marginTop="60dp"
         android:layout_width="match_parent"
@@ -40,6 +40,6 @@
             android:textSize="22sp"
             android:layout_gravity="center"/>
 
-    </com.matrix.prismal.PrismalButton>
+    </com.matrix.prismal.PrismalFrameLayout>
 
 </FrameLayout>

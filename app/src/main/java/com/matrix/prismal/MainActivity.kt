@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var liquidButton: PrismalButton
+    private lateinit var liquidButton: PrismalFrameLayout
     private lateinit var rootLayout: FrameLayout
     private lateinit var label: TextView
 

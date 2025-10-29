@@ -9,7 +9,7 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.core.graphics.createBitmap
 
-class PrismalButton @JvmOverloads constructor(
+class PrismalFrameLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs), View.OnTouchListener {
