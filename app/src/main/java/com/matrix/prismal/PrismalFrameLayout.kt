@@ -89,6 +89,9 @@ class PrismalFrameLayout @JvmOverloads constructor(
     fun setChromaticAberration(value: Float) = glSurface.queueEvent { renderer.setChromaticAberration(value) }
     fun setBrightness(value: Float) = glSurface.queueEvent { renderer.setBrightness(value) }
     fun setShowNormals(show: Boolean) = glSurface.queueEvent { renderer.setShowNormals(show) }
+    fun setShadowProperties(color: Int, offset: FloatArray, softness: Float) {
+        glSurface.queueEvent { renderer.setShadowProperties(color, offset, softness) }
+    }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         when (event.actionMasked) {

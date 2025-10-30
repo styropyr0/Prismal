@@ -18,16 +18,26 @@ class MainActivity : AppCompatActivity() {
         rootLayout = findViewById(R.id.root)
         label = findViewById(R.id.txt)
         liquidButton = findViewById(R.id.liquidButton)
-
         liquidButton.apply {
-            setGlassSize(800f, 300f)
-            setCornerRadius(24f)
-            setIOR(1.8f)
-            setThickness(15f)
-            setNormalStrength(6f)
-            setBlurRadius(1.9f)
-            setChromaticAberration(25f)
-            setBrightness(1.05f)
+            // Size & shape
+            setGlassSize(1100f, 300f)
+            setCornerRadius(2f)
+
+            // Optics
+            setIOR(1f)
+            setThickness(100f)
+            setNormalStrength(40f)
+            setMinSmoothing(100f)
+            setDisplacementScale(30f)
+            setRefractionInset(20f)
+            setHeightBlurFactor(5f)
+
+            // Post‑effects
+            setBlurRadius(6f)
+            setChromaticAberration(4f)
+            setBrightness(1.3f)
+
+            // Debug
             setShowNormals(false)
         }
     }

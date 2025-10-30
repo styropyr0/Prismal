@@ -18,6 +18,9 @@ uniform float u_brightness;
 varying vec2 v_screenTexCoord;
 varying vec2 v_shapeCoord;
 uniform float u_refractionInset;
+uniform vec4 u_shadowColor;
+uniform vec2 u_shadowOffset;
+uniform float u_shadowSoftness;
 
 float smin_polynomial(float a, float b, float k) {
     if (k <= 0.0) return min(a, b);
@@ -63,114 +66,120 @@ float fresnel(vec3 normal, vec3 viewDir, float ior) {
     return r0 + (1.0 - r0) * pow(1.0 - cosTheta, 5.0);
 }
 
+vec2 computeSurfaceGradient(vec2 shapeCoord, vec2 glassSize, vec2 halfSize, float radius, float smoothing, float transition) {
+    vec2 pixelStep = 1.0 / glassSize;
+
+    float h_px = getHeightFromSDF((shapeCoord + vec2(pixelStep.x, 0.0)) * glassSize, halfSize, radius, smoothing, transition);
+    float h_nx = getHeightFromSDF((shapeCoord - vec2(pixelStep.x, 0.0)) * glassSize, halfSize, radius, smoothing, transition);
+    float h_py = getHeightFromSDF((shapeCoord + vec2(0.0, pixelStep.y)) * glassSize, halfSize, radius, smoothing, transition);
+    float h_ny = getHeightFromSDF((shapeCoord - vec2(0.0, pixelStep.y)) * glassSize, halfSize, radius, smoothing, transition);
+
+    float grad_x = (h_px - h_nx) / (2.0 * pixelStep.x * glassSize.x);
+    float grad_y = (h_py - h_ny) / (2.0 * pixelStep.y * glassSize.y);
+
+    return vec2(grad_x, grad_y);
+}
+
+vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius){
+    const float kernelSize   = 3.0;
+    const float halfSize     = 1.0;
+    const float coefficient = 1.0/(kernelSize*kernelSize);
+
+    vec3 screenColor = vec3(0.0);
+    vec2 dx = vec2(1.0,0.0)*texelSize*radius;
+    vec2 dy = vec2(0.0,1.0)*texelSize*radius;
+
+    for(int y = -1; y <= 1; ++y){
+        for(int x = -1; x <= 1; ++x){
+            vec2 sampleUV = uv + offset + vec2(float(x),float(y))*(dx + dy);
+            sampleUV = clamp(sampleUV, vec2(0.001), vec2(0.999));
+            screenColor += texture2D(tex, sampleUV).rgb;
+        }
+    }
+    return screenColor * coefficient;
+}
+
 void main() {
     float actualCornerRadius = min(u_cornerRadius, min(u_glassSize.x, u_glassSize.y) / 2.0);
+
     vec2 current_p_pixel = v_shapeCoord * u_glassSize;
     vec2 glass_half_size_pixel = u_glassSize / 2.0;
 
     float dist_for_shape_boundary = sdRoundedBoxSmooth(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing);
-    if (dist_for_shape_boundary > 0.001) discard;
+    float edgeDistance = -dist_for_shape_boundary;
 
-    vec2 pixel_step_in_norm_space = vec2(1.0 / u_glassSize.x, 1.0 / u_glassSize.y);
-    float norm_step_x1 = pixel_step_in_norm_space.x * 0.75;
-    float norm_step_y1 = pixel_step_in_norm_space.y * 0.75;
-    float norm_step_x2 = pixel_step_in_norm_space.x * 1.5;
-    float norm_step_y2 = pixel_step_in_norm_space.y * 1.5;
+    float inset = max(u_refractionInset, 2.0);
 
-    float h_px1 = getHeightFromSDF((v_shapeCoord + vec2(norm_step_x1, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float h_nx1 = getHeightFromSDF((v_shapeCoord - vec2(norm_step_x1, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float h_px2 = getHeightFromSDF((v_shapeCoord + vec2(norm_step_x2, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float h_nx2 = getHeightFromSDF((v_shapeCoord - vec2(norm_step_x2, 0.0)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+    float opacity = 1.0 - smoothstep(-inset, 0.0, dist_for_shape_boundary);
+    float aa_feather = 1.5;
+    opacity = mix(opacity, 1.0, smoothstep(0.0, aa_feather, edgeDistance));
 
-    float grad_x1 = (h_px1 - h_nx1) / (2.0 * norm_step_x1 * u_glassSize.x);
-    float grad_x2 = (h_px2 - h_nx2) / (2.0 * norm_step_x2 * u_glassSize.x);
-    float delta_x = mix(grad_x1, grad_x2, 0.5);
+    if (opacity < 0.001) discard;
 
-    float h_py1 = getHeightFromSDF((v_shapeCoord + vec2(0.0, norm_step_y1)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float h_ny1 = getHeightFromSDF((v_shapeCoord - vec2(0.0, norm_step_y1)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float h_py2 = getHeightFromSDF((v_shapeCoord + vec2(0.0, norm_step_y2)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float h_ny2 = getHeightFromSDF((v_shapeCoord - vec2(0.0, norm_step_y2)) * u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+    float refractionDistance = min(u_glassSize.x, u_glassSize.y) * 0.35;
+    float edgeProximity = clamp(edgeDistance / refractionDistance, 0.0, 1.0);
+    float depthFalloff = 1.0 - smoothstep(0.0, 1.0, edgeProximity);
 
-    float grad_y1 = (h_py1 - h_ny1) / (2.0 * norm_step_y1 * u_glassSize.y);
-    float grad_y2 = (h_py2 - h_ny2) / (2.0 * norm_step_y2 * u_glassSize.y);
-    float delta_y = mix(grad_y1, grad_y2, 0.5);
-
-    vec3 surfaceNormal3D = normalize(vec3(-delta_x * u_normalStrength, -delta_y * u_normalStrength, 1.0));
+    vec2 gradient = computeSurfaceGradient(v_shapeCoord, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+    vec3 surfaceNormal3D = normalize(vec3(-gradient.x * u_normalStrength, -gradient.y * u_normalStrength, 1.0));
 
     if (u_showNormals == 1) {
-        gl_FragColor = vec4(surfaceNormal3D * 0.5 + 0.5, 1.0);
+        gl_FragColor = vec4(surfaceNormal3D * 0.5 + 0.5, opacity);
         return;
     }
 
-    vec3 viewDir = normalize(vec3(0.0, 0.0, -1.0));
-
+    vec3 viewDir = vec3(0.0, 0.0, 1.0);
     float fresnelFactor = fresnel(surfaceNormal3D, viewDir, u_ior);
 
-    float dist_to_edge = -dist_for_shape_boundary;
-    float ramp_width = 20.0;
-    float ramp_start = u_refractionInset;
-    float edgeFactor = smoothstep(ramp_start, ramp_start - ramp_width, dist_to_edge);
-    edgeFactor = clamp(edgeFactor, 0.0, 1.0);
-    float refractionMultiplier = 1.0 + edgeFactor * fresnelFactor * 0.5;
+    vec2 centeredCoord = v_shapeCoord - vec2(0.5);
+    float distFromCenter = length(centeredCoord);
 
-    vec3 refractedIntoGlass = refract(viewDir, surfaceNormal3D, 1.0 / u_ior);
-    vec3 refractedOutOfGlass = refract(refractedIntoGlass, -surfaceNormal3D, u_ior);
+    float refractionStrength = depthFalloff * (0.8 + fresnelFactor * 0.2);
 
-    vec2 offset_in_pixels = refractedOutOfGlass.xy * u_glassThickness * refractionMultiplier;
-    vec2 baseOffset = (offset_in_pixels / u_resolution) * u_displacementScale;
+    vec3 refractedIn = refract(-viewDir, surfaceNormal3D, 1.0 / u_ior);
+    vec3 refractedOut = refract(refractedIn, -surfaceNormal3D, u_ior);
 
-    vec2 texelSize = 1.0 / u_resolution;
-    float chromaStrength = u_chromaticAberration * 0.001;
+    vec2 refractionOffset = refractedOut.xy * u_glassThickness * refractionStrength;
+    vec2 baseOffset = (refractionOffset / u_resolution) * u_displacementScale;
 
-    vec3 refractR = refract(viewDir, surfaceNormal3D, 1.0 / (u_ior - 0.02));
-    vec3 refractOutR = refract(refractR, -surfaceNormal3D, u_ior - 0.02);
-    vec2 offsetR = (refractOutR.xy * u_glassThickness * refractionMultiplier / u_resolution) * u_displacementScale;
-    offsetR -= baseOffset * chromaStrength;
+    float chromaIntensity = u_chromaticAberration * 0.001 * depthFalloff;
+    vec2 refractionDir = length(baseOffset) > 0.0001 ? normalize(baseOffset) : vec2(0.0);
+
+    vec3 refractR_in = refract(-viewDir, surfaceNormal3D, 1.0 / (u_ior - 0.012));
+    vec3 refractR_out = refract(refractR_in, -surfaceNormal3D, u_ior - 0.012);
+    vec2 offsetR = (refractR_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
+    offsetR -= refractionDir * chromaIntensity;
 
     vec2 offsetG = baseOffset;
 
-    vec3 refractB = refract(viewDir, surfaceNormal3D, 1.0 / (u_ior + 0.02));
-    vec3 refractOutB = refract(refractB, -surfaceNormal3D, u_ior + 0.02);
-    vec2 offsetB = (refractOutB.xy * u_glassThickness * refractionMultiplier / u_resolution) * u_displacementScale;
-    offsetB += baseOffset * chromaStrength;
+    vec3 refractB_in = refract(-viewDir, surfaceNormal3D, 1.0 / (u_ior + 0.012));
+    vec3 refractB_out = refract(refractB_in, -surfaceNormal3D, u_ior + 0.012);
+    vec2 offsetB = (refractB_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
+    offsetB += refractionDir * chromaIntensity;
 
-    float blurPixelRadius = u_blurRadius;
-    vec3 finalColor = vec3(0.0);
+    vec2 texelSize = 1.0 / u_resolution;
+    float blur = u_blurRadius * 0.75;
 
-    float totalWeight = 0.0;
+    vec3 cR = blur9(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur);
+    vec3 cG = blur9(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur);
+    vec3 cB = blur9(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur);
 
-    for (int y = -2; y <= 2; y++) {
-        for (int x = -2; x <= 2; x++) {
-            vec2 blurOffset = vec2(float(x), float(y)) * texelSize * u_blurRadius * 0.5;
-
-            float wx = (x == -2 || x == 2) ? 0.06 : (x == -1 || x == 1) ? 0.24 : 0.4;
-            float wy = (y == -2 || y == 2) ? 0.06 : (y == -1 || y == 1) ? 0.24 : 0.4;
-            float weight = wx * wy;
-            totalWeight += weight;
-
-            vec2 coordR = clamp(v_screenTexCoord + offsetR + blurOffset, 0.001, 0.999);
-            vec2 coordG = clamp(v_screenTexCoord + offsetG + blurOffset, 0.001, 0.999);
-            vec2 coordB = clamp(v_screenTexCoord + offsetB + blurOffset, 0.001, 0.999);
-
-            finalColor.r += texture2D(u_backgroundTexture, coordR).r * weight;
-            finalColor.g += texture2D(u_backgroundTexture, coordG).g * weight;
-            finalColor.b += texture2D(u_backgroundTexture, coordB).b * weight;
-        }
-    }
-
-    finalColor /= totalWeight;
-
-    finalColor *= u_brightness;
+    vec3 finalColor = vec3(cR.r, cG.g, cB.b) * u_brightness;
 
     float height_val = getHeightFromSDF(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    vec4 colorWithOverlay = vec4(mix(finalColor, u_overlayColor.rgb, height_val * 0.12), 1.0);
+    float overlayStrength = height_val * 0.06 * (1.0 - depthFalloff * 0.3);
+    vec3 colorWithOverlay = mix(finalColor, u_overlayColor.rgb, overlayStrength);
 
     float highlight_dist = abs(dist_for_shape_boundary);
-    float highlight_alpha = 1.0 - smoothstep(0.0, u_highlightWidth, highlight_dist);
-    highlight_alpha = max(0.0, highlight_alpha);
+    float highlight_alpha = (1.0 - smoothstep(0.0, u_highlightWidth, highlight_dist));
 
-    float directionalFactor = (surfaceNormal3D.x * surfaceNormal3D.y + 1.0) * 0.5;
-    float finalHighlightAlpha = highlight_alpha * directionalFactor * (0.7 + fresnelFactor * 0.3);
+    float normalDot = dot(surfaceNormal3D.xy, normalize(centeredCoord + vec2(0.3, 0.3)));
+    float directionalFactor = 0.5 + 0.5 * normalDot;
 
-    gl_FragColor = mix(colorWithOverlay, vec4(1.0, 1.0, 1.0, 1.0), finalHighlightAlpha * 0.8);
+    float finalHighlightAlpha = highlight_alpha * directionalFactor * (0.6 + fresnelFactor * 0.4);
+
+    vec3 highlightColor = vec3(1.0);
+    vec3 finalMixed = mix(colorWithOverlay, highlightColor, finalHighlightAlpha * 0.7);
+
+    gl_FragColor = vec4(finalMixed, opacity);
 }

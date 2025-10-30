@@ -2,6 +2,7 @@ package com.matrix.prismal
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.opengl.GLES20.*
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
@@ -44,6 +45,9 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
     private var uChromaticAberration = -1
     private var uBrightness = -1
     private var backgroundTextureUniform = -1
+    private var uShadowColor = 0
+    private var uShadowOffset = 0
+    private var uShadowSoftness = 0
 
     private lateinit var quadBuffer: FloatBuffer
     private lateinit var bgQuadBuffer: FloatBuffer
@@ -59,7 +63,7 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
 
     private var glassWidth = 400f
     private var glassHeight = 260f
-    private var cornerRadius = 32f
+    private var cornerRadius = 3f
     private var ior = 1.5f
     private var glassThickness = 15f
     private var normalStrength = 1.2f
@@ -72,7 +76,9 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
     private var brightness = 1.15f
     private var showNormals = false
     private var refractionInset = 20f
-
+    private var shadowColor = floatArrayOf(0f, 0f, 0f, 0.8f)
+    private var shadowOffset = floatArrayOf(8f, -8f)
+    private var shadowSoftness = 10f
     private var uRefractionInset = -1
 
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
@@ -125,6 +131,9 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
         uBrightness = glGetUniformLocation(glassProgram, "u_brightness")
         backgroundTextureUniform = glGetUniformLocation(glassProgram, "u_backgroundTexture")
         uRefractionInset = glGetUniformLocation(glassProgram, "u_refractionInset")
+        uShadowColor = glGetUniformLocation(glassProgram, "u_shadowColor")
+        uShadowOffset = glGetUniformLocation(glassProgram, "u_shadowOffset")
+        uShadowSoftness = glGetUniformLocation(glassProgram, "u_shadowSoftness")
 
         glClearColor(0.1f, 0.1f, 0.1f, 1f)
         glEnable(GL_BLEND)
@@ -181,6 +190,9 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
         glUniform1f(uChromaticAberration, chromaticAberration)
         glUniform1f(uBrightness, brightness)
         glUniform1f(uRefractionInset, refractionInset)
+        glUniform4f(uShadowColor, shadowColor[0], shadowColor[1], shadowColor[2], shadowColor[3])
+        glUniform2f(uShadowOffset, shadowOffset[0], shadowColor[1])
+        glUniform1f(uShadowSoftness, shadowSoftness)
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, backgroundTexture)
@@ -248,6 +260,17 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
 
     fun setShowNormals(v: Boolean) {
         showNormals = v
+    }
+
+    fun setShadowProperties(color: Int, offset: FloatArray, softness: Float) {
+        val r = Color.red(color) / 255f
+        val g = Color.green(color) / 255f
+        val b = Color.blue(color) / 255f
+        val a = Color.alpha(color) / 255f
+
+        shadowColor = floatArrayOf(r, g, b, a)
+        shadowOffset = offset
+        shadowSoftness = softness
     }
 
     fun setBackgroundTexture(bitmap: Bitmap) {
