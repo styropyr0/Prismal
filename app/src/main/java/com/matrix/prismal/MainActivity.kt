@@ -23,8 +23,8 @@ class MainActivity : AppCompatActivity() {
 
             // Optics
             setIOR(1.55f)
-            setThickness(30f)
-            setNormalStrength(8.5f)
+            setThickness(80f)
+            setNormalStrength(5f)
             setMinSmoothing(10f)
 
             setDisplacementScale(10f)
@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
             // Post‑effects
             setBlurRadius(3f)
-            setChromaticAberration(8f)
+            setChromaticAberration(20f)
             setBrightness(1.3f)
 
             // Debug

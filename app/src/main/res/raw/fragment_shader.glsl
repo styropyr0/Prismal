@@ -20,6 +20,7 @@ varying vec2 v_shapeCoord;
 uniform float u_refractionInset;
 uniform vec4 u_shadowColor;
 uniform float u_shadowSoftness;
+uniform float u_edgeRefractionFalloff;
 
 float smin_polynomial(float a, float b, float k) {
     if (k <= 0.0) return min(a, b);
@@ -114,7 +115,7 @@ void main() {
 
     float refractionDistance = min(u_glassSize.x, u_glassSize.y) * 0.4;
     float edgeProximity = clamp(edgeDistance / refractionDistance, 0.0, 1.0);
-    float depthFalloff = 1.0 - pow(edgeProximity, 1.8);
+    float depthFalloff = 1.0 - pow(edgeProximity, u_edgeRefractionFalloff);
 
     vec2 gradient = computeSurfaceGradient(v_shapeCoord, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
     vec3 surfaceNormal3D = normalize(vec3(-gradient.x * u_normalStrength, -gradient.y * u_normalStrength, 1.0));
@@ -155,11 +156,22 @@ void main() {
 
     // optional extra feathering for chroma (slightly softer than shadow)
     float chromaFeather = 1.15; // >1.0 makes chroma fade a bit more gradually
-    float chromaMask = 1.0 - smoothstep(0.0, shadowDistancePx * chromaFeather, edgeDistance);
+
+// Chromatic aberration with smooth falloff: ramp up from edge, then ramp down toward center
+    float chromaFeatherDist = shadowDistancePx * 1.5; // Transition zone
+
+    // Ramp up from outer edge
+    float chromaRampUp = smoothstep(0.0, chromaFeatherDist, edgeDistance);
+
+    // Ramp down as you go toward center
+    float chromaRampDown = 1.0 - smoothstep(chromaFeatherDist, minDim * 0.35, edgeDistance);
+
+    // Combine: starts at 0, peaks in middle zone, fades back to 0 at center
+    float chromaMask = chromaRampUp * chromaRampDown;
     chromaMask = clamp(chromaMask, 0.0, 1.0);
 
     // Chromatic aberration base intensity scaled by depthFalloff
-    float chromaIntensity = u_chromaticAberration * 0.001 * depthFalloff;
+    float chromaIntensity = u_chromaticAberration * 0.003 * depthFalloff;
 
     vec2 refractionDir = length(baseOffset) > 0.0001 ? normalize(baseOffset) : vec2(0.0);
 

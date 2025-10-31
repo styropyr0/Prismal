@@ -48,6 +48,8 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
     private var uShadowColor = 0
     private var uShadowOffset = 0
     private var uShadowSoftness = 0
+    private var uRefractionInset = -1
+    private var uEdgeRefractionFalloff = 0
 
     private lateinit var quadBuffer: FloatBuffer
     private lateinit var bgQuadBuffer: FloatBuffer
@@ -78,7 +80,7 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
     private var refractionInset = 20f
     private var shadowColor = floatArrayOf(0f, 0f, 0f, 0.3f)
     private var shadowSoftness = 0.2f
-    private var uRefractionInset = -1
+    private var edgeRefractionFalloff = 4f
 
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         val vertexCode = ShaderUtils.loadShaderSource(context, R.raw.vertex_shader)
@@ -133,6 +135,7 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
         uShadowColor = glGetUniformLocation(glassProgram, "u_shadowColor")
         uShadowOffset = glGetUniformLocation(glassProgram, "u_shadowOffset")
         uShadowSoftness = glGetUniformLocation(glassProgram, "u_shadowSoftness")
+        uShadowSoftness = glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
 
         glClearColor(0.1f, 0.1f, 0.1f, 1f)
         glEnable(GL_BLEND)
@@ -191,6 +194,7 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
         glUniform1f(uRefractionInset, refractionInset)
         glUniform4f(uShadowColor, shadowColor[0], shadowColor[1], shadowColor[2], shadowColor[3])
         glUniform1f(uShadowSoftness, shadowSoftness)
+        glUniform1f(uEdgeRefractionFalloff, edgeRefractionFalloff)
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, backgroundTexture)
@@ -258,6 +262,10 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
 
     fun setShowNormals(v: Boolean) {
         showNormals = v
+    }
+
+    fun setEdgeRefractionFalloff(v: Float) {
+        edgeRefractionFalloff = v
     }
 
     fun setShadowProperties(color: Int, softness: Float) {
