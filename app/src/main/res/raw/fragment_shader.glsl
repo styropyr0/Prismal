@@ -19,7 +19,6 @@ varying vec2 v_screenTexCoord;
 varying vec2 v_shapeCoord;
 uniform float u_refractionInset;
 uniform vec4 u_shadowColor;
-uniform vec2 u_shadowOffset;
 uniform float u_shadowSoftness;
 
 float smin_polynomial(float a, float b, float k) {
@@ -80,23 +79,20 @@ vec2 computeSurfaceGradient(vec2 shapeCoord, vec2 glassSize, vec2 halfSize, floa
     return vec2(grad_x, grad_y);
 }
 
-vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius){
-    const float kernelSize   = 3.0;
-    const float halfSize     = 1.0;
-    const float coefficient = 1.0/(kernelSize*kernelSize);
-
-    vec3 screenColor = vec3(0.0);
-    vec2 dx = vec2(1.0,0.0)*texelSize*radius;
-    vec2 dy = vec2(0.0,1.0)*texelSize*radius;
-
+// NOTE: we keep a simple 3x3 blur but ensure dx/dy are per-axis (no diagonal-only sampling)
+vec3 blur9_fixed(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius){
+    const float coeff = 1.0 / 9.0;
+    vec3 accum = vec3(0.0);
+    vec2 dx = vec2(texelSize.x * radius, 0.0);
+    vec2 dy = vec2(0.0, texelSize.y * radius);
     for(int y = -1; y <= 1; ++y){
         for(int x = -1; x <= 1; ++x){
-            vec2 sampleUV = uv + offset + vec2(float(x),float(y))*(dx + dy);
+            vec2 sampleUV = uv + offset + float(x) * dx + float(y) * dy;
             sampleUV = clamp(sampleUV, vec2(0.001), vec2(0.999));
-            screenColor += texture2D(tex, sampleUV).rgb;
+            accum += texture2D(tex, sampleUV).rgb;
         }
     }
-    return screenColor * coefficient;
+    return accum * coeff;
 }
 
 void main() {
@@ -116,9 +112,9 @@ void main() {
 
     if (opacity < 0.001) discard;
 
-    float refractionDistance = min(u_glassSize.x, u_glassSize.y) * 0.35;
+    float refractionDistance = min(u_glassSize.x, u_glassSize.y) * 0.4;
     float edgeProximity = clamp(edgeDistance / refractionDistance, 0.0, 1.0);
-    float depthFalloff = 1.0 - smoothstep(0.0, 1.0, edgeProximity);
+    float depthFalloff = 1.0 - pow(edgeProximity, 1.8);
 
     vec2 gradient = computeSurfaceGradient(v_shapeCoord, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
     vec3 surfaceNormal3D = normalize(vec3(-gradient.x * u_normalStrength, -gradient.y * u_normalStrength, 1.0));
@@ -142,34 +138,67 @@ void main() {
     vec2 refractionOffset = refractedOut.xy * u_glassThickness * refractionStrength;
     vec2 baseOffset = (refractionOffset / u_resolution) * u_displacementScale;
 
+    // --- SHADOW / CHROMA MASK COMPUTATION (robust) ---
+    float minDim = min(u_glassSize.x, u_glassSize.y);
+    float shadowDistancePx;
+    if (u_shadowSoftness <= 1.0) {
+        // treat as fraction of half-min-dimension
+        shadowDistancePx = clamp(u_shadowSoftness * (minDim * 0.5), 1.0, minDim * 0.5);
+    } else {
+        // treat as pixel amount
+        shadowDistancePx = clamp(u_shadowSoftness, 1.0, minDim * 0.5);
+    }
+
+    // shadowMask: 1.0 near inner edge, fades smoothly to 0.0 toward center
+    float shadowMask = 1.0 - smoothstep(0.0, shadowDistancePx, edgeDistance);
+    shadowMask = clamp(shadowMask, 0.0, 1.0);
+
+    // optional extra feathering for chroma (slightly softer than shadow)
+    float chromaFeather = 1.15; // >1.0 makes chroma fade a bit more gradually
+    float chromaMask = 1.0 - smoothstep(0.0, shadowDistancePx * chromaFeather, edgeDistance);
+    chromaMask = clamp(chromaMask, 0.0, 1.0);
+
+    // Chromatic aberration base intensity scaled by depthFalloff
     float chromaIntensity = u_chromaticAberration * 0.001 * depthFalloff;
+
     vec2 refractionDir = length(baseOffset) > 0.0001 ? normalize(baseOffset) : vec2(0.0);
 
     vec3 refractR_in = refract(-viewDir, surfaceNormal3D, 1.0 / (u_ior - 0.012));
     vec3 refractR_out = refract(refractR_in, -surfaceNormal3D, u_ior - 0.012);
-    vec2 offsetR = (refractR_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
-    offsetR -= refractionDir * chromaIntensity;
+    vec2 offsetR_raw = (refractR_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
+    offsetR_raw -= refractionDir * chromaIntensity;
 
     vec2 offsetG = baseOffset;
 
     vec3 refractB_in = refract(-viewDir, surfaceNormal3D, 1.0 / (u_ior + 0.012));
     vec3 refractB_out = refract(refractB_in, -surfaceNormal3D, u_ior + 0.012);
-    vec2 offsetB = (refractB_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
-    offsetB += refractionDir * chromaIntensity;
+    vec2 offsetB_raw = (refractB_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
+    offsetB_raw += refractionDir * chromaIntensity;
 
+    // Blend chroma offsets toward the green/base offset using chromaMask to avoid visible bound
+    vec2 offsetR = mix(offsetG, offsetR_raw, chromaMask);
+    vec2 offsetB = mix(offsetG, offsetB_raw, chromaMask);
+
+    // BLUR sampling (fixed)
     vec2 texelSize = 1.0 / u_resolution;
     float blur = u_blurRadius * 0.75;
 
-    vec3 cR = blur9(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur);
-    vec3 cG = blur9(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur);
-    vec3 cB = blur9(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur);
+    // Build shadow tint (applied to sampled background)
+    vec3 shadowTint = mix(vec3(1.0), u_shadowColor.rgb, shadowMask * u_shadowColor.a);
+
+    // Sample (3x3) with per-axis steps using our fixed blur helper
+    vec3 cR = blur9_fixed(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur) * shadowTint;
+    vec3 cG = blur9_fixed(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur) * shadowTint;
+    vec3 cB = blur9_fixed(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur) * shadowTint;
 
     vec3 finalColor = vec3(cR.r, cG.g, cB.b) * u_brightness;
 
+    // Height-based overlay
     float height_val = getHeightFromSDF(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
     float overlayStrength = height_val * 0.06 * (1.0 - depthFalloff * 0.3);
     vec3 colorWithOverlay = mix(finalColor, u_overlayColor.rgb, overlayStrength);
 
+    // Highlight
     float highlight_dist = abs(dist_for_shape_boundary);
     float highlight_alpha = (1.0 - smoothstep(0.0, u_highlightWidth, highlight_dist));
 

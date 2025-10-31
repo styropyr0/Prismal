@@ -19,8 +19,8 @@
                 android:id="@+id/txt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/white"
-                android:textSize="28sp"
+                android:textColor="@color/black"
+                android:textSize="30sp"
                 android:text="@string/i_see" />
 
         </LinearLayout>
