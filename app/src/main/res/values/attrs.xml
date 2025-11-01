@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="PrismalFrameLayout">
         <attr name="glassWidth" format="float" />
         <attr name="glassHeight" format="float" />
         <attr name="ior" format="float" />
-        <attr name="glassThickness" format="float" />
+        <attr name="glassThickness" format="dimension" />
         <attr name="normalStrength" format="float" />
         <attr name="displacementScale" format="float" />
         <attr name="heightTransitionWidth" format="float" />
@@ -14,5 +13,78 @@
         <attr name="chromaticAberration" format="float" />
         <attr name="brightness" format="float" />
         <attr name="showNormals" format="boolean" />
+        <attr name="cornerRadius" format="dimension" />
+    </declare-styleable>
+
+    <attr name="thumbWidth" format="dimension" />
+    <attr name="thumbCornerRadius" format="dimension" />
+    <attr name="thumbIOR" format="float" />
+    <attr name="thumbNormalStrength" format="float" />
+    <attr name="thumbDisplacementScale" format="float" />
+    <attr name="thumbBlurRadius" format="float" />
+    <attr name="thumbChromaticAberration" format="float" />
+    <attr name="thumbBrightness" format="float" />
+    <attr name="thumbShadowSoftness" format="float" />
+    <attr name="thumbShadowAlpha" format="integer" />
+
+    <declare-styleable name="PrismalSwitch">
+        <attr name="isOn" format="boolean" />
+        <attr name="animDuration" format="integer" />
+        <attr name="trackHeight" format="dimension" />
+        <attr name="onColor" format="color" />
+        <attr name="offColor" format="color" />
+        <attr name="thumbWidth" />
+        <attr name="thumbCornerRadius" />
+        <attr name="thumbIOR" />
+        <attr name="thumbNormalStrength" />
+        <attr name="thumbDisplacementScale" />
+        <attr name="thumbBlurRadius" />
+        <attr name="thumbChromaticAberration" />
+        <attr name="thumbBrightness" />
+        <attr name="thumbShadowSoftness" />
+        <attr name="thumbShadowAlpha" />
+    </declare-styleable>
+
+    <declare-styleable name="PrismalSlider">
+        <attr name="maxValue" format="float" />
+        <attr name="thumbWidth" />
+        <attr name="thumbCornerRadius" />
+        <attr name="thumbIOR" />
+        <attr name="thumbNormalStrength" />
+        <attr name="thumbDisplacementScale" />
+        <attr name="thumbBlurRadius" />
+        <attr name="thumbChromaticAberration" />
+        <attr name="thumbBrightness" />
+        <attr name="thumbShadowSoftness" />
+        <attr name="thumbShadowAlpha" />
+    </declare-styleable>
+
+    <declare-styleable name="PrismalButton">
+        <attr name="ior" />
+        <attr name="normalStrength" />
+        <attr name="displacementScale" />
+        <attr name="blurRadius" />
+        <attr name="chromaticAberration" />
+        <attr name="cornerRadius" />
+        <attr name="highlightWidth" />
+        <attr name="brightness" />
+        <attr name="showNormals" />
+    </declare-styleable>
+
+    <declare-styleable name="PrismalIconButton">
+        <attr name="iconPadding" format="dimension"/>
+        <attr name="pressScale" format="float"/>
+        <attr name="animDuration"/>
+        <attr name="ior"/>
+        <attr name="normalStrength"/>
+        <attr name="displacementScale"/>
+        <attr name="blurRadius"/>
+        <attr name="chromaticAberration"/>
+        <attr name="brightness"/>
+        <attr name="highlightWidth"/>
+        <attr name="showNormals"/>
+        <attr name="iconSrc" format="reference" />
+        <attr name="iconTint"/>
+        <attr name="buttonSize" format="dimension" />
     </declare-styleable>
 </resources>

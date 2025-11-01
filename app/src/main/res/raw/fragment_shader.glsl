@@ -80,20 +80,44 @@ vec2 computeSurfaceGradient(vec2 shapeCoord, vec2 glassSize, vec2 halfSize, floa
     return vec2(grad_x, grad_y);
 }
 
-// NOTE: we keep a simple 3x3 blur but ensure dx/dy are per-axis (no diagonal-only sampling)
-vec3 blur9_fixed(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius){
-    const float coeff = 1.0 / 9.0;
+float getShapeOpacity(vec2 sampleCoord, vec2 glassSize, vec2 halfSize, float radius, float smoothing, float inset) {
+    vec2 samplePixel = sampleCoord * glassSize;
+    float dist = sdRoundedBoxSmooth(samplePixel, halfSize, radius, smoothing);
+    float edgeDist = -dist;
+
+    float opacity = 1.0 - smoothstep(-inset, 0.0, dist);
+    float aa_feather = 1.5;
+    opacity = mix(opacity, 1.0, smoothstep(0.0, aa_feather, edgeDist));
+
+    return opacity;
+}
+
+vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius, vec2 glassSize, vec2 halfSize, float cornerRadius, float smoothing, float inset, vec2 currentShapeCoord){
     vec3 accum = vec3(0.0);
+    float weightSum = 0.0;
+
     vec2 dx = vec2(texelSize.x * radius, 0.0);
     vec2 dy = vec2(0.0, texelSize.y * radius);
+
     for(int y = -1; y <= 1; ++y){
         for(int x = -1; x <= 1; ++x){
-            vec2 sampleUV = uv + offset + float(x) * dx + float(y) * dy;
+            vec2 sampleOffset = float(x) * dx + float(y) * dy;
+            vec2 sampleUV = uv + offset + sampleOffset;
             sampleUV = clamp(sampleUV, vec2(0.001), vec2(0.999));
-            accum += texture2D(tex, sampleUV).rgb;
+
+            vec2 offsetInShapeSpace = sampleOffset / texelSize * u_resolution / glassSize;
+            vec2 sampleShapeCoord = currentShapeCoord + offsetInShapeSpace;
+
+            float sampleOpacity = getShapeOpacity(sampleShapeCoord, glassSize, halfSize, cornerRadius, smoothing, inset);
+
+            if(sampleOpacity > 0.001) {
+                accum += texture2D(tex, sampleUV).rgb * sampleOpacity;
+                weightSum += sampleOpacity;
+            }
         }
     }
-    return accum * coeff;
+
+    return weightSum > 0.001 ? accum / weightSum : vec3(0.0);
 }
 
 void main() {
@@ -129,98 +153,61 @@ void main() {
     float fresnelFactor = fresnel(surfaceNormal3D, viewDir, u_ior);
 
     vec2 centeredCoord = v_shapeCoord - vec2(0.5);
-    float distFromCenter = length(centeredCoord);
 
-    float refractionStrength = depthFalloff * (0.8 + fresnelFactor * 0.2);
+    float refractionStrength = depthFalloff * (0.3 + fresnelFactor * 0.1);
 
     vec3 refractedIn = refract(-viewDir, surfaceNormal3D, 1.0 / u_ior);
     vec3 refractedOut = refract(refractedIn, -surfaceNormal3D, u_ior);
 
-    vec2 refractionOffset = refractedOut.xy * u_glassThickness * refractionStrength;
+    vec2 refractionOffset = refractedOut.xy * u_glassThickness * refractionStrength * 0.5;
     vec2 baseOffset = (refractionOffset / u_resolution) * u_displacementScale;
 
-    // --- SHADOW / CHROMA MASK COMPUTATION (robust) ---
+    float height_val = getHeightFromSDF(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+
     float minDim = min(u_glassSize.x, u_glassSize.y);
-    float shadowDistancePx;
-    if (u_shadowSoftness <= 1.0) {
-        // treat as fraction of half-min-dimension
-        shadowDistancePx = clamp(u_shadowSoftness * (minDim * 0.5), 1.0, minDim * 0.5);
-    } else {
-        // treat as pixel amount
-        shadowDistancePx = clamp(u_shadowSoftness, 1.0, minDim * 0.5);
-    }
 
-    // shadowMask: 1.0 near inner edge, fades smoothly to 0.0 toward center
-    float shadowMask = 1.0 - smoothstep(0.0, shadowDistancePx, edgeDistance);
-    shadowMask = clamp(shadowMask, 0.0, 1.0);
+    float shadowExtent = mix(0.15, 0.60, clamp(u_shadowSoftness, 0.0, 1.0));
+    float innerShadowFalloff = minDim * shadowExtent;
 
-    // optional extra feathering for chroma (slightly softer than shadow)
-    float chromaFeather = 1.15; // >1.0 makes chroma fade a bit more gradually
+    float innerShadow = 1.0 - smoothstep(0.0, innerShadowFalloff, edgeDistance);
+    innerShadow = pow(innerShadow, 2.0);
+    innerShadow *= 0.85;
+    innerShadow *= (0.3 + height_val * 0.7);
 
-// Chromatic aberration with smooth falloff: ramp up from edge, then ramp down toward center
-    float chromaFeatherDist = shadowDistancePx * 1.5; // Transition zone
-
-    // Ramp up from outer edge
-    float chromaRampUp = smoothstep(0.0, chromaFeatherDist, edgeDistance);
-
-    // Ramp down as you go toward center
-    float chromaRampDown = 1.0 - smoothstep(chromaFeatherDist, minDim * 0.35, edgeDistance);
-
-    // Combine: starts at 0, peaks in middle zone, fades back to 0 at center
-    float chromaMask = chromaRampUp * chromaRampDown;
-    chromaMask = clamp(chromaMask, 0.0, 1.0);
-
-    // Chromatic aberration base intensity scaled by depthFalloff
-    float chromaIntensity = u_chromaticAberration * 0.003 * depthFalloff;
-
+    float chromaIntensity = u_chromaticAberration * 0.002 * depthFalloff;
     vec2 refractionDir = length(baseOffset) > 0.0001 ? normalize(baseOffset) : vec2(0.0);
 
-    vec3 refractR_in = refract(-viewDir, surfaceNormal3D, 1.0 / (u_ior - 0.012));
-    vec3 refractR_out = refract(refractR_in, -surfaceNormal3D, u_ior - 0.012);
-    vec2 offsetR_raw = (refractR_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
-    offsetR_raw -= refractionDir * chromaIntensity;
-
+    vec2 offsetR = baseOffset - refractionDir * chromaIntensity;
     vec2 offsetG = baseOffset;
+    vec2 offsetB = baseOffset + refractionDir * chromaIntensity;
 
-    vec3 refractB_in = refract(-viewDir, surfaceNormal3D, 1.0 / (u_ior + 0.012));
-    vec3 refractB_out = refract(refractB_in, -surfaceNormal3D, u_ior + 0.012);
-    vec2 offsetB_raw = (refractB_out.xy * u_glassThickness * refractionStrength / u_resolution) * u_displacementScale;
-    offsetB_raw += refractionDir * chromaIntensity;
-
-    // Blend chroma offsets toward the green/base offset using chromaMask to avoid visible bound
-    vec2 offsetR = mix(offsetG, offsetR_raw, chromaMask);
-    vec2 offsetB = mix(offsetG, offsetB_raw, chromaMask);
-
-    // BLUR sampling (fixed)
     vec2 texelSize = 1.0 / u_resolution;
-    float blur = u_blurRadius * 0.75;
+    float blur = u_blurRadius * 0.5;
 
-    // Build shadow tint (applied to sampled background)
-    vec3 shadowTint = mix(vec3(1.0), u_shadowColor.rgb, shadowMask * u_shadowColor.a);
+    vec3 cR = blur9(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
+    vec3 cG = blur9(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
+    vec3 cB = blur9(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
 
-    // Sample (3x3) with per-axis steps using our fixed blur helper
-    vec3 cR = blur9_fixed(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur) * shadowTint;
-    vec3 cG = blur9_fixed(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur) * shadowTint;
-    vec3 cB = blur9_fixed(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur) * shadowTint;
+    vec3 refractedColor = vec3(cR.r, cG.g, cB.b);
 
-    vec3 finalColor = vec3(cR.r, cG.g, cB.b) * u_brightness;
+    vec3 brightenedColor = refractedColor * u_brightness;
 
-    // Height-based overlay
-    float height_val = getHeightFromSDF(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    float overlayStrength = height_val * 0.06 * (1.0 - depthFalloff * 0.3);
+    vec3 shadowColor = u_shadowColor.rgb * 0.3;
+    float shadowAmount = innerShadow * u_shadowColor.a;
+    vec3 finalColor = mix(brightenedColor, shadowColor, shadowAmount);
+
+    float overlayStrength = height_val * 0.03;
     vec3 colorWithOverlay = mix(finalColor, u_overlayColor.rgb, overlayStrength);
 
-    // Highlight
-    float highlight_dist = abs(dist_for_shape_boundary);
-    float highlight_alpha = (1.0 - smoothstep(0.0, u_highlightWidth, highlight_dist));
+    float outerEdgeHighlight = smoothstep(3.0, 0.0, edgeDistance) * smoothstep(-1.0, 0.0, dist_for_shape_boundary);
+    outerEdgeHighlight *= (0.5 + fresnelFactor * 0.5);
 
-    float normalDot = dot(surfaceNormal3D.xy, normalize(centeredCoord + vec2(0.3, 0.3)));
-    float directionalFactor = 0.5 + 0.5 * normalDot;
-
-    float finalHighlightAlpha = highlight_alpha * directionalFactor * (0.6 + fresnelFactor * 0.4);
+    vec2 lightDir = normalize(vec2(-1.0, -1.0));
+    float lightDot = dot(surfaceNormal3D.xy, lightDir);
+    float directionalHighlight = smoothstep(-0.3, 0.5, lightDot) * outerEdgeHighlight;
 
     vec3 highlightColor = vec3(1.0);
-    vec3 finalMixed = mix(colorWithOverlay, highlightColor, finalHighlightAlpha * 0.7);
+    vec3 finalMixed = mix(colorWithOverlay, highlightColor, directionalHighlight * 0.5);
 
     gl_FragColor = vec4(finalMixed, opacity);
 }

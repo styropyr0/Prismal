@@ -9,13 +9,45 @@ import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import androidx.core.content.res.use
 import androidx.core.graphics.toColorInt
 import kotlin.math.max
-import kotlin.math.min
 
 /**
- * A self-contained glass-like slider using Prismal rendering.
- * Includes a background track and a draggable refractive thumb.
+ * ## PrismalSlider
+ *
+ * A **glass-like slider** component built on top of the `PrismalFrameLayout`.
+ * It provides a smooth, refractive thumb that can be dragged horizontally
+ * along a background track. Ideal for volume, brightness, or custom value sliders.
+ *
+ * ### Features
+ * - Real-time refractive thumb using Prismal rendering.
+ * - Configurable thumb width, corner radius, blur, and optical parameters.
+ * - XML attribute support for customization.
+ * - Smooth touch tracking with live value updates.
+ * - Easy integration with `setOnValueChangedListener()`.
+ *
+ * ### Example Usage
+ * ```xml
+ * <com.matrix.prismal.PrismalSlider
+ *     android:id="@+id/slider"
+ *     android:layout_width="match_parent"
+ *     android:layout_height="80dp"
+ *     app:thumbWidth="60dp"
+ *     app:maxValue="200"
+ *     app:thumbCornerRadius="50"
+ *     app:thumbIOR="1.35"
+ *     app:thumbBlurRadius="5"
+ *     app:thumbBrightness="1.3" />
+ * ```
+ *
+ * ```kotlin
+ * slider.setOnValueChangedListener { value ->
+ *     // React to slider movement
+ * }
+ * ```
+ *
+ * @author Saurav Sajeev
  */
 @SuppressLint("ClickableViewAccessibility")
 class PrismalSlider @JvmOverloads constructor(
@@ -40,25 +72,9 @@ class PrismalSlider @JvmOverloads constructor(
         }
     }
 
-    // Thumb (the glassy refractive element)
     private val thumb = PrismalFrameLayout(context).apply {
-        setCornerRadius(50f)
-        setIOR(1.35f)
-        setNormalStrength(8f)
-        setMinSmoothing(10f)
-        setDisplacementScale(10f)
-        setRefractionInset(100f)
         setHeightBlurFactor(30f)
-        setBlurRadius(3f)
-        setChromaticAberration(60f)
-        setBrightness(1f)
-        setShowNormals(false)
-        setShadowProperties(Color.argb(80, 0, 0, 0), 0.25f)
     }
-
-    private fun dp(value: Float) =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics)
-
 
     private val sliderTouchListener = OnTouchListener { _, event ->
         when (event.actionMasked) {
@@ -98,16 +114,36 @@ class PrismalSlider @JvmOverloads constructor(
     init {
         addView(track, LayoutParams(LayoutParams.MATCH_PARENT, trackHeight.toInt()).apply {
             gravity = android.view.Gravity.CENTER_VERTICAL
-
             leftMargin = dp(20f).toInt()
             rightMargin = dp(20f).toInt()
         })
 
         addView(thumb, LayoutParams(thumbWidth.toInt(), LayoutParams.MATCH_PARENT))
-
         thumb.setOnTouchListener(sliderTouchListener)
+
+        context.obtainStyledAttributes(attrs, R.styleable.PrismalSlider).use { a ->
+            maxValue = a.getFloat(R.styleable.PrismalSlider_maxValue, 100f)
+            val widthDp = a.getDimension(R.styleable.PrismalSlider_thumbWidth, thumbWidth)
+            thumbWidth = widthDp
+            thumb.layoutParams.width = thumbWidth.toInt()
+
+            thumb.setCornerRadius(a.getFloat(R.styleable.PrismalSlider_thumbCornerRadius, 50f))
+            thumb.setIOR(a.getFloat(R.styleable.PrismalSlider_thumbIOR, 1.85f))
+            thumb.setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 10f))
+            thumb.setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_thumbDisplacementScale, 16f))
+            thumb.setBlurRadius(a.getFloat(R.styleable.PrismalSlider_thumbBlurRadius, 1f))
+            thumb.setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 8f))
+            thumb.setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.175f))
+            val thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
+            val  thumbShadowAlpha = a.getInt(R.styleable.PrismalSlider_thumbShadowAlpha, 80).coerceIn(0, 255)
+            setThumbShadow(Color.argb(thumbShadowAlpha, 0, 0, 0), thumbShadowSoftness)
+        }
     }
 
+    /**
+     * Sets the current value of the slider (0–[maxValue]).
+     * Automatically updates the thumb position.
+     */
     fun setValue(value: Float) {
         val clamped = value.coerceIn(0f, maxValue)
         currentValue = clamped
@@ -118,16 +154,28 @@ class PrismalSlider @JvmOverloads constructor(
         }
     }
 
+    /** Returns the current slider value. */
     fun getValue(): Float = currentValue
 
+    /**
+     * Sets the maximum possible slider value.
+     * The default is 100.
+     */
     fun setMaxValue(value: Float) {
         maxValue = max(1f, value)
     }
 
+    /**
+     * Registers a listener that receives the current slider value
+     * whenever the thumb position changes.
+     */
     fun setOnValueChangedListener(listener: (Float) -> Unit) {
         onValueChanged = listener
     }
 
+    /**
+     * Sets the width of the thumb in dp.
+     */
     fun setThumbWidthDp(dpValue: Float) {
         thumbWidth = dp(dpValue)
         thumb.layoutParams = thumb.layoutParams.apply {
@@ -135,4 +183,19 @@ class PrismalSlider @JvmOverloads constructor(
         }
         requestLayout()
     }
+
+    fun setThumbIOR(value: Float) = thumb.apply { setIOR(value); updateBackground() }
+    fun setThumbNormalStrength(value: Float) = thumb.apply { setNormalStrength(value); updateBackground() }
+    fun setThumbDisplacementScale(value: Float) = thumb.apply { setDisplacementScale(value); updateBackground() }
+    fun setThumbBlurRadius(value: Float) = thumb.apply { setBlurRadius(value); updateBackground() }
+    fun setThumbChromaticAberration(value: Float) = thumb.apply { setChromaticAberration(value); updateBackground() }
+    fun setThumbCornerRadius(value: Float) = thumb.apply { setCornerRadius(value); updateBackground() }
+    fun setThumbBrightness(value: Float) = thumb.apply { setBrightness(value); updateBackground() }
+    fun setThumbShowNormals(enabled: Boolean) = thumb.apply { setShowNormals(enabled); updateBackground() }
+    fun setThumbShadow(color: Int, radius: Float) = thumb.apply { setShadowProperties(color, radius); updateBackground() }
+    fun setThumbHeightBlurFactor(value: Float) = thumb.apply { setHeightBlurFactor(value); updateBackground() }
+    fun getThumb(): PrismalFrameLayout = thumb
+
+    private fun dp(value: Float) =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics)
 }

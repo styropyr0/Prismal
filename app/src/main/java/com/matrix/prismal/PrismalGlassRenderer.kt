@@ -15,6 +15,111 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.max
 
+/**
+ * ## PrismalGlassRenderer
+ *
+ * `PrismalGlassRenderer` is the core OpenGL ES 2.0 renderer responsible for rendering the
+ * glass-like prismal effect within the **Prismal** framework. It draws both the background
+ * and the interactive glass layer with refraction, blurring, shadow, and highlight effects.
+ *
+ * This renderer manages all OpenGL shader programs, uniforms, and textures needed to simulate
+ * realistic refractive glass and lighting behaviors, including chromatic aberration, blur,
+ * shadow softness, and optical thickness adjustments.
+ *
+ * ### Rendering Overview
+ * The rendering process occurs in two main stages:
+ * 1. **Background Rendering:**
+ *    A fullscreen textured quad is drawn to represent the background scene.
+ *    The background can be set dynamically using `setBackgroundTexture()`.
+ *
+ * 2. **Glass Rendering:**
+ *    The glass effect is drawn on top using a separate shader program.
+ *    Parameters like refraction index, corner radius, brightness, shadow softness,
+ *    and chromatic aberration are adjustable through dedicated setter methods.
+ *
+ * ### Key Features
+ * - Configurable glass size, shape, and corner radius.
+ * - Adjustable Index of Refraction (IOR) and glass thickness for realism.
+ * - Blur-based refraction and light dispersion simulation.
+ * - Customizable shadow and highlight effects.
+ * - Dynamic background texture binding.
+ * - Touch interaction support for mouse-like movement effects.
+ * - Option to visualize surface normals for debugging (`showNormals`).
+ *
+ * ### Shader Programs
+ * - **Background Shader:** Draws the static or dynamic background texture.
+ * - **Glass Shader:** Implements refraction, shadowing, blurring, and chromatic aberration effects.
+ *
+ * ### Uniform Variables (Fragment Shader)
+ * The following key uniforms are handled and updated by this renderer:
+ * - `u_resolution` → Screen dimensions (in pixels).
+ * - `u_mousePos` → Touch/mouse interaction coordinates.
+ * - `u_glassSize` → Width and height of the rendered glass area.
+ * - `u_cornerRadius` → Radius of rounded glass corners.
+ * - `u_ior` → Index of refraction controlling light bending.
+ * - `u_glassThickness` → Simulated thickness of the glass surface.
+ * - `u_normalStrength` → Strength of the normal map effect.
+ * - `u_displacementScale` → Depth distortion scale.
+ * - `u_blurRadius` → Gaussian blur radius for refraction.
+ * - `u_overlayColor` → Overlay tint applied to the glass.
+ * - `u_chromaticAberration` → RGB channel displacement for dispersion.
+ * - `u_brightness` → Final color multiplier for the glass.
+ * - `u_refractionInset` → Pixel inset to avoid edge artifacts during refraction.
+ * - `u_shadowColor`, `u_shadowSoftness` → Shadow rendering parameters.
+ * - `u_edgeRefractionFalloff` → Gradient falloff at the glass edges.
+ *
+ * ### Texture Management
+ * The renderer creates and maintains one OpenGL texture:
+ * - **Background Texture:** The main texture that gets refracted through the glass.
+ *   Can be replaced at runtime with a new `Bitmap` via `setBackgroundTexture()`.
+ *
+ * A placeholder texture (solid blue color) is generated during initialization
+ * if no background texture is yet provided.
+ *
+ * ### Public Configuration Methods
+ * - `setGlassSize(w, h)` → Defines the dimensions of the glass.
+ * - `setCornerRadius(v)` → Sets the rounded corner radius.
+ * - `setIOR(v)` → Adjusts the optical refraction index.
+ * - `setGlassThickness(v)` → Changes simulated glass thickness.
+ * - `setNormalStrength(v)` → Modifies normal map intensity.
+ * - `setBlurRadius(v)` → Controls blur strength.
+ * - `setBrightness(v)` → Alters the brightness of the glass reflection.
+ * - `setShadowProperties(color, softness)` → Customizes shadow tint and blur.
+ * - `setChromaticAberration(v)` → Adjusts dispersion strength.
+ * - `setShowNormals(v)` → Toggles normal visualization.
+ * - `setRefractionInset(v)` → Reduces edge refraction bleeding.
+ * - `setBackgroundTexture(bitmap)` → Updates the background source.
+ *
+ * ### Touch & Interaction
+ * - `setMousePosition(x, y)` → Updates current pointer/touch location.
+ * - `setTouching(t)` → Enables or disables interaction-driven updates.
+ *
+ * ### Internal Responsibilities
+ * - Compiles and links shaders using `compileShader()` and `linkProgram()`.
+ * - Manages OpenGL texture creation and deletion to prevent memory leaks.
+ * - Sets and updates all relevant uniforms per frame.
+ * - Renders geometry through two quads (background and glass).
+ *
+ * ### Usage Notes
+ * - This class is **internal** and designed for use within the Prismal engine only.
+ * - To use it externally, wrap it within a `GLSurfaceView` (e.g., `PrismalFrameLayout`).
+ * - All OpenGL calls must be executed on the GL thread.
+ *
+ * ### Example Lifecycle
+ * ```
+ * val renderer = PrismalGlassRenderer(context)
+ * glSurfaceView.setRenderer(renderer)
+ *
+ * renderer.setGlassSize(400f, 260f)
+ * renderer.setIOR(1.45f)
+ * renderer.setBlurRadius(2.0f)
+ * renderer.setShadowProperties(Color.BLACK, 0.25f)
+ * ```
+ *
+ * @author Saurav Sajeev
+ * Licensed under the MIT License
+ */
+
 internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
     companion object {
@@ -135,7 +240,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         uShadowColor = glGetUniformLocation(glassProgram, "u_shadowColor")
         uShadowOffset = glGetUniformLocation(glassProgram, "u_shadowOffset")
         uShadowSoftness = glGetUniformLocation(glassProgram, "u_shadowSoftness")
-        uShadowSoftness = glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
+        uEdgeRefractionFalloff = glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
 
         glClearColor(0f, 0f, 0f, 0f)
         glEnable(GL_BLEND)

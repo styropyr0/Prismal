@@ -1,7 +1,8 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
-    android:background="@drawable/wp14328993"
+    android:background="@drawable/bg2"
     android:layout_height="match_parent">
 
     <ScrollView
@@ -15,41 +16,43 @@
 
             <TextView
                 android:id="@+id/txt"
-                android:layout_width="200dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:text="@string/i_see"
                 android:textColor="@color/white"
-                android:textSize="30sp"
-                android:text="@string/i_see" />
+                android:textSize="16sp" />
+
+
+            <com.matrix.prismal.PrismalSwitch
+                android:id="@+id/liquidSlider"
+                android:layout_width="100dp"
+                android:layout_height="40dp"
+                app:thumbChromaticAberration="20"
+                android:layout_gravity="center"
+                android:layout_marginTop="20dp" />
+
+            <com.matrix.prismal.PrismalIconButton
+                android:id="@+id/prismalButton"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                app:iconSrc="@drawable/icon"
+                app:iconPadding="12dp"
+                app:pressScale="0.85"
+                android:layout_marginVertical="10dp"
+                android:layout_gravity="center"
+                app:blurRadius="2.5"
+                app:ior="1.8"
+                app:animDuration="200" />
+
+            <com.matrix.prismal.PrismalSlider
+                android:layout_width="250dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                app:thumbShadowAlpha="80"
+                app:thumbShadowSoftness="0.2" />
+
 
         </LinearLayout>
     </ScrollView>
-
-    <com.matrix.prismal.PrismalFrameLayout
-        android:id="@+id/liquidButton"
-        android:layout_gravity="bottom|center"
-        android:layout_marginBottom="30dp"
-        android:layout_marginTop="30dp"
-        android:outlineAmbientShadowColor="#00B624"
-        android:layout_marginHorizontal="30dp"
-        android:layout_width="wrap_content"
-        android:layout_height="100dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Press"
-            android:textAlignment="center"
-            android:textColor="@android:color/white"
-            android:textSize="22sp"
-            android:layout_gravity="center"/>
-
-    </com.matrix.prismal.PrismalFrameLayout>
-
-    <com.matrix.prismal.PrismalSlider
-        android:id="@+id/liquidSlider"
-        android:layout_width="match_parent"
-        android:layout_marginHorizontal="100dp"
-        android:layout_height="40dp"/>
-
-
 </FrameLayout>

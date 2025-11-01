@@ -71,14 +71,35 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     }
 
     init {
-        context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalFrameLayout, 0, 0).apply {
-
-        }
-
         glSurface.setRenderer(renderer)
         glSurface.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
         glSurface.setOnTouchListener(this)
 
+        context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalFrameLayout, 0, 0).apply {
+            try {
+                getFloat(R.styleable.PrismalFrameLayout_glassWidth, -1f).takeIf { it > 0 }
+                    ?.let { w ->
+                        getFloat(
+                            R.styleable.PrismalFrameLayout_glassHeight,
+                            -1f
+                        ).takeIf { it > 0 }?.let { h -> setGlassSize(w, h) }
+                    }
+                setIOR(getFloat(R.styleable.PrismalFrameLayout_ior, 1.5f))
+                setThickness(getDimension(R.styleable.PrismalFrameLayout_glassThickness, 15f))
+                setNormalStrength(getFloat(R.styleable.PrismalFrameLayout_normalStrength, 1.2f))
+                setDisplacementScale(getFloat(R.styleable.PrismalFrameLayout_displacementScale, 1.0f))
+                setHeightBlurFactor(getFloat(R.styleable.PrismalFrameLayout_heightTransitionWidth, 8f))
+                setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_minSmoothing, 1.0f))
+                setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_blurRadius, 2.5f))
+                setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_highlightWidth, 4.0f))
+                setChromaticAberration(getFloat(R.styleable.PrismalFrameLayout_chromaticAberration, 2.0f))
+                setBrightness(getFloat(R.styleable.PrismalFrameLayout_brightness, 1.15f))
+                setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_showNormals, false))
+                setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_cornerRadius, 10f))
+            } finally {
+                recycle()
+            }
+        }
         addView(glSurface, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
 
         isChildrenDrawingOrderEnabled = true
