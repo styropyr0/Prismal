@@ -15,7 +15,7 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.max
 
-class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Renderer {
+internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
     companion object {
         private const val TAG = "PrismalGlassRenderer"
@@ -137,7 +137,7 @@ class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Rendere
         uShadowSoftness = glGetUniformLocation(glassProgram, "u_shadowSoftness")
         uShadowSoftness = glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
 
-        glClearColor(0.1f, 0.1f, 0.1f, 1f)
+        glClearColor(0f, 0f, 0f, 0f)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 

@@ -4,5 +4,15 @@
         <attr name="glassWidth" format="float" />
         <attr name="glassHeight" format="float" />
         <attr name="ior" format="float" />
+        <attr name="glassThickness" format="float" />
+        <attr name="normalStrength" format="float" />
+        <attr name="displacementScale" format="float" />
+        <attr name="heightTransitionWidth" format="float" />
+        <attr name="minSmoothing" format="float" />
+        <attr name="blurRadius" format="float" />
+        <attr name="highlightWidth" format="float" />
+        <attr name="chromaticAberration" format="float" />
+        <attr name="brightness" format="float" />
+        <attr name="showNormals" format="boolean" />
     </declare-styleable>
 </resources>

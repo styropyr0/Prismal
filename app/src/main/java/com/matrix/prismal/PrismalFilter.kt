@@ -3,8 +3,22 @@ package com.matrix.prismal
 import android.graphics.Color
 
 /**
- * Preset filter styles for PrismalFrameLayout
- * Values are carefully calibrated based on the shader's internal scaling and behavior
+ * Preset filter styles for [PrismalFrameLayout], defining configurable parameters for realistic glass effects.
+ * Values are calibrated based on the shader's internal scaling (e.g., chromatic aberration is multiplied by 0.003 in the fragment shader)
+ * and real-world optical properties where applicable (e.g., Index of Refraction drawn from common glass types).<grok-card data-id="89996f" data-type="citation_card"></grok-card><grok-card data-id="212c78" data-type="citation_card"></grok-card><grok-card data-id="ad5fb7" data-type="citation_card"></grok-card>
+ *
+ * ### Calibration Notes:
+ * - **IOR (Index of Refraction)**: Adjusted to match typical values:
+ *   - Soda-lime/crown glass: ~1.52
+ *   - Borosilicate: ~1.47
+ *   - Flint glass: 1.58–1.75
+ *   - Dense/heavy flint (crystal-like): ~1.65–1.75
+ *   - Exaggerated for dramatic/prism effects: up to 1.90
+ * - Other parameters (e.g., blur, thickness) are artistic tunings for visual appeal on mobile screens.
+ * - Apply via [applyTo] or the extension [PrismalFrameLayout.applyFilter].
+ *
+ * @see [PrismalFrameLayout.setIOR] for runtime adjustments
+ * @author Saurav Sajeev
  */
 data class PrismalFilter(
     val name: String,
@@ -18,7 +32,7 @@ data class PrismalFilter(
     val minSmoothing: Float = 2f,
     val blurRadius: Float = 2f,
     val highlightWidth: Float = 3f,
-    val chromaticAberration: Float = 0f, // Shader scales by 0.003, so 100 = 0.3 actual
+    val chromaticAberration: Float = 0f, // Shader scales by 0.003, so 100 = 0.3 actual pixels of offset
     val brightness: Float = 1.0f,
     val shadowColor: Int = Color.argb(25, 0, 0, 0),
     val shadowSoftness: Float = 10f,
@@ -26,7 +40,10 @@ data class PrismalFilter(
 ) {
 
     /**
-     * Apply this filter to a PrismalFrameLayout
+     * Applies all properties of this filter to the given [PrismalFrameLayout].
+     * Queues updates on the GL thread for thread-safe rendering.
+     *
+     * @param prismal The [PrismalFrameLayout] to configure.
      */
     fun applyTo(prismal: PrismalFrameLayout) {
         prismal.setRefractionInset(refractionInset)
@@ -47,13 +64,13 @@ data class PrismalFilter(
 
     companion object {
         /**
-         * Clean, minimal glass effect with subtle refraction
+         * Clean, minimal glass effect with subtle refraction, mimicking thin soda-lime glass.
          */
         val SUBTLE = PrismalFilter(
             name = "Subtle",
             refractionInset = 8f,
             cornerRadius = 20f,
-            ior = 1.3f,
+            ior = 1.52f, // Typical soda-lime/crown glass
             thickness = 8f,
             normalStrength = 0.5f,
             displacementScale = 0.6f,
@@ -69,13 +86,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Classic frosted glass with moderate blur
+         * Classic frosted glass with moderate blur, based on standard window glass properties.
          */
         val FROSTED = PrismalFilter(
             name = "Frosted",
             refractionInset = 5f,
             cornerRadius = 24f,
-            ior = 1.5f,
+            ior = 1.52f, // Soda-lime base (frosting doesn't alter IOR significantly)
             thickness = 15f,
             normalStrength = 0.8f,
             displacementScale = 1.0f,
@@ -91,13 +108,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Heavy blur with strong depth - ideal for overlays
+         * Heavy blur with strong depth, simulating dense flint glass for overlays.
          */
         val HEAVY = PrismalFilter(
             name = "Heavy",
             refractionInset = 3f,
             cornerRadius = 28f,
-            ior = 1.6f,
+            ior = 1.65f, // Dense flint glass
             thickness = 25f,
             normalStrength = 1.2f,
             displacementScale = 1.3f,
@@ -113,13 +130,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Crystal clear with high refraction and sharp highlights
+         * Crystal clear with high refraction and sharp highlights, evoking lead crystal.
          */
         val CRYSTAL = PrismalFilter(
             name = "Crystal",
             refractionInset = 10f,
             cornerRadius = 16f,
-            ior = 1.8f,
+            ior = 1.75f, // Heavy flint/lead crystal glass
             thickness = 18f,
             normalStrength = 1.5f,
             displacementScale = 1.4f,
@@ -135,13 +152,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Soft, dreamy effect with gentle distortion
+         * Soft, dreamy effect with gentle distortion, like borosilicate glass.
          */
         val DREAMY = PrismalFilter(
             name = "Dreamy",
             refractionInset = 6f,
             cornerRadius = 32f,
-            ior = 1.4f,
+            ior = 1.47f, // Borosilicate (Pyrex-like)
             thickness = 12f,
             normalStrength = 0.6f,
             displacementScale = 0.7f,
@@ -157,13 +174,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Sharp, precise glass with minimal blur
+         * Sharp, precise glass with minimal blur, using high-flint properties.
          */
         val SHARP = PrismalFilter(
             name = "Sharp",
             refractionInset = 12f,
             cornerRadius = 12f,
-            ior = 1.7f,
+            ior = 1.70f, // High flint glass
             thickness = 14f,
             normalStrength = 1.8f,
             displacementScale = 1.5f,
@@ -179,13 +196,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Vibrant with strong chromatic aberration - rainbow prism effect
+         * Vibrant with strong chromatic aberration for a rainbow prism effect, exaggerated IOR.
          */
         val PRISM = PrismalFilter(
             name = "Prism",
             refractionInset = 7f,
             cornerRadius = 20f,
-            ior = 1.9f,
+            ior = 1.85f, // Exaggerated for prism dispersion (rare earth flint ~1.7-1.84)
             thickness = 22f,
             normalStrength = 1.4f,
             displacementScale = 1.4f,
@@ -201,13 +218,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Ultra smooth with maximum blur - privacy mode
+         * Ultra smooth with maximum blur for privacy mode, standard IOR.
          */
         val OPAQUE = PrismalFilter(
             name = "Opaque",
             refractionInset = 2f,
             cornerRadius = 36f,
-            ior = 1.35f,
+            ior = 1.52f, // Soda-lime for broad diffusion
             thickness = 30f,
             normalStrength = 0.4f,
             displacementScale = 0.5f,
@@ -223,13 +240,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Thin, barely-there glass effect
+         * Thin, barely-there glass effect with low refraction.
          */
         val WHISPER = PrismalFilter(
             name = "Whisper",
             refractionInset = 15f,
             cornerRadius = 18f,
-            ior = 1.2f,
+            ior = 1.40f, // Slightly above water for ethereal subtlety
             thickness = 5f,
             normalStrength = 0.3f,
             displacementScale = 0.4f,
@@ -245,13 +262,13 @@ data class PrismalFilter(
         )
 
         /**
-         * Bold, dramatic glass with strong effects
+         * Bold, dramatic glass with strong effects and exaggerated IOR.
          */
         val DRAMATIC = PrismalFilter(
             name = "Dramatic",
             refractionInset = 3f,
             cornerRadius = 30f,
-            ior = 2.0f,
+            ior = 1.90f, // Highly exaggerated for intense bending
             thickness = 28f,
             normalStrength = 2.0f,
             displacementScale = 1.8f,
@@ -267,7 +284,7 @@ data class PrismalFilter(
         )
 
         /**
-         * All available preset filters
+         * A list of all available preset filters for easy iteration or selection (e.g., in UI spinners).
          */
         val ALL_FILTERS = listOf(
             SUBTLE,
@@ -285,7 +302,11 @@ data class PrismalFilter(
 }
 
 /**
- * Extension function for easy filter application
+ * Extension function to easily apply a [PrismalFilter] to this [PrismalFrameLayout].
+ *
+ * @receiver The [PrismalFrameLayout] to apply the filter to.
+ * @param filter The preset or custom filter to apply.
+ * @see PrismalFilter.applyTo
  */
 fun PrismalFrameLayout.applyFilter(filter: PrismalFilter) {
     filter.applyTo(this)

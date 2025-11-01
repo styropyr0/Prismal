@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 class MainActivity : AppCompatActivity() {
 
     private lateinit var liquidButton: PrismalFrameLayout
+    private lateinit var liquidSlider: PrismalSlider
     private lateinit var rootLayout: FrameLayout
     private lateinit var label: TextView
 
@@ -17,14 +18,15 @@ class MainActivity : AppCompatActivity() {
 
         rootLayout = findViewById(R.id.root)
         label = findViewById(R.id.txt)
+        liquidSlider = findViewById(R.id.liquidSlider)
         liquidButton = findViewById(R.id.liquidButton)
         liquidButton.apply {
             setCornerRadius(200f)
 
             // Optics
             setIOR(1.55f)
-            setThickness(80f)
-            setNormalStrength(5f)
+            setThickness(40f)
+            setNormalStrength(10f)
             setMinSmoothing(10f)
 
             setDisplacementScale(10f)
