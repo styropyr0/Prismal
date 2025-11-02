@@ -61,10 +61,10 @@ dependencies {
 
 ### Requirements
 
-- **Min SDK**: 21 (Android 5.0 Lollipop)
-- **Target SDK**: 34+
+- **Min SDK**: 25 (Android 7, Nougat)
+- **Target SDK**: 36
 - **OpenGL ES**: 2.0+
-- **Kotlin**: 1.9.0+
+- **Kotlin**: 2.0.21
 
 ---
 
