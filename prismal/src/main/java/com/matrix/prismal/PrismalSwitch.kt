@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -129,13 +130,13 @@ class PrismalSwitch @JvmOverloads constructor(
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, layoutHeight.toInt())
 
         addView(track, LayoutParams(LayoutParams.MATCH_PARENT, trackHeight.toInt()).apply {
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
             leftMargin = dp(20f).toInt()
             rightMargin = dp(20f).toInt()
         })
 
         addView(thumb, LayoutParams(1, 1).apply {
-            gravity = android.view.Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
         })
 
         thumb.setOnTouchListener(switchTouchListener)

@@ -1,12 +1,13 @@
-package com.matrix.prismal
+package com.matrix.prismal.renderer
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.opengl.GLES20.*
+import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
+import com.matrix.prismal.R
 import com.matrix.prismal.utils.ShaderUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -215,36 +216,38 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         glassProgram = linkProgram(vertexCode, fragmentCode)
         if (glassProgram == 0) throw RuntimeException("Failed to create glass program")
 
-        bgPosAttrib = glGetAttribLocation(bgProgram, "a_position")
-        bgBgTextureUniform = glGetUniformLocation(bgProgram, "u_backgroundTexture")
+        bgPosAttrib = GLES20.glGetAttribLocation(bgProgram, "a_position")
+        bgBgTextureUniform = GLES20.glGetUniformLocation(bgProgram, "u_backgroundTexture")
 
-        positionAttrib = glGetAttribLocation(glassProgram, "a_position")
-        uResolution = glGetUniformLocation(glassProgram, "u_resolution")
-        uMousePos = glGetUniformLocation(glassProgram, "u_mousePos")
-        uGlassSize = glGetUniformLocation(glassProgram, "u_glassSize")
-        uCornerRadius = glGetUniformLocation(glassProgram, "u_cornerRadius")
-        uIOR = glGetUniformLocation(glassProgram, "u_ior")
-        uGlassThickness = glGetUniformLocation(glassProgram, "u_glassThickness")
-        uNormalStrength = glGetUniformLocation(glassProgram, "u_normalStrength")
-        uDisplacementScale = glGetUniformLocation(glassProgram, "u_displacementScale")
-        uHeightTransitionWidth = glGetUniformLocation(glassProgram, "u_heightTransitionWidth")
-        uSminSmoothing = glGetUniformLocation(glassProgram, "u_sminSmoothing")
-        uShowNormals = glGetUniformLocation(glassProgram, "u_showNormals")
-        uBlurRadius = glGetUniformLocation(glassProgram, "u_blurRadius")
-        uOverlayColor = glGetUniformLocation(glassProgram, "u_overlayColor")
-        uHighlightWidth = glGetUniformLocation(glassProgram, "u_highlightWidth")
-        uChromaticAberration = glGetUniformLocation(glassProgram, "u_chromaticAberration")
-        uBrightness = glGetUniformLocation(glassProgram, "u_brightness")
-        backgroundTextureUniform = glGetUniformLocation(glassProgram, "u_backgroundTexture")
-        uRefractionInset = glGetUniformLocation(glassProgram, "u_refractionInset")
-        uShadowColor = glGetUniformLocation(glassProgram, "u_shadowColor")
-        uShadowOffset = glGetUniformLocation(glassProgram, "u_shadowOffset")
-        uShadowSoftness = glGetUniformLocation(glassProgram, "u_shadowSoftness")
-        uEdgeRefractionFalloff = glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
+        positionAttrib = GLES20.glGetAttribLocation(glassProgram, "a_position")
+        uResolution = GLES20.glGetUniformLocation(glassProgram, "u_resolution")
+        uMousePos = GLES20.glGetUniformLocation(glassProgram, "u_mousePos")
+        uGlassSize = GLES20.glGetUniformLocation(glassProgram, "u_glassSize")
+        uCornerRadius = GLES20.glGetUniformLocation(glassProgram, "u_cornerRadius")
+        uIOR = GLES20.glGetUniformLocation(glassProgram, "u_ior")
+        uGlassThickness = GLES20.glGetUniformLocation(glassProgram, "u_glassThickness")
+        uNormalStrength = GLES20.glGetUniformLocation(glassProgram, "u_normalStrength")
+        uDisplacementScale = GLES20.glGetUniformLocation(glassProgram, "u_displacementScale")
+        uHeightTransitionWidth =
+            GLES20.glGetUniformLocation(glassProgram, "u_heightTransitionWidth")
+        uSminSmoothing = GLES20.glGetUniformLocation(glassProgram, "u_sminSmoothing")
+        uShowNormals = GLES20.glGetUniformLocation(glassProgram, "u_showNormals")
+        uBlurRadius = GLES20.glGetUniformLocation(glassProgram, "u_blurRadius")
+        uOverlayColor = GLES20.glGetUniformLocation(glassProgram, "u_overlayColor")
+        uHighlightWidth = GLES20.glGetUniformLocation(glassProgram, "u_highlightWidth")
+        uChromaticAberration = GLES20.glGetUniformLocation(glassProgram, "u_chromaticAberration")
+        uBrightness = GLES20.glGetUniformLocation(glassProgram, "u_brightness")
+        backgroundTextureUniform = GLES20.glGetUniformLocation(glassProgram, "u_backgroundTexture")
+        uRefractionInset = GLES20.glGetUniformLocation(glassProgram, "u_refractionInset")
+        uShadowColor = GLES20.glGetUniformLocation(glassProgram, "u_shadowColor")
+        uShadowOffset = GLES20.glGetUniformLocation(glassProgram, "u_shadowOffset")
+        uShadowSoftness = GLES20.glGetUniformLocation(glassProgram, "u_shadowSoftness")
+        uEdgeRefractionFalloff =
+            GLES20.glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
 
-        glClearColor(0f, 0f, 0f, 0f)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        GLES20.glClearColor(0f, 0f, 0f, 0f)
+        GLES20.glEnable(GLES20.GL_BLEND)
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
         backgroundTexture = createPlaceholderTexture()
     }
@@ -254,7 +257,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     }
 
     override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
-        glViewport(0, 0, width, height)
+        GLES20.glViewport(0, 0, width, height)
         screenWidth = max(1, width).toFloat()
         screenHeight = max(1, height).toFloat()
         mouseX = screenWidth * 0.5f
@@ -262,51 +265,57 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     }
 
     override fun onDrawFrame(glUnused: GL10?) {
-        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
-        glUseProgram(bgProgram)
+        GLES20.glUseProgram(bgProgram)
         bgQuadBuffer.position(0)
-        glEnableVertexAttribArray(bgPosAttrib)
-        glVertexAttribPointer(bgPosAttrib, 2, GL_FLOAT, false, 0, bgQuadBuffer)
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, backgroundTexture)
-        glUniform1i(bgBgTextureUniform, 0)
-        glDrawArrays(GL_TRIANGLES, 0, 6)
-        glDisableVertexAttribArray(bgPosAttrib)
+        GLES20.glEnableVertexAttribArray(bgPosAttrib)
+        GLES20.glVertexAttribPointer(bgPosAttrib, 2, GLES20.GL_FLOAT, false, 0, bgQuadBuffer)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
+        GLES20.glUniform1i(bgBgTextureUniform, 0)
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
+        GLES20.glDisableVertexAttribArray(bgPosAttrib)
 
-        glUseProgram(glassProgram)
+        GLES20.glUseProgram(glassProgram)
         quadBuffer.position(0)
-        glEnableVertexAttribArray(positionAttrib)
-        glVertexAttribPointer(positionAttrib, 2, GL_FLOAT, false, 0, quadBuffer)
+        GLES20.glEnableVertexAttribArray(positionAttrib)
+        GLES20.glVertexAttribPointer(positionAttrib, 2, GLES20.GL_FLOAT, false, 0, quadBuffer)
 
-        glUniform2f(uResolution, screenWidth, screenHeight)
+        GLES20.glUniform2f(uResolution, screenWidth, screenHeight)
         val shaderMouseY = screenHeight - mouseY
-        glUniform2f(uMousePos, mouseX, shaderMouseY)
-        glUniform2f(uGlassSize, glassWidth, glassHeight)
-        glUniform1f(uCornerRadius, cornerRadius)
-        glUniform1f(uIOR, ior)
-        glUniform1f(uGlassThickness, glassThickness)
-        glUniform1f(uNormalStrength, normalStrength)
-        glUniform1f(uDisplacementScale, displacementScale)
-        glUniform1f(uHeightTransitionWidth, heightBlurFactor)
-        glUniform1f(uSminSmoothing, sminSmoothing)
-        glUniform1i(uShowNormals, if (showNormals) 1 else 0)
-        glUniform1f(uBlurRadius, blurRadius)
-        glUniform4f(uOverlayColor, 1f, 1f, 1f, 1f)
-        glUniform1f(uHighlightWidth, highlightWidth)
-        glUniform1f(uChromaticAberration, chromaticAberration)
-        glUniform1f(uBrightness, brightness)
-        glUniform1f(uRefractionInset, refractionInset)
-        glUniform4f(uShadowColor, shadowColor[0], shadowColor[1], shadowColor[2], shadowColor[3])
-        glUniform1f(uShadowSoftness, shadowSoftness)
-        glUniform1f(uEdgeRefractionFalloff, edgeRefractionFalloff)
+        GLES20.glUniform2f(uMousePos, mouseX, shaderMouseY)
+        GLES20.glUniform2f(uGlassSize, glassWidth, glassHeight)
+        GLES20.glUniform1f(uCornerRadius, cornerRadius)
+        GLES20.glUniform1f(uIOR, ior)
+        GLES20.glUniform1f(uGlassThickness, glassThickness)
+        GLES20.glUniform1f(uNormalStrength, normalStrength)
+        GLES20.glUniform1f(uDisplacementScale, displacementScale)
+        GLES20.glUniform1f(uHeightTransitionWidth, heightBlurFactor)
+        GLES20.glUniform1f(uSminSmoothing, sminSmoothing)
+        GLES20.glUniform1i(uShowNormals, if (showNormals) 1 else 0)
+        GLES20.glUniform1f(uBlurRadius, blurRadius)
+        GLES20.glUniform4f(uOverlayColor, 1f, 1f, 1f, 1f)
+        GLES20.glUniform1f(uHighlightWidth, highlightWidth)
+        GLES20.glUniform1f(uChromaticAberration, chromaticAberration)
+        GLES20.glUniform1f(uBrightness, brightness)
+        GLES20.glUniform1f(uRefractionInset, refractionInset)
+        GLES20.glUniform4f(
+            uShadowColor,
+            shadowColor[0],
+            shadowColor[1],
+            shadowColor[2],
+            shadowColor[3]
+        )
+        GLES20.glUniform1f(uShadowSoftness, shadowSoftness)
+        GLES20.glUniform1f(uEdgeRefractionFalloff, edgeRefractionFalloff)
 
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, backgroundTexture)
-        glUniform1i(backgroundTextureUniform, 0)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
+        GLES20.glUniform1i(backgroundTextureUniform, 0)
 
-        glDrawArrays(GL_TRIANGLES, 0, 6)
-        glDisableVertexAttribArray(positionAttrib)
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
+        GLES20.glDisableVertexAttribArray(positionAttrib)
     }
 
     fun setMousePosition(x: Float, y: Float) {
@@ -387,41 +396,41 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         if (backgroundTexture != 0) {
             val tmp = IntArray(1)
             tmp[0] = backgroundTexture
-            glDeleteTextures(1, tmp, 0)
+            GLES20.glDeleteTextures(1, tmp, 0)
         }
         backgroundTexture = loadTextureFromBitmap(bitmap)
         bitmap.recycle()
     }
 
     private fun compileShader(type: Int, source: String): Int {
-        val shader = glCreateShader(type)
-        glShaderSource(shader, source)
-        glCompileShader(shader)
+        val shader = GLES20.glCreateShader(type)
+        GLES20.glShaderSource(shader, source)
+        GLES20.glCompileShader(shader)
         val compiled = IntArray(1)
-        glGetShaderiv(shader, GL_COMPILE_STATUS, compiled, 0)
+        GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0)
         if (compiled[0] == 0) {
-            val info = glGetShaderInfoLog(shader)
+            val info = GLES20.glGetShaderInfoLog(shader)
             Log.e(TAG, "Could not compile shader $type: $info")
-            glDeleteShader(shader)
+            GLES20.glDeleteShader(shader)
             return 0
         }
         return shader
     }
 
     private fun linkProgram(vsSrc: String, fsSrc: String): Int {
-        val vs = compileShader(GL_VERTEX_SHADER, vsSrc)
-        val fs = compileShader(GL_FRAGMENT_SHADER, fsSrc)
+        val vs = compileShader(GLES20.GL_VERTEX_SHADER, vsSrc)
+        val fs = compileShader(GLES20.GL_FRAGMENT_SHADER, fsSrc)
         if (vs == 0 || fs == 0) return 0
-        val prog = glCreateProgram()
-        glAttachShader(prog, vs)
-        glAttachShader(prog, fs)
-        glLinkProgram(prog)
+        val prog = GLES20.glCreateProgram()
+        GLES20.glAttachShader(prog, vs)
+        GLES20.glAttachShader(prog, fs)
+        GLES20.glLinkProgram(prog)
         val linkStatus = IntArray(1)
-        glGetProgramiv(prog, GL_LINK_STATUS, linkStatus, 0)
-        if (linkStatus[0] != GL_TRUE) {
-            val info = glGetProgramInfoLog(prog)
+        GLES20.glGetProgramiv(prog, GLES20.GL_LINK_STATUS, linkStatus, 0)
+        if (linkStatus[0] != GLES20.GL_TRUE) {
+            val info = GLES20.glGetProgramInfoLog(prog)
             Log.e(TAG, "Could not link program: $info")
-            glDeleteProgram(prog)
+            GLES20.glDeleteProgram(prog)
             return 0
         }
         return prog
@@ -429,26 +438,34 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
     private fun createPlaceholderTexture(): Int {
         val tex = IntArray(1)
-        glGenTextures(1, tex, 0)
-        glBindTexture(GL_TEXTURE_2D, tex[0])
+        GLES20.glGenTextures(1, tex, 0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tex[0])
         val pixel = intArrayOf(0xFF3366FF.toInt())
         val bmp = Bitmap.createBitmap(pixel, 1, 1, Bitmap.Config.ARGB_8888)
-        GLUtils.texImage2D(GL_TEXTURE_2D, 0, bmp, 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bmp, 0)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
         bmp.recycle()
         return tex[0]
     }
 
     private fun loadTextureFromBitmap(bitmap: Bitmap): Int {
         val tex = IntArray(1)
-        glGenTextures(1, tex, 0)
-        glBindTexture(GL_TEXTURE_2D, tex[0])
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-        GLUtils.texImage2D(GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES20.glGenTextures(1, tex, 0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tex[0])
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_S,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_T,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
         return tex[0]
     }
 }

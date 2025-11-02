@@ -1,9 +1,10 @@
-package com.matrix.prismal
+package com.matrix.prismal.filters
 
 import android.graphics.Color
+import com.matrix.prismal.PrismalFrameLayout
 
 /**
- * Preset filter styles for [PrismalFrameLayout], defining configurable parameters for realistic glass effects.
+ * Preset filter styles for [com.matrix.prismal.PrismalFrameLayout], defining configurable parameters for realistic glass effects.
  * Values are calibrated based on the shader's internal scaling (e.g., chromatic aberration is multiplied by 0.003 in the fragment shader)
  * and real-world optical properties where applicable (e.g., Index of Refraction drawn from common glass types).<grok-card data-id="89996f" data-type="citation_card"></grok-card><grok-card data-id="212c78" data-type="citation_card"></grok-card><grok-card data-id="ad5fb7" data-type="citation_card"></grok-card>
  *
@@ -15,9 +16,9 @@ import android.graphics.Color
  *   - Dense/heavy flint (crystal-like): ~1.65–1.75
  *   - Exaggerated for dramatic/prism effects: up to 1.90
  * - Other parameters (e.g., blur, thickness) are artistic tunings for visual appeal on mobile screens.
- * - Apply via [applyTo] or the extension [PrismalFrameLayout.applyFilter].
+ * - Apply via [applyTo] or the extension [applyFilter].
  *
- * @see [PrismalFrameLayout.setIOR] for runtime adjustments
+ * @see [com.matrix.prismal.PrismalFrameLayout.setIOR] for runtime adjustments
  * @author Saurav Sajeev
  */
 data class PrismalFilter(
@@ -40,10 +41,10 @@ data class PrismalFilter(
 ) {
 
     /**
-     * Applies all properties of this filter to the given [PrismalFrameLayout].
+     * Applies all properties of this filter to the given [com.matrix.prismal.PrismalFrameLayout].
      * Queues updates on the GL thread for thread-safe rendering.
      *
-     * @param prismal The [PrismalFrameLayout] to configure.
+     * @param prismal The [com.matrix.prismal.PrismalFrameLayout] to configure.
      */
     fun applyTo(prismal: PrismalFrameLayout) {
         prismal.setRefractionInset(refractionInset)

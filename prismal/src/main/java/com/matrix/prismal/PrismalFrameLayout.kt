@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.core.graphics.createBitmap
+import com.matrix.prismal.renderer.PrismalGlassRenderer
 
 /**
  * A custom FrameLayout that renders a realistic glass overlay effect using OpenGL ES 2.0.

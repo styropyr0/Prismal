@@ -13,7 +13,7 @@ import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
 
 /**
- * **PrismalIconButton** — A circular, glass-like button designed for icons, powered by
+ * **PrismalIconButton** - A circular, glass-like button designed for icons, powered by
  * Prismal’s real-time rendering system.
  *
  * This component creates a refractive, glossy surface that animates smoothly when pressed,

@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
@@ -113,7 +114,7 @@ class PrismalSlider @JvmOverloads constructor(
 
     init {
         addView(track, LayoutParams(LayoutParams.MATCH_PARENT, trackHeight.toInt()).apply {
-            gravity = android.view.Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
             leftMargin = dp(20f).toInt()
             rightMargin = dp(20f).toInt()
         })

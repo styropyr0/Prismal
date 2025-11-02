@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Prismal"
 include(":app")
- 
+include(":prismal")
