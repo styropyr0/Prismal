@@ -2,7 +2,6 @@ package com.matrix.prismal
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -65,7 +64,7 @@ class PrismalSlider @JvmOverloads constructor(
     private var lastX = 0f
     private var onValueChanged: ((Float) -> Unit)? = null
 
-    private var thumbWidth = dp(60f)
+    private var thumbWidth = dp(55f)
     private var trackHeight = dp(12f)
     private val bounceScale = 1.10f
 
@@ -97,8 +96,9 @@ class PrismalSlider @JvmOverloads constructor(
                     lastX = event.rawX
 
                     val parentW = width
-                    val maxTravel = parentW - thumb.width
-                    val newX = (thumb.translationX + dx).coerceIn(0f, maxTravel.toFloat())
+                    val offset = thumbWidth * bounceScale - thumbWidth
+                    val maxTravel = parentW - thumb.width - offset
+                    val newX = (thumb.translationX + dx).coerceIn(offset, maxTravel)
                     thumb.translationX = newX
 
                     val progress = (newX / maxTravel) * maxValue
@@ -121,8 +121,8 @@ class PrismalSlider @JvmOverloads constructor(
     init {
         addView(track, LayoutParams(LayoutParams.MATCH_PARENT, trackHeight.toInt()).apply {
             gravity = Gravity.CENTER_VERTICAL
-            leftMargin = dp(20f).toInt()
-            rightMargin = dp(20f).toInt()
+            leftMargin = dp(20f + (thumbWidth * bounceScale - thumbWidth)).toInt()
+            rightMargin = dp(20f + (thumbWidth * bounceScale - thumbWidth)).toInt()
         })
 
         addView(thumb, LayoutParams(thumbWidth.toInt(), LayoutParams.MATCH_PARENT))
@@ -140,12 +140,12 @@ class PrismalSlider @JvmOverloads constructor(
                 setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 13f))
                 setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_thumbDisplacementScale, 10f))
                 setBlurRadius(a.getFloat(R.styleable.PrismalSlider_thumbBlurRadius, 1f))
-                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 4f))
-                setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.25f))
+                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 8f))
+                setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.19f))
             }
             val thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
-            val  thumbShadowAlpha = a.getInt(R.styleable.PrismalSlider_thumbShadowAlpha, 80).coerceIn(0, 255)
-            setThumbShadow(Color.argb(thumbShadowAlpha, 0, 0, 0), thumbShadowSoftness)
+            val thumbShadowAlpha = a.getInt(R.styleable.PrismalSlider_thumbShadowAlpha, 100).coerceIn(0, 255)
+            thumb.setShadowProperties("#20222244".toColorInt(), 0.7f)
         }
     }
 
@@ -174,7 +174,7 @@ class PrismalSlider @JvmOverloads constructor(
         val clamped = value.coerceIn(0f, maxValue)
         currentValue = clamped
         post {
-            val maxTravel = width - thumb.width - (thumbWidth * (1 - bounceScale))
+            val maxTravel = width - thumb.width
             val pos = (clamped / maxValue) * maxTravel
             thumb.translationX = pos
         }

@@ -4,7 +4,6 @@ import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -118,10 +117,10 @@ class PrismalSwitch @JvmOverloads constructor(
                 thumb.setBlurRadius(getFloat(R.styleable.PrismalSwitch_thumbBlurRadius, 1f))
                 thumb.setChromaticAberration(getFloat(R.styleable.PrismalSwitch_thumbChromaticAberration, 8f))
                 thumb.setCornerRadius(getDimension(R.styleable.PrismalSwitch_thumbCornerRadius, 50f))
-                thumb.setBrightness(getDimension(R.styleable.PrismalSwitch_thumbBrightness, 1.175f))
+                thumb.setBrightness(getDimension(R.styleable.PrismalSwitch_thumbBrightness, 1.195f))
                 val thumbShadowSoftness = getFloat(R.styleable.PrismalSwitch_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
                 val  thumbShadowAlpha = getInt(R.styleable.PrismalSwitch_thumbShadowAlpha, 70).coerceIn(0, 255)
-                setThumbShadow(Color.argb(thumbShadowAlpha, 0, 0, 0), thumbShadowSoftness)
+                thumb.setShadowProperties("#20222244".toColorInt(), 0.7f)
             } finally {
                 recycle()
             }

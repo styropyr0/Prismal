@@ -13,6 +13,7 @@ import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.graphics.toColorInt
 
 /**
  * **PrismalIconButton** - A circular, glass-like button designed for icons, powered by
@@ -83,11 +84,15 @@ class PrismalIconButton @JvmOverloads constructor(
 
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalIconButton, 0, 0).apply {
             try {
-                prismalSurface.setIOR(getFloat(R.styleable.PrismalIconButton_ior, 1.85f))
-                prismalSurface.setNormalStrength(getFloat(R.styleable.PrismalIconButton_normalStrength, 8f))
-                prismalSurface.setDisplacementScale(getFloat(R.styleable.PrismalIconButton_displacementScale, 10f))
-                prismalSurface.setBlurRadius(getFloat(R.styleable.PrismalIconButton_blurRadius, 1.5f))
-                prismalSurface.setChromaticAberration(getFloat(R.styleable.PrismalIconButton_chromaticAberration, 8f))
+                with (prismalSurface) {
+                    setIOR(getFloat(R.styleable.PrismalIconButton_ior, 1.85f))
+                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_normalStrength, 8f))
+                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_displacementScale, 10f))
+                    setBlurRadius(getFloat(R.styleable.PrismalIconButton_blurRadius, 1.5f))
+                    setChromaticAberration(getFloat(R.styleable.PrismalIconButton_chromaticAberration, 8f))
+                    setBrightness(1.3f)
+                    setShadowProperties("#33222222".toColorInt(), 0.5f)
+                }
 
                 pressScale = getFloat(R.styleable.PrismalIconButton_pressScale, 0.88f)
                 animDuration = getInt(R.styleable.PrismalIconButton_animDuration, 180).toLong()

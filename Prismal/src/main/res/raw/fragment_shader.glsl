@@ -94,33 +94,46 @@ float getShapeOpacity(vec2 sampleCoord, vec2 glassSize, vec2 halfSize, float rad
 }
 
 // require improvement (ghosting when blur is high)
-vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius, vec2 glassSize, vec2 halfSize, float cornerRadius, float smoothing, float inset, vec2 currentShapeCoord){
+vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radiusPx, vec2 glassSize, vec2 halfSize, float cornerRadius, float smoothing, float inset, vec2 currentShapeCoord) {
+    float kernel[9];
+    kernel[0] = 1.0; kernel[1] = 2.0; kernel[2] = 1.0;
+    kernel[3] = 2.0; kernel[4] = 4.0; kernel[5] = 2.0;
+    kernel[6] = 1.0; kernel[7] = 2.0; kernel[8] = 1.0;
+    float kernelSum = 16.0;
+
     vec3 accum = vec3(0.0);
     float weightSum = 0.0;
 
-    vec2 dx = vec2(texelSize.x * radius, 0.0);
-    vec2 dy = vec2(0.0, texelSize.y * radius);
+    vec2 pixelUV = radiusPx * texelSize;
 
-    for(int y = -1; y <= 1; ++y){
-        for(int x = -1; x <= 1; ++x){
-            vec2 sampleOffset = float(x) * dx + float(y) * dy;
+    int idx = 0;
+    for (int y = -1; y <= 1; ++y) {
+        for (int x = -1; x <= 1; ++x) {
+            vec2 sampleOffset = vec2(float(x), float(y)) * pixelUV;
             vec2 sampleUV = uv + offset + sampleOffset;
-            sampleUV = clamp(sampleUV, vec2(0.001), vec2(0.999));
-
-            vec2 offsetInShapeSpace = sampleOffset / texelSize * u_resolution / glassSize;
+            sampleUV = clamp(sampleUV, vec2(0.0), vec2(1.0));
+            vec2 offsetInShapeSpace = (sampleOffset / texelSize) / glassSize; // (sampleOffset/texelSize) = pixel offset
             vec2 sampleShapeCoord = currentShapeCoord + offsetInShapeSpace;
 
             float sampleOpacity = getShapeOpacity(sampleShapeCoord, glassSize, halfSize, cornerRadius, smoothing, inset);
 
-            if(sampleOpacity > 0.001) {
-                accum += texture2D(tex, sampleUV).rgb * sampleOpacity;
-                weightSum += sampleOpacity;
+            if (sampleOpacity > 0.0001) {
+                float w = kernel[idx] * sampleOpacity;
+                vec3 src = texture2D(tex, sampleUV).rgb;
+                accum += src * w;
+                weightSum += w;
             }
+            idx++;
         }
     }
 
-    return weightSum > 0.001 ? accum / weightSum : vec3(0.0);
+    if (weightSum <= 0.0001) {
+        return texture2D(tex, clamp(uv + offset, vec2(0.0), vec2(1.0))).rgb;
+    }
+
+    return accum / weightSum;
 }
+
 
 void main() {
     float actualCornerRadius = min(u_cornerRadius, min(u_glassSize.x, u_glassSize.y) / 2.0);
@@ -184,7 +197,7 @@ void main() {
     vec2 offsetB = baseOffset + refractionDir * chromaIntensity;
 
     vec2 texelSize = 1.0 / u_resolution;
-    float blur = u_blurRadius * 0.5;
+    float blur = max(u_blurRadius, 1.0);
 
     vec3 cR = blur9(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
     vec3 cG = blur9(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
