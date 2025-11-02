@@ -9,7 +9,10 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.animation.ValueAnimator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
+import androidx.core.animation.doOnEnd
 import androidx.core.content.res.use
 import androidx.core.graphics.toColorInt
 import kotlin.math.max
@@ -64,6 +67,7 @@ class PrismalSlider @JvmOverloads constructor(
 
     private var thumbWidth = dp(60f)
     private var trackHeight = dp(12f)
+    private val bounceScale = 1.10f
 
     private val track = View(context).apply {
         background = GradientDrawable().apply {
@@ -83,6 +87,7 @@ class PrismalSlider @JvmOverloads constructor(
                 dragging = true
                 lastX = event.rawX
                 thumb.setDebug(true)
+                animateThumbShape(pressed = true)
             }
 
             MotionEvent.ACTION_MOVE -> {
@@ -107,6 +112,7 @@ class PrismalSlider @JvmOverloads constructor(
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 dragging = false
                 thumb.setDebug(false)
+                animateThumbShape(pressed = false)
             }
         }
         true
@@ -125,20 +131,39 @@ class PrismalSlider @JvmOverloads constructor(
         context.obtainStyledAttributes(attrs, R.styleable.PrismalSlider).use { a ->
             maxValue = a.getFloat(R.styleable.PrismalSlider_maxValue, 100f)
             val widthDp = a.getDimension(R.styleable.PrismalSlider_thumbWidth, thumbWidth)
+            (track.background as GradientDrawable).setColor(a.getColor(R.styleable.PrismalSlider_trackColor, "#00B624".toColorInt()))
             thumbWidth = widthDp
-            thumb.layoutParams.width = thumbWidth.toInt()
-
-            thumb.setCornerRadius(a.getFloat(R.styleable.PrismalSlider_thumbCornerRadius, 50f))
-            thumb.setIOR(a.getFloat(R.styleable.PrismalSlider_thumbIOR, 1.85f))
-            thumb.setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 10f))
-            thumb.setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_thumbDisplacementScale, 16f))
-            thumb.setBlurRadius(a.getFloat(R.styleable.PrismalSlider_thumbBlurRadius, 1f))
-            thumb.setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 8f))
-            thumb.setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.175f))
+            with (thumb) {
+                layoutParams.width = thumbWidth.toInt()
+                setCornerRadius(a.getFloat(R.styleable.PrismalSlider_thumbCornerRadius, 50f))
+                setIOR(a.getFloat(R.styleable.PrismalSlider_thumbIOR, 1.55f))
+                setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 13f))
+                setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_thumbDisplacementScale, 10f))
+                setBlurRadius(a.getFloat(R.styleable.PrismalSlider_thumbBlurRadius, 1f))
+                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 4f))
+                setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.25f))
+            }
             val thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
             val  thumbShadowAlpha = a.getInt(R.styleable.PrismalSlider_thumbShadowAlpha, 80).coerceIn(0, 255)
             setThumbShadow(Color.argb(thumbShadowAlpha, 0, 0, 0), thumbShadowSoftness)
         }
+    }
+
+    private fun animateThumbShape(pressed: Boolean) {
+        val scaleAnimator = ValueAnimator.ofFloat(
+            if (pressed) 1f else bounceScale,
+            if (pressed) bounceScale else 1f
+        ).apply {
+            duration = 130
+            interpolator = OvershootInterpolator()
+            addUpdateListener {
+                val s = it.animatedValue as Float
+                thumb.scaleX = s
+                thumb.scaleY = 1f / s
+            }
+            doOnEnd { thumb.updateBackground() }
+        }
+        scaleAnimator.start()
     }
 
     /**
@@ -149,7 +174,7 @@ class PrismalSlider @JvmOverloads constructor(
         val clamped = value.coerceIn(0f, maxValue)
         currentValue = clamped
         post {
-            val maxTravel = width - thumb.width
+            val maxTravel = width - thumb.width - (thumbWidth * (1 - bounceScale))
             val pos = (clamped / maxValue) * maxTravel
             thumb.translationX = pos
         }

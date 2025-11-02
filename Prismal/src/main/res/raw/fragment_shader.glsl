@@ -21,6 +21,7 @@ uniform float u_refractionInset;
 uniform vec4 u_shadowColor;
 uniform float u_shadowSoftness;
 uniform float u_edgeRefractionFalloff;
+uniform vec4 u_glassColor;
 
 float smin_polynomial(float a, float b, float k) {
     if (k <= 0.0) return min(a, b);
@@ -193,9 +194,10 @@ void main() {
 
     vec3 brightenedColor = refractedColor * u_brightness;
 
+    vec3 tintedColor = mix(brightenedColor, brightenedColor * u_glassColor.rgb, u_glassColor.a);
     vec3 shadowColor = u_shadowColor.rgb * 0.3;
     float shadowAmount = innerShadow * u_shadowColor.a;
-    vec3 finalColor = mix(brightenedColor, shadowColor, shadowAmount);
+    vec3 finalColor = mix(tintedColor, shadowColor, shadowAmount);
 
     float overlayStrength = height_val * 0.03;
     vec3 colorWithOverlay = mix(finalColor, u_overlayColor.rgb, overlayStrength);

@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
 import com.matrix.prismal.renderer.PrismalGlassRenderer
 
 /**
@@ -101,6 +102,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                 setBrightness(getFloat(R.styleable.PrismalFrameLayout_brightness, 1.15f))
                 setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_showNormals, false))
                 setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_cornerRadius, 10f))
+                setGlassColor("#230000FF".toColorInt())
             } finally {
                 recycle()
             }
@@ -340,6 +342,12 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     fun setDebug(value: Boolean) {
         debug = value
     }
+
+    /**
+     * Set the color of the glass
+     * @param color The color of the glass
+     */
+    fun setGlassColor(color: Int) = glSurface.queueEvent { renderer.setGlassColor(color) }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         if (!debug) return false

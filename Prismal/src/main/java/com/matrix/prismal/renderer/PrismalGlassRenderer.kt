@@ -156,6 +156,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var uShadowSoftness = 0
     private var uRefractionInset = -1
     private var uEdgeRefractionFalloff = 0
+    private var uGlassColor = 0
 
     private lateinit var quadBuffer: FloatBuffer
     private lateinit var bgQuadBuffer: FloatBuffer
@@ -187,6 +188,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var shadowColor = floatArrayOf(0f, 0f, 0f, 0.3f)
     private var shadowSoftness = 0.2f
     private var edgeRefractionFalloff = 4f
+    private var glassColor = floatArrayOf(1f, 1f, 1f, 1f)
 
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         val vertexCode = ShaderUtils.loadShaderSource(context, R.raw.vertex_shader)
@@ -228,8 +230,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         uGlassThickness = GLES20.glGetUniformLocation(glassProgram, "u_glassThickness")
         uNormalStrength = GLES20.glGetUniformLocation(glassProgram, "u_normalStrength")
         uDisplacementScale = GLES20.glGetUniformLocation(glassProgram, "u_displacementScale")
-        uHeightTransitionWidth =
-            GLES20.glGetUniformLocation(glassProgram, "u_heightTransitionWidth")
+        uHeightTransitionWidth = GLES20.glGetUniformLocation(glassProgram, "u_heightTransitionWidth")
         uSminSmoothing = GLES20.glGetUniformLocation(glassProgram, "u_sminSmoothing")
         uShowNormals = GLES20.glGetUniformLocation(glassProgram, "u_showNormals")
         uBlurRadius = GLES20.glGetUniformLocation(glassProgram, "u_blurRadius")
@@ -242,8 +243,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         uShadowColor = GLES20.glGetUniformLocation(glassProgram, "u_shadowColor")
         uShadowOffset = GLES20.glGetUniformLocation(glassProgram, "u_shadowOffset")
         uShadowSoftness = GLES20.glGetUniformLocation(glassProgram, "u_shadowSoftness")
-        uEdgeRefractionFalloff =
-            GLES20.glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
+        uEdgeRefractionFalloff = GLES20.glGetUniformLocation(glassProgram, "u_edgeRefractionFalloff")
+        uGlassColor = GLES20.glGetUniformLocation(glassProgram, "u_glassColor")
 
         GLES20.glClearColor(0f, 0f, 0f, 0f)
         GLES20.glEnable(GLES20.GL_BLEND)
@@ -309,6 +310,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         )
         GLES20.glUniform1f(uShadowSoftness, shadowSoftness)
         GLES20.glUniform1f(uEdgeRefractionFalloff, edgeRefractionFalloff)
+        GLES20.glUniform4f(uGlassColor, glassColor[0], glassColor[1], glassColor[2], glassColor[3])
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
@@ -380,6 +382,15 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
     fun setEdgeRefractionFalloff(v: Float) {
         edgeRefractionFalloff = v
+    }
+
+    fun setGlassColor(color: Int) {
+        glassColor = floatArrayOf(
+            Color.red(color) / 255f,
+            Color.green(color) / 255f,
+            Color.blue(color) / 255f,
+            Color.alpha(color) / 255f
+        )
     }
 
     fun setShadowProperties(color: Int, softness: Float) {

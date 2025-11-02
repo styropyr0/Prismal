@@ -4,6 +4,8 @@ import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.MotionEvent
@@ -51,6 +53,7 @@ class PrismalIconButton @JvmOverloads constructor(
     private var pressScale = 0.88f
     private var animDuration = 180L
     private var clickListener: (() -> Unit)? = null
+    private var iconTint: Int
 
     private fun dp(value: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics
@@ -88,6 +91,7 @@ class PrismalIconButton @JvmOverloads constructor(
 
                 pressScale = getFloat(R.styleable.PrismalIconButton_pressScale, 0.88f)
                 animDuration = getInt(R.styleable.PrismalIconButton_animDuration, 180).toLong()
+                iconTint = getColor(R.styleable.PrismalIconButton_iconTint, Color.BLACK)
 
                 val iconRes = getResourceId(R.styleable.PrismalIconButton_iconSrc, 0)
                 val iconPadding = getDimension(R.styleable.PrismalIconButton_iconPadding, dp(8f)).toInt()
@@ -104,10 +108,12 @@ class PrismalIconButton @JvmOverloads constructor(
                     }
                 )
 
-                if (iconRes != 0) {
-                    iconView.setImageResource(iconRes)
-                    iconView.scaleType = ImageView.ScaleType.FIT_CENTER
-                }
+                if (iconRes != 0)
+                    with(iconView) {
+                        setImageResource(iconRes)
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        imageTintList = ColorStateList.valueOf(iconTint)
+                    }
 
             } finally {
                 recycle()

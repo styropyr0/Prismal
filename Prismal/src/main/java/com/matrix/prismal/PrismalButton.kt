@@ -80,11 +80,12 @@ class PrismalButton @JvmOverloads constructor(
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalButton, 0, 0).apply {
             try {
                 prismalSurface.setIOR(getFloat(R.styleable.PrismalButton_ior, 1.85f))
-                prismalSurface.setNormalStrength(getFloat(R.styleable.PrismalButton_normalStrength, 8f))
+                prismalSurface.setNormalStrength(getFloat(R.styleable.PrismalButton_normalStrength, 12f))
                 prismalSurface.setDisplacementScale(getFloat(R.styleable.PrismalButton_displacementScale, 10f))
                 prismalSurface.setBlurRadius(getFloat(R.styleable.PrismalButton_blurRadius, 1f))
                 prismalSurface.setChromaticAberration(getFloat(R.styleable.PrismalButton_chromaticAberration, 8f))
                 prismalSurface.setCornerRadius(getDimension(R.styleable.PrismalButton_cornerRadius, 32f))
+                prismalSurface.setBrightness(getFloat(R.styleable.PrismalButton_brightness, 1.4f))
             } finally {
                 recycle()
             }

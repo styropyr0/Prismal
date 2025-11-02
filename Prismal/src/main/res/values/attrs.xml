@@ -57,6 +57,7 @@
         <attr name="thumbBrightness" />
         <attr name="thumbShadowSoftness" />
         <attr name="thumbShadowAlpha" />
+        <attr name="trackColor" format="color"/>
     </declare-styleable>
 
     <declare-styleable name="PrismalButton">
