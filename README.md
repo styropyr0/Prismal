@@ -2,6 +2,11 @@
 
 > **Real-time glassmorphism rendering library for Android for Android XML Components**  
 > High-performance OpenGL ES 2.0 library delivering physically accurate glass refraction, blur, and chromatic aberration effects for Android UI components.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
+[![OpenGL ES](https://img.shields.io/badge/OpenGL%20ES-2.0-red.svg)](https://www.khronos.org/opengles/)
+[![Min SDK](https://img.shields.io/badge/Min%20SDK-21-orange.svg)](https://developer.android.com/about/versions/lollipop)
 ---
 
 ## Overview
