@@ -119,7 +119,7 @@ glassLayout.apply {
 ### PrismalFrameLayout
 
 Base container that renders glass effects. Acts as a standard `FrameLayout` with an OpenGL-rendered glass surface beneath its children.
-> Note that, all of the other Prismal views are subclasses of PrismalFrameLayout. PrismalFrameLayout handles most of the works within, such that it would be easier for users to make their own subclasses easier. All you need to do is inherit from PrismalFrameLayout, set up renderer (PrismalGlassRenderer), and implement methods for changing properties.
+> Note that, all of the other Prismal views are subclasses of PrismalFrameLayout. PrismalFrameLayout handles most of the works within, such that it would be easier for users to make their own subclasses. All you need to do is inherit from PrismalFrameLayout, set up renderer (PrismalGlassRenderer), and implement methods for changing properties.
 
 #### XML Attributes
 
