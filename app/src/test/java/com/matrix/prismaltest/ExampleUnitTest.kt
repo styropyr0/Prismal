@@ -1,4 +1,4 @@
-package com.matrix.prismal
+package com.matrix.prismaltest
 
 import org.junit.Test
 

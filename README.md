@@ -1,13 +1,7 @@
-# Prismal - Glassmorphism for Android
+# Prismal - Glassmorphism for Android (BETA)
 
-> **Real-time glassmorphism rendering library for Android**  
+> **Real-time glassmorphism rendering library for Android for Android XML Components**  
 > High-performance OpenGL ES 2.0 library delivering physically accurate glass refraction, blur, and chromatic aberration effects for Android UI components.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
-[![OpenGL ES](https://img.shields.io/badge/OpenGL%20ES-2.0-red.svg)](https://www.khronos.org/opengles/)
-[![Min SDK](https://img.shields.io/badge/Min%20SDK-21-orange.svg)](https://developer.android.com/about/versions/lollipop)
-
 ---
 
 ## Overview
@@ -44,7 +38,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.yourusername:prismal:1.0.0'
+    implementation 'com.github.styropyr0:prismal:1.0.0'
 }
 ```
 
@@ -120,6 +114,7 @@ glassLayout.apply {
 ### PrismalFrameLayout
 
 Base container that renders glass effects. Acts as a standard `FrameLayout` with an OpenGL-rendered glass surface beneath its children.
+> Note that, all of the other Prismal views are subclasses of PrismalFrameLayout. PrismalFrameLayout handles most of the works within, such that it would be easier for users to make their own subclasses easier. All you need to do is inherit from PrismalFrameLayout, set up renderer (PrismalGlassRenderer), and implement methods for changing properties.
 
 #### XML Attributes
 
@@ -477,7 +472,7 @@ vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, ...) {
 }
 ```
 
-### Shader Parameters
+### Shader Parameters (If you're a nerd or wish to contribute)
 
 | Uniform | Type | Range | Description |
 |---------|------|-------|-------------|
@@ -520,33 +515,21 @@ vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, ...) {
 app/
  └── src/
       └── main/
-           └── assets/
-                └── shaders/
-                     ├── prismal_vertex.vert
-                     └── prismal_fragment.frag
+           └── res/
+                └── raw/
+                     ├── background_vert.vert
+                     └── background_frag.frag
+                     └── fragment_shader.frag
+                     └── vertex_shader.frag
 ```
 
 ### Vertex Shader
 
-```glsl
-attribute vec4 a_Position;
-attribute vec2 a_TexCoord;
-varying vec2 v_TexCoord;
-varying vec2 v_ScreenTexCoord;
-varying vec2 v_ShapeCoord;
-uniform mat4 u_MVPMatrix;
-
-void main() {
-    gl_Position = u_MVPMatrix * a_Position;
-    v_TexCoord = a_TexCoord;
-    v_ScreenTexCoord = a_TexCoord;
-    v_ShapeCoord = a_TexCoord;
-}
-```
+It takes vertex positions (a_position) of a quad representing the glass surface, scales them by u_glassSize, and offsets them around the mouse position (u_mousePos). It then converts the result into clip-space coordinates for rendering (gl_Position). The shader also outputs normalized texture and shape coordinates for use in the fragment shader.
 
 ### Fragment Shader
 
-The complete fragment shader is provided in `prismal_fragment.frag`. It includes:
+The complete fragment shader is provided in `fragment_shader.glsl`. It includes:
 - Smooth min/max polynomial functions
 - SDF rounded box calculations
 - Height field generation
@@ -567,8 +550,8 @@ object ShaderUtils {
 
 class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Renderer {
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        val vertexSource = ShaderUtils.loadFromAssets(context, "shaders/prismal_vertex.vert")
-        val fragmentSource = ShaderUtils.loadFromAssets(context, "shaders/prismal_fragment.frag")
+        val vertexSource = ShaderUtils.loadFromAssets(context, "shaders/vertex_shader.glsl")
+        val fragmentSource = ShaderUtils.loadFromAssets(context, "shaders/fragment_shader.glsl")
         // Compile and link shaders...
     }
 }

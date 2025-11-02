@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.matrix.prismal"
+    namespace = "com.matrix.prismaltest"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.matrix.prismal"
-        minSdk = 29
-        targetSdk = 35
+        applicationId = "com.matrix.prismaltest"
+        minSdk = 25
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -36,7 +36,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":prismal"))
+    implementation(project(":Prismal"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

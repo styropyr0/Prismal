@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Prismal"
+rootProject.name = "Prismal Test"
 include(":app")
-include(":prismal")
+include(":Prismal")

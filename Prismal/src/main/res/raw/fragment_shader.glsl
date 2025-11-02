@@ -92,6 +92,7 @@ float getShapeOpacity(vec2 sampleCoord, vec2 glassSize, vec2 halfSize, float rad
     return opacity;
 }
 
+// require improvement (ghosting when blur is high)
 vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radius, vec2 glassSize, vec2 halfSize, float cornerRadius, float smoothing, float inset, vec2 currentShapeCoord){
     vec3 accum = vec3(0.0);
     float weightSum = 0.0;
