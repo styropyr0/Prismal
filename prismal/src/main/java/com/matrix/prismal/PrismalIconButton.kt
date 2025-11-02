@@ -14,7 +14,7 @@ import androidx.appcompat.widget.AppCompatImageView
 
 /**
  * **PrismalIconButton** - A circular, glass-like button designed for icons, powered by
- * Prismal’s real-time rendering system.
+ * Prismal's real-time rendering system.
  *
  * This component creates a refractive, glossy surface that animates smoothly when pressed,
  * featuring depth and distortion effects that mimic real glass materials.
@@ -86,7 +86,6 @@ class PrismalIconButton @JvmOverloads constructor(
                 prismalSurface.setBlurRadius(getFloat(R.styleable.PrismalIconButton_blurRadius, 1.5f))
                 prismalSurface.setChromaticAberration(getFloat(R.styleable.PrismalIconButton_chromaticAberration, 8f))
 
-                // 👇 Added XML support
                 pressScale = getFloat(R.styleable.PrismalIconButton_pressScale, 0.88f)
                 animDuration = getInt(R.styleable.PrismalIconButton_animDuration, 180).toLong()
 
@@ -98,7 +97,7 @@ class PrismalIconButton @JvmOverloads constructor(
                     LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
                 )
 
-                addView(
+                prismalSurface.addView(
                     iconView,
                     LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT).apply {
                         setMargins(iconPadding, iconPadding, iconPadding, iconPadding)

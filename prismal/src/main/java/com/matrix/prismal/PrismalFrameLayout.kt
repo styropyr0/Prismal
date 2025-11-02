@@ -71,6 +71,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         scheduleCaptureBackground()
     }
 
+    private val clipPath = Path()
+    private val clipRect = RectF()
+    private var clipRadius = 0f
+
     init {
         glSurface.setRenderer(renderer)
         glSurface.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
@@ -117,6 +121,20 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         }
 
         viewTreeObserver.addOnScrollChangedListener(scrollListener)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        clipRect.set(0f, 0f, w.toFloat(), h.toFloat())
+        clipPath.reset()
+        clipPath.addRoundRect(clipRect, clipRadius, clipRadius, Path.Direction.CW)
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        val checkpoint = canvas.save()
+        canvas.clipPath(clipPath)
+        super.dispatchDraw(canvas)
+        canvas.restoreToCount(checkpoint)
     }
 
     override fun onAttachedToWindow() {
@@ -214,7 +232,11 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param radius The radius in pixels (default: 30f).
      */
-    fun setCornerRadius(radius: Float) = glSurface.queueEvent { renderer.setCornerRadius(radius) }
+    fun setCornerRadius(radius: Float) {
+        clipRadius = radius
+        glSurface.queueEvent { renderer.setCornerRadius(radius) }
+        postInvalidateOnAnimation()
+    }
 
     /**
      * Sets the Index of Refraction (IOR) for the glass material, affecting light bending.
