@@ -143,9 +143,9 @@ class PrismalSlider @JvmOverloads constructor(
                 setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 8f))
                 setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.19f))
             }
-            val thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
+            val thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_thumbShadowSoftness, 0.7f).coerceIn(0f..1f)
             val thumbShadowAlpha = a.getInt(R.styleable.PrismalSlider_thumbShadowAlpha, 100).coerceIn(0, 255)
-            thumb.setShadowProperties("#20222244".toColorInt(), 0.7f)
+            thumb.setShadowProperties("#45222244".toColorInt(), thumbShadowSoftness)
         }
     }
 
