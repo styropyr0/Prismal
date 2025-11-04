@@ -1,5 +1,6 @@
 package com.matrix.prismal
 
+import android.animation.AnimatorSet
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
@@ -11,7 +12,6 @@ import android.view.View
 import android.animation.ValueAnimator
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
-import androidx.core.animation.doOnEnd
 import androidx.core.content.res.use
 import androidx.core.graphics.toColorInt
 import kotlin.math.max
@@ -66,7 +66,7 @@ class PrismalSlider @JvmOverloads constructor(
 
     private var thumbWidth = dp(55f)
     private var trackHeight = dp(12f)
-    private val bounceScale = 1.10f
+    private val bounceScale = 1.1f
 
     private val track = View(context).apply {
         background = GradientDrawable().apply {
@@ -137,7 +137,7 @@ class PrismalSlider @JvmOverloads constructor(
                 layoutParams.width = thumbWidth.toInt()
                 setCornerRadius(a.getFloat(R.styleable.PrismalSlider_thumbCornerRadius, 50f))
                 setIOR(a.getFloat(R.styleable.PrismalSlider_thumbIOR, 1.55f))
-                setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 13f))
+                setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 8f))
                 setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_thumbDisplacementScale, 10f))
                 setBlurRadius(a.getFloat(R.styleable.PrismalSlider_thumbBlurRadius, 1f))
                 setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 8f))
@@ -150,20 +150,49 @@ class PrismalSlider @JvmOverloads constructor(
     }
 
     private fun animateThumbShape(pressed: Boolean) {
-        val scaleAnimator = ValueAnimator.ofFloat(
-            if (pressed) 1f else bounceScale,
-            if (pressed) bounceScale else 1f
-        ).apply {
-            duration = 130
-            interpolator = OvershootInterpolator()
+        thumb.pivotY = thumb.height / 2f
+        thumb.pivotX = thumb.width / 2f
+
+        val startScale = if (pressed) 1f else bounceScale
+        val endScale = if (pressed) bounceScale else 1f
+        val scaleDuration = if (pressed) 150L else 280L
+
+        val scaleAnim = ValueAnimator.ofFloat(startScale, endScale).apply {
+            duration = scaleDuration
+            interpolator = OvershootInterpolator(3.2f)
             addUpdateListener {
                 val s = it.animatedValue as Float
                 thumb.scaleX = s
                 thumb.scaleY = 1f / s
+                thumb.updateBackground()
             }
-            doOnEnd { thumb.updateBackground() }
         }
-        scaleAnimator.start()
+
+        val pulseAnim = ValueAnimator.ofFloat(
+            if (pressed) 1f else 1.2f,
+            if (pressed) 1.25f else 1f
+        ).apply {
+            duration = if (pressed) 140L else 120L
+            interpolator = OvershootInterpolator(2.8f)
+            addUpdateListener {
+                val strength = it.animatedValue as Float
+                thumb.setNormalStrength(13f * strength)
+                thumb.updateBackground()
+            }
+        }
+
+        AnimatorSet().apply {
+            playTogether(scaleAnim, pulseAnim)
+            start()
+        }
+    }
+
+    /**
+     * Triggers an update to the background texture by scheduling a capture of the underlying view hierarchy.
+     * This is useful for refreshing the glass effect when the content beneath changes (e.g., after scrolling or layout updates).
+     */
+    fun updateBackground() {
+        thumb.updateBackground()
     }
 
     /**

@@ -172,6 +172,14 @@ class PrismalIconButton @JvmOverloads constructor(
     }
 
     /**
+     * Triggers an update to the background texture by scheduling a capture of the underlying view hierarchy.
+     * This is useful for refreshing the glass effect when the content beneath changes (e.g., after scrolling or layout updates).
+     */
+    fun updateBackground() {
+        prismalSurface.updateBackground()
+    }
+
+    /**
      * Sets the icon drawable resource displayed in the button.
      *
      * @param resId Drawable resource ID.

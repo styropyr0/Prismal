@@ -10,7 +10,6 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import androidx.core.graphics.toColorInt
@@ -60,7 +59,7 @@ class PrismalSwitch @JvmOverloads constructor(
     private var animDuration = 250L
     private var onToggleChanged: ((Boolean) -> Unit)? = null
 
-    private val bounceScale = 1.10f
+    private val bounceScale = 1.1f
     private var thumbWidth = 0f
     private var trackHeight = 0f
     private var layoutHeight = 0f
@@ -115,8 +114,8 @@ class PrismalSwitch @JvmOverloads constructor(
                 thumb.setNormalStrength(getFloat(R.styleable.PrismalSwitch_thumbNormalStrength, 8f))
                 thumb.setDisplacementScale(getFloat(R.styleable.PrismalSwitch_thumbDisplacementScale, 10f))
                 thumb.setBlurRadius(getFloat(R.styleable.PrismalSwitch_thumbBlurRadius, 1f))
-                thumb.setChromaticAberration(getFloat(R.styleable.PrismalSwitch_thumbChromaticAberration, 8f))
-                thumb.setCornerRadius(getDimension(R.styleable.PrismalSwitch_thumbCornerRadius, 50f))
+                thumb.setChromaticAberration(getFloat(R.styleable.PrismalSwitch_thumbChromaticAberration, 2f))
+                thumb.setCornerRadius(getDimension(R.styleable.PrismalSwitch_thumbCornerRadius, 70f))
                 thumb.setBrightness(getDimension(R.styleable.PrismalSwitch_thumbBrightness, 1.195f))
                 val thumbShadowSoftness = getFloat(R.styleable.PrismalSwitch_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
                 val  thumbShadowAlpha = getInt(R.styleable.PrismalSwitch_thumbShadowAlpha, 70).coerceIn(0, 255)
@@ -174,7 +173,7 @@ class PrismalSwitch @JvmOverloads constructor(
 
             val moveAnim = ValueAnimator.ofFloat(startX, targetX).apply {
                 duration = animDuration
-                interpolator = AccelerateDecelerateInterpolator()
+                interpolator = OvershootInterpolator(2.0f)
                 addUpdateListener {
                     thumb.translationX = it.animatedValue as Float
                     thumb.updateBackground()
@@ -203,7 +202,7 @@ class PrismalSwitch @JvmOverloads constructor(
 
             val bounceDown = ValueAnimator.ofFloat(bounceScale, 1f).apply {
                 duration = animDuration / 2
-                interpolator = OvershootInterpolator(1.8f)
+                interpolator = OvershootInterpolator(3.8f)
                 addUpdateListener {
                     val s = it.animatedValue as Float
                     thumb.scaleX = s
@@ -224,19 +223,49 @@ class PrismalSwitch @JvmOverloads constructor(
     }
 
     private fun animateThumbShape(pressed: Boolean) {
-        val scaleAnimator = ValueAnimator.ofFloat(
-            if (pressed) 1f else bounceScale,
-            if (pressed) bounceScale else 1f
-        ).apply {
-            duration = 130
-            interpolator = OvershootInterpolator()
+        thumb.pivotX = thumb.width / 2f
+        thumb.pivotY = thumb.height / 2f
+
+        val startScale = if (pressed) 1f else bounceScale
+        val endScale = if (pressed) bounceScale else 1f
+        val scaleDuration = if (pressed) 120L else 160L
+
+        val scaleAnim = ValueAnimator.ofFloat(startScale, endScale).apply {
+            duration = scaleDuration
+            interpolator = OvershootInterpolator(3.2f)
             addUpdateListener {
                 val s = it.animatedValue as Float
                 thumb.scaleX = s
                 thumb.scaleY = 1f / s
+                thumb.updateBackground()
             }
         }
-        scaleAnimator.start()
+
+        val pulseAnim = ValueAnimator.ofFloat(
+            if (pressed) 1f else 1.2f,
+            if (pressed) 1.25f else 1f
+        ).apply {
+            duration = if (pressed) 150L else 250L
+            interpolator = OvershootInterpolator(3.8f)
+            addUpdateListener {
+                val strength = it.animatedValue as Float
+                thumb.setNormalStrength(10f * strength)
+                thumb.updateBackground()
+            }
+        }
+
+        AnimatorSet().apply {
+            playTogether(scaleAnim, pulseAnim)
+            start()
+        }
+    }
+
+    /**
+     * Triggers an update to the background texture by scheduling a capture of the underlying view hierarchy.
+     * This is useful for refreshing the glass effect when the content beneath changes (e.g., after scrolling or layout updates).
+     */
+    fun updateBackground() {
+        thumb.updateBackground()
     }
 
     /** Sets the refractive index (IOR) for the thumb's glass effect. */
