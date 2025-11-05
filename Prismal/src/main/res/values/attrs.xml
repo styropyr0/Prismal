@@ -1,91 +1,93 @@
 <resources>
     <declare-styleable name="PrismalFrameLayout">
-        <attr name="glassWidth" format="float" />
-        <attr name="glassHeight" format="float" />
-        <attr name="ior" format="float" />
-        <attr name="glassThickness" format="dimension" />
-        <attr name="normalStrength" format="float" />
-        <attr name="displacementScale" format="float" />
-        <attr name="heightTransitionWidth" format="float" />
-        <attr name="minSmoothing" format="float" />
-        <attr name="blurRadius" format="float" />
-        <attr name="highlightWidth" format="float" />
-        <attr name="chromaticAberration" format="float" />
-        <attr name="brightness" format="float" />
-        <attr name="showNormals" format="boolean" />
-        <attr name="cornerRadius" format="dimension" />
+        <attr name="pfl_glassWidth" format="float" />
+        <attr name="pfl_glassHeight" format="float" />
+        <attr name="pfl_glassThickness" format="dimension" />
+        <attr name="pfl_cornerRadius" format="dimension" />
+        <attr name="pfl_ior" format="float" />
+        <attr name="pfl_normalStrength" format="float" />
+        <attr name="pfl_displacementScale" format="float" />
+        <attr name="pfl_heightTransitionWidth" format="float" />
+        <attr name="pfl_minSmoothing" format="float" />
+        <attr name="pfl_blurRadius" format="float" />
+        <attr name="pfl_highlightWidth" format="float" />
+        <attr name="pfl_chromaticAberration" format="float" />
+        <attr name="pfl_brightness" format="float" />
+        <attr name="pfl_showNormals" format="boolean" />
     </declare-styleable>
 
-    <attr name="thumbWidth" format="dimension" />
-    <attr name="thumbCornerRadius" format="dimension" />
-    <attr name="thumbIOR" format="float" />
-    <attr name="thumbNormalStrength" format="float" />
-    <attr name="thumbDisplacementScale" format="float" />
-    <attr name="thumbBlurRadius" format="float" />
-    <attr name="thumbChromaticAberration" format="float" />
-    <attr name="thumbBrightness" format="float" />
-    <attr name="thumbShadowSoftness" format="float" />
-    <attr name="thumbShadowAlpha" format="integer" />
-
     <declare-styleable name="PrismalSwitch">
-        <attr name="isOn" format="boolean" />
-        <attr name="animDuration" format="integer" />
-        <attr name="trackHeight" format="dimension" />
-        <attr name="onColor" format="color" />
-        <attr name="offColor" format="color" />
-        <attr name="thumbWidth" />
-        <attr name="thumbCornerRadius" />
-        <attr name="thumbIOR" />
-        <attr name="thumbNormalStrength" />
-        <attr name="thumbDisplacementScale" />
-        <attr name="thumbBlurRadius" />
-        <attr name="thumbChromaticAberration" />
-        <attr name="thumbBrightness" />
-        <attr name="thumbShadowSoftness" />
-        <attr name="thumbShadowAlpha" />
+        <attr name="psw_isOn" format="boolean" />
+        <attr name="psw_animDuration" format="integer" />
+        <attr name="psw_trackHeight" format="dimension" />
+        <attr name="psw_onColor" format="color" />
+        <attr name="psw_offColor" format="color" />
+        <attr name="psw_thumbWidth" format="dimension" />
+        <attr name="psw_thumbCornerRadius" format="dimension" />
+        <attr name="psw_thumbIOR" format="float" />
+        <attr name="psw_thumbNormalStrength" format="float" />
+        <attr name="psw_thumbDisplacementScale" format="float" />
+        <attr name="psw_thumbBlurRadius" format="float" />
+        <attr name="psw_thumbChromaticAberration" format="float" />
+        <attr name="psw_thumbBrightness" format="float" />
+        <attr name="psw_thumbShadowSoftness" format="float" />
+        <attr name="psw_thumbShadowAlpha" format="integer" />
+        <attr name="psw_thumbThickness" format="dimension" />
+        <attr name="psw_thumbHighlightWidth" format="float" />
+        <attr name="psw_thumbHeightBlurFactor" format="float" />
+        <attr name="psw_thumbMinSmoothing" format="float" />
+        <attr name="psw_thumbRefractionInset" format="float" />
+        <attr name="psw_thumbEdgeRefractionFalloff" format="float" />
     </declare-styleable>
 
     <declare-styleable name="PrismalSlider">
-        <attr name="maxValue" format="float" />
-        <attr name="thumbWidth" />
-        <attr name="thumbCornerRadius" />
-        <attr name="thumbIOR" />
-        <attr name="thumbNormalStrength" />
-        <attr name="thumbDisplacementScale" />
-        <attr name="thumbBlurRadius" />
-        <attr name="thumbChromaticAberration" />
-        <attr name="thumbBrightness" />
-        <attr name="thumbShadowSoftness" />
-        <attr name="thumbShadowAlpha" />
-        <attr name="trackColor" format="color"/>
+        <attr name="psl_maxValue" format="float" />
+        <attr name="psl_trackColor" format="color" />
+        <attr name="psl_thumbWidth" format="dimension" />
+        <attr name="psl_thumbCornerRadius" format="dimension" />
+        <attr name="psl_thumbIOR" format="float" />
+        <attr name="psl_thumbNormalStrength" format="float" />
+        <attr name="psl_thumbDisplacementScale" format="float" />
+        <attr name="psl_thumbBlurRadius" format="float" />
+        <attr name="psl_thumbChromaticAberration" format="float" />
+        <attr name="psl_thumbBrightness" format="float" />
+        <attr name="psl_thumbShadowSoftness" format="float" />
+        <attr name="psl_thumbShadowAlpha" format="integer" />
+        <attr name="psl_thumbThickness" format="dimension" />
+        <attr name="psl_thumbHighlightWidth" format="float" />
+        <attr name="psl_thumbHeightBlurFactor" format="float" />
+        <attr name="psl_thumbMinSmoothing" format="float" />
+        <attr name="psl_thumbRefractionInset" format="float" />
+        <attr name="psl_thumbEdgeRefractionFalloff" format="float" />
+        <attr name="psl_thumbShadowColor" format="color" />
     </declare-styleable>
 
     <declare-styleable name="PrismalButton">
-        <attr name="ior" />
-        <attr name="normalStrength" />
-        <attr name="displacementScale" />
-        <attr name="blurRadius" />
-        <attr name="chromaticAberration" />
-        <attr name="cornerRadius" />
-        <attr name="highlightWidth" />
-        <attr name="brightness" />
-        <attr name="showNormals" />
+        <attr name="pbtn_ior" format="float" />
+        <attr name="pbtn_normalStrength" format="float" />
+        <attr name="pbtn_displacementScale" format="float" />
+        <attr name="pbtn_blurRadius" format="float" />
+        <attr name="pbtn_chromaticAberration" format="float" />
+        <attr name="pbtn_cornerRadius" format="dimension" />
+        <attr name="pbtn_highlightWidth" format="float" />
+        <attr name="pbtn_brightness" format="float" />
+        <attr name="pbtn_showNormals" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="PrismalIconButton">
-        <attr name="iconPadding" format="dimension"/>
-        <attr name="pressScale" format="float"/>
-        <attr name="animDuration"/>
-        <attr name="ior"/>
-        <attr name="normalStrength"/>
-        <attr name="displacementScale"/>
-        <attr name="blurRadius"/>
-        <attr name="chromaticAberration"/>
-        <attr name="brightness"/>
-        <attr name="highlightWidth"/>
-        <attr name="showNormals"/>
-        <attr name="iconSrc" format="reference" />
-        <attr name="iconTint"/>
-        <attr name="buttonSize" format="dimension" />
+        <attr name="pib_buttonSize" format="dimension" />
+        <attr name="pib_iconPadding" format="dimension" />
+        <attr name="pib_iconSrc" format="reference" />
+        <attr name="pib_iconTint" format="color" />
+        <attr name="pib_pressScale" format="float" />
+        <attr name="pib_animDuration" format="integer" />
+        <attr name="pib_ior" format="float" />
+        <attr name="pib_normalStrength" format="float" />
+        <attr name="pib_displacementScale" format="float" />
+        <attr name="pib_blurRadius" format="float" />
+        <attr name="pib_chromaticAberration" format="float" />
+        <attr name="pib_brightness" format="float" />
+        <attr name="pib_highlightWidth" format="float" />
+        <attr name="pib_showNormals" format="boolean" />
     </declare-styleable>
 </resources>

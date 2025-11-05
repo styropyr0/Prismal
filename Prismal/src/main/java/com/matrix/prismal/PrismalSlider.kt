@@ -129,24 +129,38 @@ class PrismalSlider @JvmOverloads constructor(
         thumb.setOnTouchListener(sliderTouchListener)
 
         context.obtainStyledAttributes(attrs, R.styleable.PrismalSlider).use { a ->
-            maxValue = a.getFloat(R.styleable.PrismalSlider_maxValue, 100f)
-            val widthDp = a.getDimension(R.styleable.PrismalSlider_thumbWidth, thumbWidth)
-            (track.background as GradientDrawable).setColor(a.getColor(R.styleable.PrismalSlider_trackColor, "#00B624".toColorInt()))
+            maxValue = a.getFloat(R.styleable.PrismalSlider_psl_maxValue, 100f)
+
+            val widthDp = a.getDimension(R.styleable.PrismalSlider_psl_thumbWidth, thumbWidth)
+            (track.background as GradientDrawable).setColor(
+                a.getColor(R.styleable.PrismalSlider_psl_trackColor, "#00B624".toColorInt())
+            )
             thumbWidth = widthDp
-            with (thumb) {
+
+            with(thumb) {
                 layoutParams.width = thumbWidth.toInt()
-                setCornerRadius(a.getFloat(R.styleable.PrismalSlider_thumbCornerRadius, 50f))
-                setIOR(a.getFloat(R.styleable.PrismalSlider_thumbIOR, 1.55f))
-                setNormalStrength(a.getFloat(R.styleable.PrismalSlider_thumbNormalStrength, 8f))
-                setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_thumbDisplacementScale, 10f))
-                setBlurRadius(a.getFloat(R.styleable.PrismalSlider_thumbBlurRadius, 1f))
-                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_thumbChromaticAberration, 8f))
-                setBrightness(a.getFloat(R.styleable.PrismalSlider_thumbBrightness, 1.19f))
+                setCornerRadius(a.getDimension(R.styleable.PrismalSlider_psl_thumbCornerRadius, 50f))
+                setIOR(a.getFloat(R.styleable.PrismalSlider_psl_thumbIOR, 1.55f))
+                setNormalStrength(a.getFloat(R.styleable.PrismalSlider_psl_thumbNormalStrength, 8f))
+                setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_psl_thumbDisplacementScale, 10f))
+                setBlurRadius(a.getFloat(R.styleable.PrismalSlider_psl_thumbBlurRadius, 1f))
+                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_psl_thumbChromaticAberration, 8f))
+                setBrightness(a.getFloat(R.styleable.PrismalSlider_psl_thumbBrightness, 1.19f))
+                setThickness(a.getDimension(R.styleable.PrismalSlider_psl_thumbThickness, 15f))
+                setHighlightWidth(a.getFloat(R.styleable.PrismalSlider_psl_thumbHighlightWidth, 4f))
+                setHeightBlurFactor(a.getFloat(R.styleable.PrismalSlider_psl_thumbHeightBlurFactor, 8f))
+                setMinSmoothing(a.getFloat(R.styleable.PrismalSlider_psl_thumbMinSmoothing, 1f))
+                setRefractionInset(a.getFloat(R.styleable.PrismalSlider_psl_thumbRefractionInset, 0.1f))
+                setEdgeRefractionFalloff(a.getFloat(R.styleable.PrismalSlider_psl_thumbEdgeRefractionFalloff, 0.3f))
+
+                val shadowSoftness = a.getFloat(R.styleable.PrismalSlider_psl_thumbShadowSoftness, 0.7f).coerceIn(0f..1f)
+                val shadowAlpha = a.getInt(R.styleable.PrismalSlider_psl_thumbShadowAlpha, 100).coerceIn(0, 255)
+                val shadowColor = a.getColor(R.styleable.PrismalSlider_psl_thumbShadowColor, "#45222244".toColorInt())
+
+                setShadowProperties(shadowColor, shadowSoftness * (shadowAlpha / 255f))
             }
-            val thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_thumbShadowSoftness, 0.7f).coerceIn(0f..1f)
-            val thumbShadowAlpha = a.getInt(R.styleable.PrismalSlider_thumbShadowAlpha, 100).coerceIn(0, 255)
-            thumb.setShadowProperties("#45222244".toColorInt(), thumbShadowSoftness)
         }
+        invalidate()
     }
 
     private fun animateThumbShape(pressed: Boolean) {

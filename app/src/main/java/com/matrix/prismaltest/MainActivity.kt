@@ -20,7 +20,11 @@ class MainActivity : AppCompatActivity() {
         R.drawable.bg4,
         R.drawable.bg5,
         R.drawable.bg6,
-        R.drawable.bg7
+        R.drawable.bg7,
+        R.drawable.bg8,
+        R.drawable.bg9,
+        R.drawable.bg10,
+        R.drawable.bg11
     )
 
     private var currIndex = 0

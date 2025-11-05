@@ -101,25 +101,34 @@ class PrismalSwitch @JvmOverloads constructor(
     init {
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalSwitch, 0, 0).apply {
             try {
-                isOn = getBoolean(R.styleable.PrismalSwitch_isOn, false)
-                animDuration = getInt(R.styleable.PrismalSwitch_animDuration, 250).toLong()
-                thumbWidth = getDimension(R.styleable.PrismalSwitch_thumbWidth, -3f)
-                trackHeight = getDimension(R.styleable.PrismalSwitch_trackHeight, dp(22f))
+                isOn = getBoolean(R.styleable.PrismalSwitch_psw_isOn, false)
+                animDuration = getInt(R.styleable.PrismalSwitch_psw_animDuration, 250).toLong()
+                thumbWidth = getDimension(R.styleable.PrismalSwitch_psw_thumbWidth, -3f)
+                trackHeight = getDimension(R.styleable.PrismalSwitch_psw_trackHeight, dp(22f))
 
-                onColor = getColor(R.styleable.PrismalSwitch_onColor, "#00B624".toColorInt())
-                offColor = getColor(R.styleable.PrismalSwitch_offColor, "#555555".toColorInt())
+                onColor = getColor(R.styleable.PrismalSwitch_psw_onColor, "#00B624".toColorInt())
+                offColor = getColor(R.styleable.PrismalSwitch_psw_offColor, "#555555".toColorInt())
                 (track.background as GradientDrawable).setColor(if (isOn) onColor else offColor)
 
-                thumb.setIOR(getFloat(R.styleable.PrismalSwitch_thumbIOR, 1.85f))
-                thumb.setNormalStrength(getFloat(R.styleable.PrismalSwitch_thumbNormalStrength, 8f))
-                thumb.setDisplacementScale(getFloat(R.styleable.PrismalSwitch_thumbDisplacementScale, 10f))
-                thumb.setBlurRadius(getFloat(R.styleable.PrismalSwitch_thumbBlurRadius, 1f))
-                thumb.setChromaticAberration(getFloat(R.styleable.PrismalSwitch_thumbChromaticAberration, 2f))
-                thumb.setCornerRadius(getDimension(R.styleable.PrismalSwitch_thumbCornerRadius, 70f))
-                thumb.setBrightness(getDimension(R.styleable.PrismalSwitch_thumbBrightness, 1.195f))
-                val thumbShadowSoftness = getFloat(R.styleable.PrismalSwitch_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
-                val  thumbShadowAlpha = getInt(R.styleable.PrismalSwitch_thumbShadowAlpha, 70).coerceIn(0, 255)
-                thumb.setShadowProperties("#20222244".toColorInt(), 0.7f)
+                with(thumb) {
+                    setIOR(getFloat(R.styleable.PrismalSwitch_psw_thumbIOR, 1.85f))
+                    setNormalStrength(getFloat(R.styleable.PrismalSwitch_psw_thumbNormalStrength, 8f))
+                    setDisplacementScale(getFloat(R.styleable.PrismalSwitch_psw_thumbDisplacementScale, 10f))
+                    setBlurRadius(getFloat(R.styleable.PrismalSwitch_psw_thumbBlurRadius, 1f))
+                    setChromaticAberration(getFloat(R.styleable.PrismalSwitch_psw_thumbChromaticAberration, 2f))
+                    setCornerRadius(getDimension(R.styleable.PrismalSwitch_psw_thumbCornerRadius, 70f))
+                    setBrightness(getFloat(R.styleable.PrismalSwitch_psw_thumbBrightness, 1.195f))
+                    setThickness(getDimension(R.styleable.PrismalSwitch_psw_thumbThickness, 15f))
+                    setHighlightWidth(getFloat(R.styleable.PrismalSwitch_psw_thumbHighlightWidth, 4f))
+                    setHeightBlurFactor(getFloat(R.styleable.PrismalSwitch_psw_thumbHeightBlurFactor, 8f))
+                    setMinSmoothing(getFloat(R.styleable.PrismalSwitch_psw_thumbMinSmoothing, 1f))
+                    setRefractionInset(getFloat(R.styleable.PrismalSwitch_psw_thumbRefractionInset, 0.1f))
+                    setEdgeRefractionFalloff(getFloat(R.styleable.PrismalSwitch_psw_thumbEdgeRefractionFalloff, 0.3f))
+
+                    val shadowSoftness = getFloat(R.styleable.PrismalSwitch_psw_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
+                    val shadowAlpha = getInt(R.styleable.PrismalSwitch_psw_thumbShadowAlpha, 70).coerceIn(0, 255)
+                    setShadowProperties("#20222244".toColorInt(), shadowSoftness * (shadowAlpha / 255f))
+                }
             } finally {
                 recycle()
             }

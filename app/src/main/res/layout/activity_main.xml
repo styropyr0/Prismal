@@ -24,13 +24,13 @@
                 android:layout_height="60dp"
                 android:layout_gravity="center"
                 android:layout_marginVertical="10dp"
-                app:animDuration="200"
-                app:blurRadius="2.5"
-                app:iconPadding="15dp"
-                app:iconSrc="@drawable/ic_prev"
-                app:iconTint="#FFFFFF"
-                app:ior="1.8"
-                app:pressScale="0.85" />
+                app:pib_animDuration="200"
+                app:pib_blurRadius="2.5"
+                app:pib_iconPadding="15dp"
+                app:pib_iconSrc="@drawable/ic_prev"
+                app:pib_iconTint="#FFFFFF"
+                app:pib_ior="1.8"
+                app:pib_pressScale="0.85" />
 
             <View
                 android:layout_width="match_parent"
@@ -43,13 +43,13 @@
                 android:layout_height="60dp"
                 android:layout_gravity="center"
                 android:layout_marginVertical="10dp"
-                app:animDuration="200"
-                app:blurRadius="2.5"
-                app:iconPadding="15dp"
-                app:iconSrc="@drawable/ic_next"
-                app:iconTint="#FFFFFF"
-                app:ior="1.8"
-                app:pressScale="0.85" />
+                app:pib_animDuration="200"
+                app:pib_blurRadius="2.5"
+                app:pib_iconPadding="15dp"
+                app:pib_iconSrc="@drawable/ic_next"
+                app:pib_iconTint="#FFFFFF"
+                app:pib_ior="1.8"
+                app:pib_pressScale="0.85" />
 
         </LinearLayout>
 
@@ -59,7 +59,7 @@
             android:layout_height="40dp"
             android:layout_gravity="center"
             android:layout_marginTop="20dp"
-            app:thumbChromaticAberration="20" />
+            app:psw_thumbChromaticAberration="20" />
 
         <com.matrix.prismal.PrismalIconButton
             android:id="@+id/prismalIconButton"
@@ -67,46 +67,57 @@
             android:layout_height="60dp"
             android:layout_gravity="center"
             android:layout_marginVertical="10dp"
-            app:animDuration="200"
-            app:blurRadius="2.5"
-            app:iconPadding="15dp"
-            app:iconSrc="@drawable/icon"
-            app:iconTint="#FFFFFF"
-            app:ior="1.8"
-            app:pressScale="0.85" />
+            app:pib_animDuration="200"
+            app:pib_blurRadius="2.5"
+            app:pib_iconPadding="15dp"
+            app:pib_iconSrc="@drawable/icon"
+            app:pib_iconTint="#FFFFFF"
+            app:pib_ior="1.8"
+            app:pib_pressScale="0.85" />
 
         <com.matrix.prismal.PrismalSlider
             android:id="@+id/prismalSlider"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_gravity="center"
-            app:thumbShadowAlpha="80"
-            app:thumbShadowSoftness="0.2" />
+            android:layout_gravity="center" />
 
-        <com.matrix.prismal.PrismalFrameLayout
-            android:id="@+id/prismalFrame"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:layout_marginTop="40dp"
-            app:brightness="1.3"
-            app:chromaticAberration="12"
-            app:glassThickness="20dp"
-            app:normalStrength="8"
-            app:displacementScale="14"
-            app:cornerRadius="30dp">
+            android:layout_height="wrap_content">
 
-            <TextView
+            <com.matrix.prismal.PrismalSlider
+                android:id="@+id/prismalSlider2"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="20dp"
-                android:text="Press the buttons to change the background"
-                android:textAlignment="center"
-                android:textColor="#FFFFFF"
-                android:layout_gravity="center"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_height="40dp"
+                android:layout_gravity="center" />
 
-        </com.matrix.prismal.PrismalFrameLayout>
+            <com.matrix.prismal.PrismalFrameLayout
+                android:id="@+id/prismalFrame"
+                android:layout_width="50dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="50dp"
+                app:pfl_brightness="1.3"
+                app:pfl_chromaticAberration="12"
+                app:pfl_glassThickness="20dp"
+                app:pfl_normalStrength="8"
+                app:pfl_displacementScale="14"
+                app:pfl_cornerRadius="30dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="20dp"
+                    android:text="Press the buttons to change the background"
+                    android:textAlignment="center"
+                    android:textColor="#FFFFFF"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </com.matrix.prismal.PrismalFrameLayout>
+
+        </FrameLayout>
 
     </LinearLayout>
 </LinearLayout>

@@ -84,26 +84,28 @@ class PrismalIconButton @JvmOverloads constructor(
 
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalIconButton, 0, 0).apply {
             try {
-                with (prismalSurface) {
-                    setIOR(getFloat(R.styleable.PrismalIconButton_ior, 1.85f))
-                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_normalStrength, 8f))
-                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_displacementScale, 10f))
-                    setBlurRadius(getFloat(R.styleable.PrismalIconButton_blurRadius, 1.5f))
-                    setChromaticAberration(getFloat(R.styleable.PrismalIconButton_chromaticAberration, 8f))
-                    setBrightness(1.3f)
+                with(prismalSurface) {
+                    setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.85f))
+                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 8f))
+                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 10f))
+                    setBlurRadius(getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 1.5f))
+                    setChromaticAberration(getFloat(R.styleable.PrismalIconButton_pib_chromaticAberration, 8f))
+                    setBrightness(getFloat(R.styleable.PrismalIconButton_pib_brightness, 1.3f))
+                    setHighlightWidth(getFloat(R.styleable.PrismalIconButton_pib_highlightWidth, 4f))
+                    setShowNormals(getBoolean(R.styleable.PrismalIconButton_pib_showNormals, false))
                     setShadowProperties("#33222222".toColorInt(), 0.5f)
                 }
 
-                pressScale = getFloat(R.styleable.PrismalIconButton_pressScale, 0.88f)
-                animDuration = getInt(R.styleable.PrismalIconButton_animDuration, 180).toLong()
-                iconTint = getColor(R.styleable.PrismalIconButton_iconTint, Color.BLACK)
-
-                val iconRes = getResourceId(R.styleable.PrismalIconButton_iconSrc, 0)
-                val iconPadding = getDimension(R.styleable.PrismalIconButton_iconPadding, dp(8f)).toInt()
+                val buttonSize = getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f))
+                val iconPadding = getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
+                val iconRes = getResourceId(R.styleable.PrismalIconButton_pib_iconSrc, 0)
+                iconTint = getColor(R.styleable.PrismalIconButton_pib_iconTint, Color.BLACK)
+                pressScale = getFloat(R.styleable.PrismalIconButton_pib_pressScale, 0.88f)
+                animDuration = getInt(R.styleable.PrismalIconButton_pib_animDuration, 180).toLong()
 
                 addView(
                     prismalSurface,
-                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                    LayoutParams(buttonSize.toInt(), buttonSize.toInt())
                 )
 
                 prismalSurface.addView(
@@ -113,13 +115,13 @@ class PrismalIconButton @JvmOverloads constructor(
                     }
                 )
 
-                if (iconRes != 0)
+                if (iconRes != 0) {
                     with(iconView) {
                         setImageResource(iconRes)
                         scaleType = ImageView.ScaleType.FIT_CENTER
                         imageTintList = ColorStateList.valueOf(iconTint)
                     }
-
+                }
             } finally {
                 recycle()
             }
