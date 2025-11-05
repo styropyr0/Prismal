@@ -11,6 +11,7 @@ import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
+import com.matrix.prismal.filters.PrismalFilter
 import com.matrix.prismal.renderer.PrismalGlassRenderer
 
 /**
@@ -347,6 +348,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * @param color The color of the glass
      */
     fun setGlassColor(color: Int) = glSurface.queueEvent { renderer.setGlassColor(color) }
+
+    fun setFilter(value: PrismalFilter) = glSurface.queueEvent { renderer.setFilter(value) }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         if (!debug) return false

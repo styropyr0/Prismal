@@ -139,19 +139,23 @@ class PrismalSlider @JvmOverloads constructor(
 
             with(thumb) {
                 layoutParams.width = thumbWidth.toInt()
+
+                val sizeScale = (thumbWidth / dp(50f)).coerceIn(0.5f, 2f)
+
                 setCornerRadius(a.getDimension(R.styleable.PrismalSlider_psl_thumbCornerRadius, 50f))
                 setIOR(a.getFloat(R.styleable.PrismalSlider_psl_thumbIOR, 1.55f))
                 setNormalStrength(a.getFloat(R.styleable.PrismalSlider_psl_thumbNormalStrength, 8f))
                 setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_psl_thumbDisplacementScale, 10f))
-                setBlurRadius(a.getFloat(R.styleable.PrismalSlider_psl_thumbBlurRadius, 1f))
-                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_psl_thumbChromaticAberration, 8f))
+
+                setBlurRadius(a.getFloat(R.styleable.PrismalSlider_psl_thumbBlurRadius, 1f * sizeScale))
+                setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_psl_thumbChromaticAberration, 8f * sizeScale))
                 setBrightness(a.getFloat(R.styleable.PrismalSlider_psl_thumbBrightness, 1.19f))
-                setThickness(a.getDimension(R.styleable.PrismalSlider_psl_thumbThickness, 15f))
-                setHighlightWidth(a.getFloat(R.styleable.PrismalSlider_psl_thumbHighlightWidth, 4f))
+                setThickness(a.getDimension(R.styleable.PrismalSlider_psl_thumbThickness, 15f * sizeScale))
+                setHighlightWidth(a.getFloat(R.styleable.PrismalSlider_psl_thumbHighlightWidth, 4f * sizeScale))
                 setHeightBlurFactor(a.getFloat(R.styleable.PrismalSlider_psl_thumbHeightBlurFactor, 8f))
-                setMinSmoothing(a.getFloat(R.styleable.PrismalSlider_psl_thumbMinSmoothing, 1f))
-                setRefractionInset(a.getFloat(R.styleable.PrismalSlider_psl_thumbRefractionInset, 0.1f))
-                setEdgeRefractionFalloff(a.getFloat(R.styleable.PrismalSlider_psl_thumbEdgeRefractionFalloff, 0.3f))
+                setMinSmoothing(a.getFloat(R.styleable.PrismalSlider_psl_thumbMinSmoothing, 1f * sizeScale))
+                setRefractionInset(a.getFloat(R.styleable.PrismalSlider_psl_thumbRefractionInset, 20f * sizeScale))
+                setEdgeRefractionFalloff(a.getFloat(R.styleable.PrismalSlider_psl_thumbEdgeRefractionFalloff, 4f))
 
                 val shadowSoftness = a.getFloat(R.styleable.PrismalSlider_psl_thumbShadowSoftness, 0.7f).coerceIn(0f..1f)
                 val shadowAlpha = a.getInt(R.styleable.PrismalSlider_psl_thumbShadowAlpha, 100).coerceIn(0, 255)
@@ -160,6 +164,11 @@ class PrismalSlider @JvmOverloads constructor(
                 setShadowProperties(shadowColor, shadowSoftness * (shadowAlpha / 255f))
             }
         }
+
+        post {
+            postDelayed({ thumb.updateBackground() }, 100)
+        }
+
         invalidate()
     }
 
@@ -220,6 +229,7 @@ class PrismalSlider @JvmOverloads constructor(
             val maxTravel = width - thumb.width
             val pos = (clamped / maxValue) * maxTravel
             thumb.translationX = pos
+            postDelayed({ thumb.updateBackground() }, 50)
         }
     }
 
@@ -253,16 +263,69 @@ class PrismalSlider @JvmOverloads constructor(
         requestLayout()
     }
 
+    /**
+     * Sets the specified Index Of Refraction value on the thumb
+     */
     fun setThumbIOR(value: Float) = thumb.apply { setIOR(value); updateBackground() }
+
+    /**
+     * Sets the specified normal strength value on the thumb
+     */
     fun setThumbNormalStrength(value: Float) = thumb.apply { setNormalStrength(value); updateBackground() }
+
+    /**
+     * Sets the specified displacement scale value on the thumb
+     */
     fun setThumbDisplacementScale(value: Float) = thumb.apply { setDisplacementScale(value); updateBackground() }
+
+    /**
+     * Sets the specified highlight width value on the thumb
+     */
     fun setThumbBlurRadius(value: Float) = thumb.apply { setBlurRadius(value); updateBackground() }
+
+    /**
+     * Sets the amount of chromatic aberration on the thumb
+     */
     fun setThumbChromaticAberration(value: Float) = thumb.apply { setChromaticAberration(value); updateBackground() }
+
+    /**
+     * Sets the corner radius of the thumb
+     */
     fun setThumbCornerRadius(value: Float) = thumb.apply { setCornerRadius(value); updateBackground() }
+
+    /**
+     * Sets the brightness of the thumb
+     */
     fun setThumbBrightness(value: Float) = thumb.apply { setBrightness(value); updateBackground() }
+
+    /**
+     * Show or hide the normal map on the thumb. Good for debugging / fine tuning
+     */
     fun setThumbShowNormals(enabled: Boolean) = thumb.apply { setShowNormals(enabled); updateBackground() }
+
+    /**
+     * Sets the shadow properties on the thumb
+     */
     fun setThumbShadow(color: Int, radius: Float) = thumb.apply { setShadowProperties(color, radius); updateBackground() }
+
+    /**
+     * Sets the height blur factor on the thumb
+     */
     fun setThumbHeightBlurFactor(value: Float) = thumb.apply { setHeightBlurFactor(value); updateBackground() }
+
+    /**
+     * Sets the thickness of the thumb
+     */
+    fun setThumbThickness(value: Float) = thumb.apply { setThickness(value); updateBackground() }
+
+    /**
+     * Sets the refraction inset of the thumb
+     */
+    fun setThumbRefractionInset(value: Float) = thumb.apply { setRefractionInset(value); updateBackground() }
+
+    /**
+     * Returns the thumb component of the slider. It's a PrismalFrameLayout object.
+     */
     fun getThumb(): PrismalFrameLayout = thumb
 
     private fun dp(value: Float) =

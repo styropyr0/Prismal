@@ -8,6 +8,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
 import com.matrix.prismal.R
+import com.matrix.prismal.filters.PrismalFilter
 import com.matrix.prismal.utils.ShaderUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -391,6 +392,25 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
             Color.blue(color) / 255f,
             Color.alpha(color) / 255f
         )
+    }
+
+    fun setFilter(filter: PrismalFilter) {
+        with(filter) {
+            setGlassSize(glassWidth, glassHeight)
+            setCornerRadius(cornerRadius)
+            setIOR(ior)
+            setGlassThickness(glassThickness)
+            setNormalStrength(normalStrength)
+            setDisplacementScale(displacementScale)
+            setHeightBlurFactor(heightBlurFactor)
+            setSminSmoothing(sminSmoothing)
+            setBlurRadius(blurRadius)
+            setHighlightWidth(highlightWidth)
+            setChromaticAberration(chromaticAberration)
+            setBrightness(brightness)
+            setShowNormals(showNormals)
+            setEdgeRefractionFalloff(edgeRefractionFalloff)
+        }
     }
 
     fun setShadowProperties(color: Int, softness: Float) {

@@ -1,12 +1,10 @@
 package com.matrix.prismaltest
 
 import android.os.Bundle
-import android.view.View
 import android.widget.LinearLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.toColorInt
-import androidx.core.view.children
 import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalIconButton
 import com.matrix.prismal.PrismalSlider

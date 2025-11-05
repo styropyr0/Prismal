@@ -79,27 +79,25 @@
             android:id="@+id/prismalSlider"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_gravity="center" />
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <com.matrix.prismal.PrismalSlider
-                android:id="@+id/prismalSlider2"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_gravity="center" />
+            android:layout_gravity="center"
+            app:psl_thumbIOR="1.55"
+            app:psl_thumbBrightness="1.3"
+            app:psl_thumbChromaticAberration="22"
+            app:psl_thumbThickness="20dp"
+            app:psl_thumbNormalStrength="8"
+            app:psl_thumbDisplacementScale="14"
+            app:psl_thumbCornerRadius="30dp"/>
 
             <com.matrix.prismal.PrismalFrameLayout
                 android:id="@+id/prismalFrame"
-                android:layout_width="50dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="50dp"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_marginTop="50dp"
                 app:pfl_brightness="1.3"
-                app:pfl_chromaticAberration="12"
+                app:pfl_chromaticAberration="22"
                 app:pfl_glassThickness="20dp"
                 app:pfl_normalStrength="8"
+                app:pfl_blurRadius="15"
                 app:pfl_displacementScale="14"
                 app:pfl_cornerRadius="30dp">
 
@@ -111,13 +109,10 @@
                     android:textAlignment="center"
                     android:textColor="#FFFFFF"
                     android:layout_gravity="center"
-                    android:visibility="gone"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
             </com.matrix.prismal.PrismalFrameLayout>
-
-        </FrameLayout>
 
     </LinearLayout>
 </LinearLayout>

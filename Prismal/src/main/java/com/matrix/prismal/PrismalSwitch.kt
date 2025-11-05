@@ -26,6 +26,7 @@ import androidx.core.graphics.toColorInt
  * - Dynamic color transitions for the track background.
  * - Supports runtime customization of thumb's optical parameters such as IOR, blur, normal strength, etc.
  * - Provides a listener callback for toggle state changes.
+ * - **Size-aware parameter scaling**: Automatically adjusts pixel-based shader parameters based on thumb size
  *
  * ### Usage Example
  * ```kotlin
@@ -67,6 +68,8 @@ class PrismalSwitch @JvmOverloads constructor(
     private var baseThumbWidth = 0f
     private var onColor = "#00B624".toColorInt()
     private var offColor = "#555555".toColorInt()
+
+    private var sizeScale = 1f
 
     private val track = View(context).apply {
         background = GradientDrawable().apply {
@@ -110,20 +113,23 @@ class PrismalSwitch @JvmOverloads constructor(
                 offColor = getColor(R.styleable.PrismalSwitch_psw_offColor, "#555555".toColorInt())
                 (track.background as GradientDrawable).setColor(if (isOn) onColor else offColor)
 
+                val refThumbWidth = dp(60f)
+                sizeScale = (thumbWidth.takeIf { it > 0 } ?: refThumbWidth) / refThumbWidth
+
                 with(thumb) {
                     setIOR(getFloat(R.styleable.PrismalSwitch_psw_thumbIOR, 1.85f))
                     setNormalStrength(getFloat(R.styleable.PrismalSwitch_psw_thumbNormalStrength, 8f))
                     setDisplacementScale(getFloat(R.styleable.PrismalSwitch_psw_thumbDisplacementScale, 10f))
-                    setBlurRadius(getFloat(R.styleable.PrismalSwitch_psw_thumbBlurRadius, 1f))
-                    setChromaticAberration(getFloat(R.styleable.PrismalSwitch_psw_thumbChromaticAberration, 2f))
-                    setCornerRadius(getDimension(R.styleable.PrismalSwitch_psw_thumbCornerRadius, 70f))
+                    setBlurRadius(getFloat(R.styleable.PrismalSwitch_psw_thumbBlurRadius, 1f * sizeScale))
+                    setChromaticAberration(getFloat(R.styleable.PrismalSwitch_psw_thumbChromaticAberration, 2f * sizeScale))
+                    setCornerRadius(getDimension(R.styleable.PrismalSwitch_psw_thumbCornerRadius, 70f * sizeScale))
                     setBrightness(getFloat(R.styleable.PrismalSwitch_psw_thumbBrightness, 1.195f))
-                    setThickness(getDimension(R.styleable.PrismalSwitch_psw_thumbThickness, 15f))
-                    setHighlightWidth(getFloat(R.styleable.PrismalSwitch_psw_thumbHighlightWidth, 4f))
+                    setThickness(getDimension(R.styleable.PrismalSwitch_psw_thumbThickness, 15f * sizeScale))
+                    setHighlightWidth(getFloat(R.styleable.PrismalSwitch_psw_thumbHighlightWidth, 4f * sizeScale))
                     setHeightBlurFactor(getFloat(R.styleable.PrismalSwitch_psw_thumbHeightBlurFactor, 8f))
-                    setMinSmoothing(getFloat(R.styleable.PrismalSwitch_psw_thumbMinSmoothing, 1f))
-                    setRefractionInset(getFloat(R.styleable.PrismalSwitch_psw_thumbRefractionInset, 0.1f))
-                    setEdgeRefractionFalloff(getFloat(R.styleable.PrismalSwitch_psw_thumbEdgeRefractionFalloff, 0.3f))
+                    setMinSmoothing(getFloat(R.styleable.PrismalSwitch_psw_thumbMinSmoothing, 1f * sizeScale))
+                    setRefractionInset(getFloat(R.styleable.PrismalSwitch_psw_thumbRefractionInset, 20f * sizeScale))
+                    setEdgeRefractionFalloff(getFloat(R.styleable.PrismalSwitch_psw_thumbEdgeRefractionFalloff, 15f * sizeScale))
 
                     val shadowSoftness = getFloat(R.styleable.PrismalSwitch_psw_thumbShadowSoftness, 0.2f).coerceIn(0f..1f)
                     val shadowAlpha = getInt(R.styleable.PrismalSwitch_psw_thumbShadowAlpha, 70).coerceIn(0, 255)
@@ -153,6 +159,8 @@ class PrismalSwitch @JvmOverloads constructor(
             if (layoutHeight == 0f) layoutHeight = height.toFloat()
             baseThumbWidth = thumbWidth / bounceScale
 
+            sizeScale = thumbWidth / dp(60f)
+
             thumb.layoutParams = (thumb.layoutParams as LayoutParams).apply {
                 width = baseThumbWidth.toInt()
                 height = layoutHeight.toInt()
@@ -164,10 +172,9 @@ class PrismalSwitch @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-
         if (thumbWidth == -3f) thumbWidth = w * 0.65f
-
         baseThumbWidth = thumbWidth
+        sizeScale = thumbWidth / dp(60f)
         updateThumbPosition(animated = false)
     }
 
@@ -292,6 +299,24 @@ class PrismalSwitch @JvmOverloads constructor(
     /** Adjusts how much the thumb's displacement map affects the glass distortion. */
     fun setThumbDisplacementScale(value: Float) {
         thumb.setDisplacementScale(value)
+        thumb.updateBackground()
+    }
+
+    /** Sets the thickness of the thumb's glass edge in pixels. */
+    fun setThumbThickness(value: Float) {
+        thumb.setThickness(value)
+        thumb.updateBackground()
+    }
+
+    /** Sets the refraction inset distance for the thumb's glass effect. */
+    fun setThumbRefractionInset(value: Float) {
+        thumb.setRefractionInset(value)
+        thumb.updateBackground()
+    }
+
+    /** Sets the edge refraction falloff for smoother glass edges. */
+    fun setThumbEdgeRefractionFalloff(value: Float) {
+        thumb.setEdgeRefractionFalloff(value)
         thumb.updateBackground()
     }
 
