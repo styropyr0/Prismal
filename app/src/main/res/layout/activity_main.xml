@@ -7,7 +7,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginHorizontal="10dp"
         android:layout_marginTop="20dp"
         android:orientation="vertical">
@@ -59,7 +59,15 @@
             android:layout_height="40dp"
             android:layout_gravity="center"
             android:layout_marginTop="20dp"
-            app:psw_thumbChromaticAberration="20" />
+            app:psw_thumbIOR="1.8"
+            app:psw_thumbBrightness="1.3"
+            app:psw_thumbChromaticAberration="22"
+            app:psw_thumbThickness="3dp"
+            app:psw_thumbNormalStrength="12"
+            app:psw_thumbBlurRadius="4"
+            app:psw_thumbDisplacementScale="6"
+            app:psw_thumbHeightBlurFactor="5"
+            app:psw_thumbCornerRadius="30dp" />
 
         <com.matrix.prismal.PrismalIconButton
             android:id="@+id/prismalIconButton"
@@ -80,25 +88,25 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:layout_gravity="center"
-            app:psl_thumbIOR="1.55"
+            app:psl_thumbIOR="1.8"
             app:psl_thumbBrightness="1.3"
             app:psl_thumbChromaticAberration="22"
-            app:psl_thumbThickness="20dp"
-            app:psl_thumbNormalStrength="8"
-            app:psl_thumbDisplacementScale="14"
+            app:psl_thumbThickness="3dp"
+            app:psl_thumbBlurRadius="0"
+            app:psl_thumbNormalStrength="12"
+            app:psl_thumbDisplacementScale="10"
             app:psl_thumbCornerRadius="30dp"/>
 
             <com.matrix.prismal.PrismalFrameLayout
                 android:id="@+id/prismalFrame"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
-                android:layout_marginTop="50dp"
-                app:pfl_brightness="1.3"
-                app:pfl_chromaticAberration="22"
-                app:pfl_glassThickness="20dp"
-                app:pfl_normalStrength="8"
-                app:pfl_blurRadius="15"
-                app:pfl_displacementScale="14"
+                android:layout_marginTop="150dp"
+                app:pfl_brightness="1.2"
+                app:pfl_chromaticAberration="12"
+                app:pfl_glassThickness="2dp"
+                app:pfl_normalStrength="20"
+                app:pfl_displacementScale="20"
                 app:pfl_cornerRadius="30dp">
 
                 <TextView
