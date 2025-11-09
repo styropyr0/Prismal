@@ -106,7 +106,7 @@ vec3 gaussianBlurHorizontal(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize,
             float sampleOpacity = getShapeOpacity(sampleShapeCoord, glassSize, halfSize, cornerRadius, smoothing, inset);
 
             if (sampleOpacity > 0.0001) {
-                float w = w0 * exp(-xx / (2.0 * rr)); 
+                float w = w0 * exp(-xx / (2.0 * rr));
                 w *= sampleOpacity;
                 vec3 src = texture2D(tex, sampleUV).rgb;
                 col += src * w;

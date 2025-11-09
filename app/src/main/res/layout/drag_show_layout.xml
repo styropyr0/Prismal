@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/parentContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@drawable/bg4">
+
+    <FrameLayout
+        android:id="@+id/draggableContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="true"
+        android:clipToPadding="true">
+
+        <LinearLayout
+            android:id="@+id/draggableLayout"
+            android:layout_width="220dp"
+            android:layout_height="80dp"
+            android:gravity="center">
+
+            <com.matrix.prismal.PrismalFrameLayout
+                android:id="@+id/prismalFrame4"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:pfl_blurRadius="3"
+                app:pfl_brightness="1.3"
+                app:pfl_chromaticAberration="5"
+                app:pfl_cornerRadius="70dp"
+                app:pfl_displacementScale="20"
+                app:pfl_glassThickness="1dp"
+                app:pfl_normalStrength="40"
+                app:pfl_shadowSoftness="0.4" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

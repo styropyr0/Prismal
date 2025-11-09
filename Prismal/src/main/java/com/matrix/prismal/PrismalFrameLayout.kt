@@ -59,7 +59,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         setEGLConfigChooser(8, 8, 8, 8, 16, 0)
         holder.setFormat(PixelFormat.TRANSLUCENT)
         setZOrderOnTop(false)
-        setZOrderMediaOverlay(true)
+        setZOrderMediaOverlay(false)
     }
     private val renderer: PrismalGlassRenderer = PrismalGlassRenderer(context)
     private var lastWidth = 0
@@ -112,7 +112,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                  setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.15f))
                  setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_pfl_showNormals, false))
                  setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_pfl_cornerRadius, 10f))
-                 setShadowProperties("#230000FF".toColorInt(), getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 0.2f))
+                 setShadowProperties("#23FFFFFF".toColorInt(), getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 0.2f))
                  setGlassColor("#230000FF".toColorInt())
             } finally {
                 recycle()

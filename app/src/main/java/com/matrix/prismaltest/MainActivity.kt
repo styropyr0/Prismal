@@ -16,7 +16,6 @@ import com.matrix.prismal.PrismalSwitch
 
 class MainActivity : AppCompatActivity() {
     private val resList: List<Int> = listOf(
-        R.drawable.bg1,
         R.drawable.bg2,
         R.drawable.bg3,
         R.drawable.bg4,
@@ -41,12 +40,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prismalIconButton2: PrismalIconButton
     private lateinit var prismalIconButton3: PrismalIconButton
     private lateinit var prismalFrameLayout2: PrismalFrameLayout
+    private var pickedImageUri: Uri? = null
 
     private val imagePicker =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 val imageUri: Uri? = result.data?.data
                 imageUri?.let {
+                    pickedImageUri = it
+
                     val rootLayout = findViewById<LinearLayout>(R.id.root)
                     rootLayout.background = contentResolver.openInputStream(it)?.use { input ->
                         android.graphics.drawable.Drawable.createFromStream(input, it.toString())
@@ -94,6 +96,16 @@ class MainActivity : AppCompatActivity() {
             findViewById<LinearLayout>(R.id.root).setBackgroundResource(resList[currIndex])
 
             updateAllPrismalBackgrounds()
+        }
+
+        prismalIconButton3.setOnClickListener {
+            val intent = Intent(this, DragShowActivity::class.java)
+            pickedImageUri?.let {
+                intent.putExtra("BACKGROUND_URI", it.toString())
+            } ?: run {
+                intent.putExtra("BACKGROUND_RES_ID", resList[currIndex])
+            }
+            startActivity(intent)
         }
 
         prismalIconButton.setOnClickListener {
