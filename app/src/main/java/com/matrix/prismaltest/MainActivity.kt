@@ -51,13 +51,7 @@ class MainActivity : AppCompatActivity() {
                     rootLayout.background = contentResolver.openInputStream(it)?.use { input ->
                         android.graphics.drawable.Drawable.createFromStream(input, it.toString())
                     }
-
-                    prismalIconButton.updateBackground()
-                    prismalSlider.updateBackground()
-                    prismalSwitch.updateBackground()
-                    prismalFrameLayout.updateBackground()
-                    prevPrismalButton.updateBackground()
-                    nextPrismalButton.updateBackground()
+                    updateAllPrismalBackgrounds()
                 }
             }
         }

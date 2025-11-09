@@ -67,7 +67,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private var captureScheduled = false
     private var debug = false
     private var lastCaptureTime = 0L
-    private val minCaptureInterval = 50L
+    private val minCaptureInterval = 0L
 
     private val scrollListener = ViewTreeObserver.OnScrollChangedListener {
         scheduleCaptureBackground()

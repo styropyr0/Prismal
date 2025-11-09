@@ -84,21 +84,19 @@ float getShapeOpacity(vec2 sampleCoord, vec2 glassSize, vec2 halfSize, float rad
     return opacity;
 }
 
-// HORIZONTAL BLUR ONLY - major performance improvement
 vec3 gaussianBlurHorizontal(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radiusPx, vec2 glassSize, vec2 halfSize, float cornerRadius, float smoothing, float inset, vec2 currentShapeCoord) {
-    float r = min(radiusPx, 10.0); // Cap for performance
+    float r = min(radiusPx, 10.0);
     float rr = r * r;
     float w0 = 0.3780 / pow(r, 1.975);
 
     vec3 col = vec3(0.0);
     float totalWeight = 0.0;
 
-    // Only blur in X direction (horizontal)
     for (float x = -r; x <= r; x += 1.0) {
         float xx = x * x;
 
         if (xx <= rr) {
-            vec2 sampleOffset = vec2(x * texelSize.x, 0.0); // Only X offset
+            vec2 sampleOffset = vec2(x * texelSize.x, 0.0);
             vec2 sampleUV = uv + offset + sampleOffset;
             sampleUV = clamp(sampleUV, vec2(0.0), vec2(1.0));
 
@@ -108,7 +106,7 @@ vec3 gaussianBlurHorizontal(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize,
             float sampleOpacity = getShapeOpacity(sampleShapeCoord, glassSize, halfSize, cornerRadius, smoothing, inset);
 
             if (sampleOpacity > 0.0001) {
-                float w = w0 * exp(-xx / (2.0 * rr)); // Only X distance
+                float w = w0 * exp(-xx / (2.0 * rr));
                 w *= sampleOpacity;
                 vec3 src = texture2D(tex, sampleUV).rgb;
                 col += src * w;
@@ -169,13 +167,11 @@ void main() {
     vec2 texelSize = 1.0 / u_resolution;
     float blur = max(u_blurRadius, 1.0);
 
-    // Apply horizontal blur with chromatic aberration
     vec3 cR = gaussianBlurHorizontal(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
     vec3 cG = gaussianBlurHorizontal(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
     vec3 cB = gaussianBlurHorizontal(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
 
     vec3 refractedColor = vec3(cR.r, cG.g, cB.b);
 
-    // Output horizontally blurred result to intermediate texture
     gl_FragColor = vec4(refractedColor, opacity);
 }
