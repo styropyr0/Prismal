@@ -14,6 +14,7 @@
         <attr name="pfl_chromaticAberration" format="float" />
         <attr name="pfl_brightness" format="float" />
         <attr name="pfl_showNormals" format="boolean" />
+        <attr name="pfl_shadowSoftness" format="float" />
     </declare-styleable>
 
     <declare-styleable name="PrismalSwitch">

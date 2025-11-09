@@ -65,7 +65,7 @@ class PrismalSlider @JvmOverloads constructor(
     private var onValueChanged: ((Float) -> Unit)? = null
 
     private var thumbWidth = dp(55f)
-    private var trackHeight = dp(12f)
+    private var trackHeight = dp(13f)
     private val bounceScale = 1.1f
 
     private val track = View(context).apply {

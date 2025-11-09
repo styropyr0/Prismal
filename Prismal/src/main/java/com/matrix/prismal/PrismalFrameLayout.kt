@@ -76,10 +76,20 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private val clipPath = Path()
     private val clipRect = RectF()
     private var clipRadius = 0f
+    private val layoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+        if (width != lastWidth || height != lastHeight) {
+            lastWidth = width
+            lastHeight = height
+            glSurface.queueAndRender {
+                renderer.setGlassSize(width.toFloat(), height.toFloat())
+            }
+            scheduleCaptureBackground()
+        }
+    }
 
     init {
         glSurface.setRenderer(renderer)
-        glSurface.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+        glSurface.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         glSurface.setOnTouchListener(this)
 
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalFrameLayout, 0, 0).apply {
@@ -97,11 +107,12 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                  setHeightBlurFactor(getFloat(R.styleable.PrismalFrameLayout_pfl_heightTransitionWidth, 8f))
                  setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 1.0f))
                  setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 2.5f))
-                 setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 4.0f))
+                 setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 1.0f))
                  setChromaticAberration(getFloat(R.styleable.PrismalFrameLayout_pfl_chromaticAberration, 2.0f))
                  setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.15f))
                  setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_pfl_showNormals, false))
                  setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_pfl_cornerRadius, 10f))
+                 setShadowProperties("#230000FF".toColorInt(), getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 0.2f))
                  setGlassColor("#230000FF".toColorInt())
             } finally {
                 recycle()
@@ -111,17 +122,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         isChildrenDrawingOrderEnabled = true
 
-        viewTreeObserver.addOnGlobalLayoutListener {
-            if (width != lastWidth || height != lastHeight) {
-                lastWidth = width
-                lastHeight = height
-                glSurface.queueEvent {
-                    renderer.setGlassSize(width.toFloat(), height.toFloat())
-                }
-                scheduleCaptureBackground()
-            }
-        }
-
+        viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.addOnScrollChangedListener(scrollListener)
     }
 
@@ -141,11 +142,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.addOnScrollChangedListener(scrollListener)
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.removeOnScrollChangedListener(scrollListener)
     }
 
@@ -171,7 +174,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         }
     }
 
-    private fun captureAndSetBackground() {
+    internal fun captureAndSetBackground() {
         if (width <= 0 || height <= 0) return
 
         try {
@@ -201,7 +204,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
             visibility = wasVisible
 
-            glSurface.queueEvent { renderer.setBackgroundTexture(croppedBitmap) }
+            glSurface.queueAndRender { renderer.setBackgroundTexture(croppedBitmap) }
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -219,7 +222,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The inset value in pixels (default: 20f).
      */
-    fun setRefractionInset(value: Float) = glSurface.queueEvent { renderer.setRefractionInset(value) }
+    fun setRefractionInset(value: Float) = glSurface.queueAndRender { renderer.setRefractionInset(value) }
 
     /**
      * Sets the size of the glass effect area.
@@ -227,7 +230,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * @param width The width of the glass in pixels.
      * @param height The height of the glass in pixels.
      */
-    fun setGlassSize(width: Float, height: Float) = glSurface.queueEvent { renderer.setGlassSize(width, height) }
+    fun setGlassSize(width: Float, height: Float) = glSurface.queueAndRender { renderer.setGlassSize(width, height) }
 
     /**
      * Sets the corner radius for rounded corners on the glass effect.
@@ -236,7 +239,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      */
     fun setCornerRadius(radius: Float) {
         clipRadius = radius
-        glSurface.queueEvent { renderer.setCornerRadius(radius) }
+        glSurface.queueAndRender { renderer.setCornerRadius(radius) }
         postInvalidateOnAnimation()
     }
 
@@ -245,77 +248,77 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The IOR value (typical range: 1.3-1.6 for glass; default: 1.5f).
      */
-    fun setIOR(value: Float) = glSurface.queueEvent { renderer.setIOR(value) }
+    fun setIOR(value: Float) = glSurface.queueAndRender { renderer.setIOR(value) }
 
     /**
      * Sets the thickness of the glass, influencing distortion and depth effects.
      *
      * @param value The thickness in pixels (default: 15f).
      */
-    fun setThickness(value: Float) = glSurface.queueEvent { renderer.setGlassThickness(value) }
+    fun setThickness(value: Float) = glSurface.queueAndRender { renderer.setGlassThickness(value) }
 
     /**
      * Sets the strength of the normal mapping, controlling surface bumpiness and light interaction.
      *
      * @param value The strength multiplier (default: 1.2f).
      */
-    fun setNormalStrength(value: Float) = glSurface.queueEvent { renderer.setNormalStrength(value) }
+    fun setNormalStrength(value: Float) = glSurface.queueAndRender { renderer.setNormalStrength(value) }
 
     /**
      * Sets the scale for displacement mapping, which warps the texture based on height data.
      *
      * @param value The displacement scale multiplier (default: 1.0f).
      */
-    fun setDisplacementScale(value: Float) = glSurface.queueEvent { renderer.setDisplacementScale(value) }
+    fun setDisplacementScale(value: Float) = glSurface.queueAndRender { renderer.setDisplacementScale(value) }
 
     /**
      * Sets the blur factor applied based on the simulated glass height/depth.
      *
      * @param value The height-to-blur scaling factor (default: 8f).
      */
-    fun setHeightBlurFactor(value: Float) = glSurface.queueEvent { renderer.setHeightBlurFactor(value) }
+    fun setHeightBlurFactor(value: Float) = glSurface.queueAndRender { renderer.setHeightBlurFactor(value) }
 
     /**
      * Sets the minimum smoothing value for SDF (Signed Distance Field) operations in the shader.
      *
      * @param value The smoothing threshold (default: 1.0f).
      */
-    fun setMinSmoothing(value: Float) = glSurface.queueEvent { renderer.setSminSmoothing(value) }
+    fun setMinSmoothing(value: Float) = glSurface.queueAndRender { renderer.setSminSmoothing(value) }
 
     /**
      * Sets the radius for the overall blur effect in the glass rendering.
      *
      * @param value The blur radius in pixels (default: 2.5f).
      */
-    fun setBlurRadius(value: Float) = glSurface.queueEvent { renderer.setBlurRadius(value) }
+    fun setBlurRadius(value: Float) = glSurface.queueAndRender { renderer.setBlurRadius(value) }
 
     /**
      * Sets the width of highlight edges in the glass effect.
      *
      * @param value The highlight width in pixels (default: 4.0f).
      */
-    fun setHighlightWidth(value: Float) = glSurface.queueEvent { renderer.setHighlightWidth(value) }
+    fun setHighlightWidth(value: Float) = glSurface.queueAndRender { renderer.setHighlightWidth(value) }
 
     /**
      * Sets the intensity of chromatic aberration, simulating color fringing at edges.
      *
      * @param value The aberration strength (default: 2.0f).
      */
-    fun setChromaticAberration(value: Float) = glSurface.queueEvent { renderer.setChromaticAberration(value) }
+    fun setChromaticAberration(value: Float) = glSurface.queueAndRender { renderer.setChromaticAberration(value) }
 
     /**
      * Sets the overall brightness multiplier for the glass effect.
      *
      * @param value The brightness factor (default: 1.15f).
      */
-    fun setBrightness(value: Float) = glSurface.queueEvent { renderer.setBrightness(value) }
+    fun setBrightness(value: Float) = glSurface.queueAndRender { renderer.setBrightness(value) }
 
     /**
      * Toggles the display of normal vectors for debugging the surface normals.
      *
      * @param show True to show normals, false to hide (default: false).
      */
-    fun setShowNormals(show: Boolean) = glSurface.queueEvent { renderer.setShowNormals(show) }
+    fun setShowNormals(show: Boolean) = glSurface.queueAndRender { renderer.setShowNormals(show) }
 
     /**
      * Sets the shadow properties for the glass effect, including color and softness.
@@ -324,7 +327,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * @param softness The softness/feathering of the shadow (0.0-1.0; default: 0.2f).
      */
     fun setShadowProperties(color: Int, softness: Float) {
-        glSurface.queueEvent { renderer.setShadowProperties(color, softness) }
+        glSurface.queueAndRender { renderer.setShadowProperties(color, softness) }
     }
 
     /**
@@ -332,7 +335,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The falloff sharpness (higher values = sharper transition; default: 4f).
      */
-    fun setEdgeRefractionFalloff(value: Float) = glSurface.queueEvent { renderer.setEdgeRefractionFalloff(value) }
+    fun setEdgeRefractionFalloff(value: Float) = glSurface.queueAndRender { renderer.setEdgeRefractionFalloff(value) }
 
     /**
      * Enables or disables debug mode for the glass renderer (e.g., visualizing internals).
@@ -347,24 +350,24 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * Set the color of the glass
      * @param color The color of the glass
      */
-    fun setGlassColor(color: Int) = glSurface.queueEvent { renderer.setGlassColor(color) }
+    fun setGlassColor(color: Int) = glSurface.queueAndRender { renderer.setGlassColor(color) }
 
-    fun setFilter(value: PrismalFilter) = glSurface.queueEvent { renderer.setFilter(value) }
+    fun setFilter(value: PrismalFilter) = glSurface.queueAndRender { renderer.setFilter(value) }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         if (!debug) return false
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                glSurface.queueEvent {
+                glSurface.queueAndRender {
                     renderer.setTouching(true)
                     renderer.setMousePosition(event.x, event.y)
                 }
             }
-            MotionEvent.ACTION_MOVE -> glSurface.queueEvent {
+            MotionEvent.ACTION_MOVE -> glSurface.queueAndRender {
                 renderer.setMousePosition(event.x, event.y)
             }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> glSurface.queueEvent {
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> glSurface.queueAndRender {
                 renderer.setTouching(false)
             }
         }
@@ -374,4 +377,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     override fun getChildDrawingOrder(childCount: Int, i: Int): Int {
         return if (i == 0) 0 else i
     }
+
+
+    fun GLSurfaceView.queueAndRender(block: () -> Unit) {
+        queueEvent { block() }
+        requestRender()
     }
+}

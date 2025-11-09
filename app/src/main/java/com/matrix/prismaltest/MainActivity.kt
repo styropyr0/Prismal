@@ -38,6 +38,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prismalSwitch: PrismalSwitch
     private lateinit var prismalFrameLayout: PrismalFrameLayout
 
+    private lateinit var prismalIconButton2: PrismalIconButton
+    private lateinit var prismalIconButton3: PrismalIconButton
+    private lateinit var prismalFrameLayout2: PrismalFrameLayout
+
     private val imagePicker =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -72,6 +76,10 @@ class MainActivity : AppCompatActivity() {
             setShadowProperties("#3AF5F5F5".toColorInt(), 0.2f)
         }
 
+        prismalIconButton2 = findViewById(R.id.prismalIconButton2)
+        prismalIconButton3 = findViewById(R.id.prismalIconButton3)
+        prismalFrameLayout2 = findViewById(R.id.prismalFrame2)
+
         setListeners()
     }
 
@@ -80,7 +88,7 @@ class MainActivity : AppCompatActivity() {
             currIndex = if (currIndex == resList.size - 1) 0 else currIndex + 1
             findViewById<LinearLayout>(R.id.root).setBackgroundResource(resList[currIndex])
 
-            updateAllPrismalBackgrounds(it)
+            updateAllPrismalBackgrounds()
         }
 
         prismalSwitch.setOnToggleChangedListener { isChecked->
@@ -91,7 +99,7 @@ class MainActivity : AppCompatActivity() {
             currIndex = if (currIndex == 0) resList.size - 1 else currIndex - 1
             findViewById<LinearLayout>(R.id.root).setBackgroundResource(resList[currIndex])
 
-            updateAllPrismalBackgrounds(it)
+            updateAllPrismalBackgrounds()
         }
 
         prismalIconButton.setOnClickListener {
@@ -102,14 +110,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateAllPrismalBackgrounds(triggeredButton: Any) {
+    private fun updateAllPrismalBackgrounds() {
         prismalIconButton.updateBackground()
         prismalSlider.updateBackground()
         prismalSwitch.updateBackground()
         prismalFrameLayout.updateBackground()
         prevPrismalButton.updateBackground()
         nextPrismalButton.updateBackground()
-
-        (triggeredButton as? PrismalIconButton)?.updateBackground()
+        prismalIconButton2.updateBackground()
+        prismalIconButton3.updateBackground()
+        prismalFrameLayout2.updateBackground()
     }
 }
