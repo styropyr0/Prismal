@@ -173,20 +173,38 @@ void main() {
     vec3 refractedOut = refract(refractedIn, -surfaceNormal3D, u_ior);
 
     vec2 refractionOffset = refractedOut.xy * u_glassThickness * refractionStrength;
-    vec2 baseOffset = (refractionOffset / u_resolution) * u_displacementScale;
 
-    float minDim = min(u_glassSize.x, u_glassSize.y);
+    // Add bulge effect - push away from center
+    vec2 centerOffset = v_shapeCoord - vec2(0.5);
+    float distFromCenter = length(centerOffset);
+    vec2 bulgeDirection = distFromCenter > 0.0 ? normalize(centerOffset) : vec2(0.0);
+
+    // Smooth bulge that's stronger in the center
+    float bulgeFactor = smoothstep(0.0, 0.5, distFromCenter) * (1.0 - smoothstep(0.5, 1.0, distFromCenter));
+    bulgeFactor = pow(bulgeFactor, 0.5) * height_val * 0.015;
+
+    // Apply bulge in screen space
+    vec2 bulgeOffsetScreen = (bulgeDirection * bulgeFactor * u_glassSize) / u_resolution;
+
+    vec2 baseOffset = (refractionOffset / u_resolution) * u_displacementScale + bulgeOffsetScreen;
+
+    float avgDim = (u_glassSize.x + u_glassSize.y) * 0.5;
 
     float shadowExtent = mix(0.15, 0.60, clamp(u_shadowSoftness, 0.0, 1.0));
-    float innerShadowFalloff = minDim * shadowExtent;
+    float innerShadowFalloff = avgDim * shadowExtent;
 
     float innerShadow = 1.0 - smoothstep(0.0, innerShadowFalloff, edgeDistance);
     innerShadow = pow(innerShadow, 2.0);
     innerShadow *= 0.85;
     innerShadow *= (0.3 + height_val * 0.7);
 
-    float chromaEdgeFactor = smoothstep(innerShadowFalloff * 0.5, 0.0, edgeDistance);
-    chromaEdgeFactor = pow(chromaEdgeFactor, 1.5); // Smoother power curve
+    // Ultra smooth chromatic aberration falloff
+    float maxDist = length(glass_half_size_pixel);
+    float normalizedEdgeDist = edgeDistance / maxDist;
+
+    // Very gradual falloff from center to edge
+    float chromaEdgeFactor = 1.0 - smoothstep(-0.8, 0.2, normalizedEdgeDist);
+    chromaEdgeFactor = pow(chromaEdgeFactor, 0.3); // Very gentle curve
 
     float chromaIntensity = u_chromaticAberration * 0.003 * chromaEdgeFactor;
     vec2 refractionDir = length(baseOffset) > 0.0001 ? normalize(baseOffset) : vec2(0.0);
@@ -198,11 +216,20 @@ void main() {
     vec2 texelSize = 1.0 / u_resolution;
     float blur = max(u_blurRadius, 1.0);
 
-    vec3 cR = gaussianBlur(u_backgroundTexture, v_screenTexCoord, offsetR, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
-    vec3 cG = gaussianBlur(u_backgroundTexture, v_screenTexCoord, offsetG, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
-    vec3 cB = gaussianBlur(u_backgroundTexture, v_screenTexCoord, offsetB, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
+    vec3 blurredColor = gaussianBlur(u_backgroundTexture, v_screenTexCoord, baseOffset, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
 
-    vec3 refractedColor = vec3(cR.r, cG.g, cB.b);
+    vec2 chromaOffsetR = -refractionDir * chromaIntensity;
+    vec2 chromaOffsetB = refractionDir * chromaIntensity;
+
+    vec2 uvR = clamp(v_screenTexCoord + baseOffset + chromaOffsetR, vec2(0.0), vec2(1.0));
+    vec2 uvG = clamp(v_screenTexCoord + baseOffset, vec2(0.0), vec2(1.0));
+    vec2 uvB = clamp(v_screenTexCoord + baseOffset + chromaOffsetB, vec2(0.0), vec2(1.0));
+
+    float r = texture2D(u_backgroundTexture, uvR).r;
+    float g = blurredColor.g;
+    float b = texture2D(u_backgroundTexture, uvB).b;
+
+    vec3 refractedColor = vec3(r, g, b);
 
     vec3 brightenedColor = refractedColor * u_brightness;
 
