@@ -88,6 +88,7 @@ class PrismalButton @JvmOverloads constructor(
                 prismalSurface.setHighlightWidth(getFloat(R.styleable.PrismalButton_pbtn_highlightWidth, 4f))
                 prismalSurface.setBrightness(getFloat(R.styleable.PrismalButton_pbtn_brightness, 1.6f))
                 prismalSurface.setShowNormals(getBoolean(R.styleable.PrismalButton_pbtn_showNormals, false))
+                prismalSurface.setThickness(1f)
             } finally {
                 recycle()
             }

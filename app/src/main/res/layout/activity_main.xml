@@ -63,7 +63,7 @@
                 android:layout_height="40dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="20dp"
-                app:psw_thumbBlurRadius="0"
+                app:psw_thumbBlurRadius="4"
                 app:psw_thumbBrightness="1.3"
                 app:psw_thumbChromaticAberration="22"
                 app:psw_thumbCornerRadius="30dp"
@@ -91,7 +91,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:layout_gravity="center"
-                app:psl_thumbBlurRadius="0"
+                app:psl_thumbBlurRadius="4"
                 app:psl_thumbBrightness="1.3"
                 app:psl_thumbChromaticAberration="10"
                 app:psl_thumbCornerRadius="30dp"
@@ -100,18 +100,34 @@
                 app:psl_thumbNormalStrength="12"
                 app:psl_thumbThickness="3dp" />
 
+            <com.matrix.prismal.PrismalSlider
+                android:id="@+id/prismalSlider1"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="10dp"
+                app:psl_thumbBlurRadius="4"
+                app:psl_thumbBrightness="1.3"
+                app:psl_thumbChromaticAberration="10"
+                app:psl_thumbCornerRadius="30dp"
+                app:psl_thumbDisplacementScale="8"
+                app:psl_thumbIOR="1.5"
+                app:psl_thumbNormalStrength="12"
+                app:psl_trackColor="#F4800B"
+                app:psl_thumbThickness="3dp" />
+
             <com.matrix.prismal.PrismalFrameLayout
                 android:id="@+id/prismalFrame"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="50dp"
                 android:layout_marginTop="100dp"
-                app:pfl_blurRadius="2"
-                app:pfl_brightness="1.2"
+                app:pfl_blurRadius="4"
+                app:pfl_brightness="1.3"
                 app:pfl_chromaticAberration="5"
-                app:pfl_cornerRadius="70dp"
+                app:pfl_cornerRadius="30dp"
                 app:pfl_displacementScale="20"
-                app:pfl_glassThickness="2dp"
+                app:pfl_glassThickness="0.5dp"
                 app:pfl_normalStrength="40">
 
                 <TextView

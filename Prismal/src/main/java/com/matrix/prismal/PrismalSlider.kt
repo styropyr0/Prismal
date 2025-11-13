@@ -146,7 +146,11 @@ class PrismalSlider @JvmOverloads constructor(
                 setIOR(a.getFloat(R.styleable.PrismalSlider_psl_thumbIOR, 1.55f))
                 setNormalStrength(a.getFloat(R.styleable.PrismalSlider_psl_thumbNormalStrength, 8f))
                 setDisplacementScale(a.getFloat(R.styleable.PrismalSlider_psl_thumbDisplacementScale, 10f))
-
+                track.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 16f
+                    setColor(a.getColor(R.styleable.PrismalSlider_psl_trackColor, "#00B624".toColorInt()))
+                }
                 setBlurRadius(a.getFloat(R.styleable.PrismalSlider_psl_thumbBlurRadius, 1f * sizeScale))
                 setChromaticAberration(a.getFloat(R.styleable.PrismalSlider_psl_thumbChromaticAberration, 8f * sizeScale))
                 setBrightness(a.getFloat(R.styleable.PrismalSlider_psl_thumbBrightness, 1.19f))

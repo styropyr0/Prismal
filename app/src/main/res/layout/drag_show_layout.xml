@@ -17,7 +17,7 @@
 
         <LinearLayout
             android:id="@+id/draggableLayout"
-            android:layout_width="220dp"
+            android:layout_width="300dp"
             android:layout_height="80dp"
             android:gravity="center">
 
@@ -25,12 +25,12 @@
                 android:id="@+id/prismalFrame4"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:pfl_blurRadius="3"
+                app:pfl_blurRadius="0"
                 app:pfl_brightness="1.3"
                 app:pfl_chromaticAberration="5"
-                app:pfl_cornerRadius="70dp"
+                app:pfl_cornerRadius="30dp"
                 app:pfl_displacementScale="20"
-                app:pfl_glassThickness="1dp"
+                app:pfl_glassThickness="0.7dp"
                 app:pfl_normalStrength="40"
                 app:pfl_shadowSoftness="0.4" />
 
