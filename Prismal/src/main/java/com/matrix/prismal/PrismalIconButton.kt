@@ -86,8 +86,8 @@ class PrismalIconButton @JvmOverloads constructor(
             try {
                 with(prismalSurface) {
                     setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.85f))
-                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 8f))
-                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 10f))
+                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 4f))
+                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 4f))
                     setBlurRadius(getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 1.5f))
                     setChromaticAberration(getFloat(R.styleable.PrismalIconButton_pib_chromaticAberration, 8f))
                     setBrightness(getFloat(R.styleable.PrismalIconButton_pib_brightness, 1.3f))
