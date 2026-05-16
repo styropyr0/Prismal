@@ -446,7 +446,7 @@
             android:layout_gravity="center"
             android:fontFamily="@font/dm_sans_medium"
             android:padding="28dp"
-            android:text="Liquid glass\n(Kyant-style live controls)"
+            android:text="Liquid glass\n(Live controls)"
             android:textAlignment="center"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
