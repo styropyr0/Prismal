@@ -10,6 +10,40 @@
 
 ---
 
+## Screenshots
+
+### Glass rendering
+
+<p align="center">
+  <img src="screenshots/Screenshot_20260517_013547.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_013632.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_014719.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_014129.png" width="23%" />
+</p>
+<p align="center">
+  <img src="screenshots/Screenshot_20260517_014046.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_015304.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_015537.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_013906.png" width="23%" />
+</p>
+
+### Components on various backgrounds
+
+<p align="center">
+  <img src="screenshots/Screenshot_20260517_012059.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_012706.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_015136.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_014305.png" width="23%" />
+</p>
+<p align="center">
+  <img src="screenshots/Screenshot_20260517_012821.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_013019.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_015526.png" width="23%" />
+  <img src="screenshots/Screenshot_20260517_011751.png" width="23%" />
+</p>
+
+---
+
 ## Overview
 
 Prismal renders an iOS-style liquid glass material on Android. Each component captures the view hierarchy behind it into a GPU texture, then applies a physically derived rendering pipeline: signed-distance-field shape, circular-arc height profile, spherical meniscus normals, Snell's-law double refraction, two-pass Gaussian blur, dual Blinn-Phong specular, Fresnel rim highlights on both the lit and opposite borders, caustics, and a spring-physics animation system.
