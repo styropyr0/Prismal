@@ -1,250 +1,406 @@
 precision highp float;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Prismal — liquid glass
+// lens + droplet height + dual-specular + Fresnel transmission/reflection
+//
+// Author: Saurav Sajeev
+// ═══════════════════════════════════════════════════════════════════════════
+
 uniform sampler2D u_backgroundTexture;
-uniform vec2 u_resolution;
-uniform vec2 u_glassSize;
-uniform float u_cornerRadius;
+uniform sampler2D u_blurredTexture;
+uniform int       u_useBlurredTexture;
+
+uniform vec2  u_resolution;
+uniform vec2  u_glassSize;
+uniform vec4  u_cornerRadii;
+uniform float u_refractionInset;
+uniform float u_sminSmoothing;
+uniform float u_edgeRefractionFalloff;
+
 uniform float u_ior;
 uniform float u_glassThickness;
 uniform float u_normalStrength;
 uniform float u_displacementScale;
 uniform float u_heightTransitionWidth;
-uniform float u_sminSmoothing;
-uniform int u_showNormals;
-uniform float u_blurRadius;
-uniform vec4 u_overlayColor;
-uniform float u_highlightWidth;
+
+uniform float u_lensRefractionPx;
+uniform float u_lensDepthEffect;
+
 uniform float u_chromaticAberration;
+uniform float u_dispersionR;
+uniform float u_dispersionB;
+
+uniform float u_vibrancy;
+uniform float u_plainHighlight;
+
+uniform float u_liquidDome;
+uniform float u_fresnelReflect;
+
 uniform float u_brightness;
+uniform vec4  u_glassColor;
+uniform float u_highlightWidth;
+
+uniform vec2  u_lightDir;
+uniform float u_specular;
+uniform float u_shininess;
+uniform float u_rimStrength;
+
+uniform vec4  u_shadowColor;
+uniform float u_shadowSoftness;
+
+uniform float u_causticIntensity;
+uniform float u_transmittance;
+
+uniform int   u_showNormals;
+
 varying vec2 v_screenTexCoord;
 varying vec2 v_shapeCoord;
-uniform float u_refractionInset;
-uniform vec4 u_shadowColor;
-uniform float u_shadowSoftness;
-uniform float u_edgeRefractionFalloff;
-uniform vec4 u_glassColor;
 
-float smin_polynomial(float a, float b, float k) {
+float radiusAtCentered(vec2 c, vec4 radii) {
+    if (c.x >= 0.0) {
+        if (c.y <= 0.0) return radii.y;
+        else return radii.z;
+    } else {
+        if (c.y <= 0.0) return radii.x;
+        else return radii.w;
+    }
+}
+
+float sdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
+    vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
+    float outside = length(max(cornerCoord, 0.0)) - radius;
+    float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
+    return outside + inside;
+}
+
+vec2 gradSdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
+    vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
+    if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
+        vec2 m = max(cornerCoord, 0.0);
+        float len = length(m);
+        if (len < 1e-5) return vec2(0.0);
+        return sign(coord) * (m / len);
+    } else {
+        float gradX = step(cornerCoord.y, cornerCoord.x);
+        return sign(coord) * vec2(gradX, 1.0 - gradX);
+    }
+}
+
+float circleMapKyant(float x) {
+    x = clamp(x, 0.0, 1.0);
+    return 1.0 - sqrt(max(0.0, 1.0 - x * x));
+}
+
+float smin_poly(float a, float b, float k) {
     if (k <= 0.0) return min(a, b);
     float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
     return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-float smax_polynomial(float a, float b, float k) {
+float smax_poly(float a, float b, float k) {
     if (k <= 0.0) return max(a, b);
     float h = clamp(0.5 + 0.5 * (a - b) / k, 0.0, 1.0);
     return mix(b, a, h) + k * h * (1.0 - h);
 }
 
-float sdRoundedBoxSharp(vec2 p, vec2 b, float r) {
-    vec2 q = abs(p) - b + r;
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
-}
-
-float sdRoundedBoxSmooth(vec2 p, vec2 b, float r, float k_smooth) {
-    if (k_smooth <= 0.0) return sdRoundedBoxSharp(p,b,r);
-    vec2 q = abs(p) - b + r;
-    float termA_smooth = smax_polynomial(q.x, q.y, k_smooth);
-    float termB_smooth = smin_polynomial(termA_smooth, 0.0, k_smooth * 0.5);
-    vec2 q_for_length_smooth = vec2(
-        smax_polynomial(q.x, 0.0, k_smooth),
-        smax_polynomial(q.y, 0.0, k_smooth)
-    );
-    float termC_smooth = length(q_for_length_smooth);
-    return termB_smooth + termC_smooth - r;
-}
-
-float getHeightFromSDF(vec2 p_pixel_space, vec2 b_pixel_space, float r_pixel, float k_s, float transition_w) {
-    float dist_sample = sdRoundedBoxSmooth(p_pixel_space, b_pixel_space, r_pixel, k_s);
-    float normalized_dist = -dist_sample / transition_w;
-    const float steepness_factor = 3.0;
-    float height = 1.0 / (1.0 + exp(-normalized_dist * steepness_factor));
-    float edgeFalloff = smoothstep(transition_w * 0.5, -transition_w * 0.5, dist_sample);
-    height *= edgeFalloff;
-
-    return clamp(height, 0.0, 1.0);
-}
-
-float fresnel(vec3 normal, vec3 viewDir, float ior) {
-    float cosTheta = abs(dot(normal, viewDir));
-    float r0 = pow((1.0 - ior) / (1.0 + ior), 2.0);
-    return r0 + (1.0 - r0) * pow(1.0 - cosTheta, 5.0);
-}
-
-vec2 computeSurfaceGradient(vec2 shapeCoord, vec2 glassSize, vec2 halfSize, float radius, float smoothing, float transition) {
-    vec2 pixelStep = 1.0 / glassSize;
-
-    float h_px = getHeightFromSDF((shapeCoord + vec2(pixelStep.x, 0.0)) * glassSize, halfSize, radius, smoothing, transition);
-    float h_nx = getHeightFromSDF((shapeCoord - vec2(pixelStep.x, 0.0)) * glassSize, halfSize, radius, smoothing, transition);
-    float h_py = getHeightFromSDF((shapeCoord + vec2(0.0, pixelStep.y)) * glassSize, halfSize, radius, smoothing, transition);
-    float h_ny = getHeightFromSDF((shapeCoord - vec2(0.0, pixelStep.y)) * glassSize, halfSize, radius, smoothing, transition);
-
-    float grad_x = (h_px - h_nx) / (2.0 * pixelStep.x * glassSize.x);
-    float grad_y = (h_py - h_ny) / (2.0 * pixelStep.y * glassSize.y);
-
-    return vec2(grad_x, grad_y);
-}
-
-float getShapeOpacity(vec2 sampleCoord, vec2 glassSize, vec2 halfSize, float radius, float smoothing, float inset) {
-    vec2 samplePixel = sampleCoord * glassSize;
-    float dist = sdRoundedBoxSmooth(samplePixel, halfSize, radius, smoothing);
-    float edgeDist = -dist;
-
-    float opacity = 1.0 - smoothstep(-inset, 0.0, dist);
-    float aa_feather = 1.5;
-    opacity = mix(opacity, 1.0, smoothstep(0.0, aa_feather, edgeDist));
-
-    return opacity;
-}
-
-vec3 gaussianBlur(sampler2D tex, vec2 uv, vec2 offset, vec2 texelSize, float radiusPx, vec2 glassSize, vec2 halfSize, float cornerRadius, float smoothing, float inset, vec2 currentShapeCoord) {
-    float r = radiusPx;
-    float rr = r * r;
-    float w0 = 0.3780 / pow(r, 1.975);
-
-    vec3 col = vec3(0.0);
-    float totalWeight = 0.0;
-
-    for (float x = -r; x <= r; x += 1.0) {
-        float xx = x * x;
-        for (float y = -r; y <= r; y += 1.0) {
-            float yy = y * y;
-
-            if (xx + yy <= rr) {
-                vec2 sampleOffset = vec2(x, y) * texelSize;
-                vec2 sampleUV = uv + offset + sampleOffset;
-                sampleUV = clamp(sampleUV, vec2(0.0), vec2(1.0));
-
-                vec2 offsetInShapeSpace = (sampleOffset / texelSize) / glassSize;
-                vec2 sampleShapeCoord = currentShapeCoord + offsetInShapeSpace;
-
-                float sampleOpacity = getShapeOpacity(sampleShapeCoord, glassSize, halfSize, cornerRadius, smoothing, inset);
-
-                if (sampleOpacity > 0.0001) {
-                    float w = w0 * exp((-xx - yy) / (2.0 * rr));
-                    w *= sampleOpacity;
-                    vec3 src = texture2D(tex, sampleUV).rgb;
-                    col += src * w;
-                    totalWeight += w;
-                }
-            }
-        }
+float sdRoundBox(vec2 p, vec2 b, float r, float k) {
+    if (k <= 0.0) {
+        vec2 q = abs(p) - b + r;
+        return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
     }
+    vec2 q = abs(p) - b + r;
+    float a = smax_poly(q.x, q.y, k);
+    float c = smin_poly(a, 0.0, k * 0.5);
+    vec2  ql = vec2(smax_poly(q.x, 0.0, k), smax_poly(q.y, 0.0, k));
+    return c + length(ql) - r;
+}
 
-    if (totalWeight <= 0.0001) {
-        return texture2D(tex, clamp(uv + offset, vec2(0.0), vec2(1.0))).rgb;
-    }
+float getHeightFromDist(float dist, float tw) {
+    float t = clamp(-dist / tw, 0.0, 1.0);
+    return sqrt(max(0.0, 2.0 * t - t * t));
+}
 
-    return col / totalWeight;
+vec2 computeGradientHeight(vec2 pPx, vec2 halfSz, float cr, float k, float tw) {
+    vec2 s = vec2(1.0, 1.0);
+    float hpx = getHeightFromDist(sdRoundBox(pPx + vec2(s.x, 0.0), halfSz, cr, k), tw);
+    float hnx = getHeightFromDist(sdRoundBox(pPx - vec2(s.x, 0.0), halfSz, cr, k), tw);
+    float hpy = getHeightFromDist(sdRoundBox(pPx + vec2(0.0, s.y), halfSz, cr, k), tw);
+    float hny = getHeightFromDist(sdRoundBox(pPx - vec2(0.0, s.y), halfSz, cr, k), tw);
+    return vec2((hpx - hnx) * 0.5, (hpy - hny) * 0.5);
+}
+
+vec3 applyVibrancy(vec3 rgb, float sat) {
+    if (sat <= 1.001) return rgb;
+    float L = dot(rgb, vec3(0.213, 0.715, 0.072));
+    return clamp(mix(vec3(L), rgb, sat), 0.0, 1.0);
 }
 
 void main() {
-    float actualCornerRadius = min(u_cornerRadius, min(u_glassSize.x, u_glassSize.y) / 2.0);
+    vec2 halfSz = u_glassSize * 0.5;
+    float minDim = min(halfSz.x, halfSz.y);
+    float pxNorm = clamp(minDim / 108.0, 0.36, 1.0) + smoothstep(88.0, 220.0, minDim) * 0.45;
+    float edgePunch = mix(1.0, 1.28, smoothstep(74.0, 200.0, minDim));
+    float crMask = min(min(u_cornerRadii.x, u_cornerRadii.y), min(u_cornerRadii.z, u_cornerRadii.w));
+    crMask = min(crMask, min(u_glassSize.x, u_glassSize.y) * 0.5);
 
-    vec2 current_p_pixel = v_shapeCoord * u_glassSize;
-    vec2 glass_half_size_pixel = u_glassSize / 2.0;
+    vec2 pPx = v_shapeCoord * u_glassSize;
+    vec2 cKy = vec2(pPx.x, -pPx.y);
 
-    float dist_for_shape_boundary = sdRoundedBoxSmooth(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing);
-    float edgeDistance = -dist_for_shape_boundary;
+    float crMax = min(halfSz.x, halfSz.y);
+    float radCorner = min(radiusAtCentered(cKy, u_cornerRadii), crMax);
+    float sdKy = sdRoundedRectKyant(cKy, halfSz, radCorner);
 
+    float distMask = sdRoundBox(pPx, halfSz, crMask, u_sminSmoothing);
+    float edgeDist = -distMask;
+    float reflShell = smoothstep(clamp(minDim * 0.10, 5.0, 28.0), 0.0, edgeDist) * smoothstep(-4.5, 0.0, distMask);
     float inset = max(u_refractionInset, 2.0);
-
-    float opacity = 1.0 - smoothstep(-inset, 0.0, dist_for_shape_boundary);
-    float aa_feather = 1.5;
-    opacity = mix(opacity, 1.0, smoothstep(0.0, aa_feather, edgeDistance));
-
+    float opacity = 1.0 - smoothstep(-inset, 0.0, distMask);
+    opacity = mix(opacity, 1.0, smoothstep(0.0, 1.5, edgeDist));
     if (opacity < 0.001) discard;
 
-    float height_val = getHeightFromSDF(current_p_pixel, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
+    float dome = clamp(u_liquidDome, 0.0, 1.0);
+    float tw = max(u_heightTransitionWidth * (1.0 + 0.38 * dome) + minDim * 0.085, 1.0);
+    float hSig = getHeightFromDist(distMask, tw);
+    vec2 gradHSig = computeGradientHeight(pPx, halfSz, crMask, u_sminSmoothing, tw);
 
-    vec2 gradient = computeSurfaceGradient(v_shapeCoord, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, u_heightTransitionWidth);
-    vec3 surfaceNormal3D = normalize(vec3(-gradient.x * u_normalStrength, -gradient.y * u_normalStrength, 1.0));
+    float gradRadius = min(radCorner * 1.5, min(halfSz.x, halfSz.y));
+    vec2 gradLens = gradSdRoundedRectKyant(cKy, halfSz, gradRadius);
+
+    float innerReach = max(min(halfSz.x, halfSz.y) - crMask * 0.42, minDim * 0.22);
+    innerReach = min(innerReach, max(halfSz.x, halfSz.y) * 0.52 + minDim * 0.08);
+    float tDeep = clamp(edgeDist / max(innerReach, 2.0), 0.0, 1.0);
+    float tShell = 1.0 - tDeep;
+
+    float meniscusBand = smoothstep(0.08, 0.97, tShell);
+    float hCap = pow(max(0.0, tShell), 0.88);
+    float edgeBulge = 0.24 * pow(tShell, 2.45);
+    float hDome = (hCap + edgeBulge) * meniscusBand;
+
+    float coreBlend = smoothstep(0.0, 0.38, tDeep);
+    float hSlab = mix(hSig * (0.58 + 0.42 * coreBlend), hSig, 0.4 + 0.6 * (1.0 - dome));
+
+    float domeW = dome * (0.74 + 0.26 * smoothstep(0.12, 0.94, tShell));
+    float height = mix(hSlab, hDome, domeW);
+    float edgeRound = 1.0 - smoothstep(0.72, 1.0, tShell);
+    height = clamp(height * (0.84 + 0.16 * meniscusBand + 0.08 * edgeRound), 0.0, 1.0);
+
+    vec2 outward = (length(gradLens) > 1e-4) ? normalize(gradLens) : vec2(0.0, 1.0);
+    float shellCurv = pow(max(0.0, tShell), 1.05);
+    vec2 gCap = outward * (-shellCurv * (0.38 / max(minDim, 8.0)));
+    gCap *= meniscusBand * edgeRound;
+    vec2 gradH = mix(gradHSig, gCap, domeW);
+
+    vec3 N = normalize(vec3(-gradH.x * u_normalStrength, -gradH.y * u_normalStrength, 1.0));
+
+    float menW = clamp(edgeDist / tw, 0.0, 1.0);
+    float menCirc = sqrt(max(0.0, 1.0 - menW * menW));
+    vec3 N_meniscus = normalize(vec3(-outward * menCirc * 0.95, 0.26 + 0.74 * menW));
+    float menBlend = smoothstep(tw * 0.5, 0.0, edgeDist) * smoothstep(-6.0, 0.0, distMask) * 0.82;
+    N = normalize(mix(N, N_meniscus, menBlend));
+
+    float dropBand = clamp(minDim * 0.19, 4.5, 44.0);
+    float dropLens = pow(smoothstep(dropBand, 0.0, edgeDist), 0.82);
 
     if (u_showNormals == 1) {
-        gl_FragColor = vec4(surfaceNormal3D * 0.5 + 0.5, opacity);
+        gl_FragColor = vec4(N * 0.5 + 0.5, opacity);
         return;
     }
 
-    vec3 viewDir = vec3(0.0, 0.0, 1.0);
-    float fresnelFactor = fresnel(surfaceNormal3D, viewDir, u_ior);
+    vec3 V = vec3(0.0, 0.0, 1.0);
+    float cosVN = clamp(dot(N, V), 0.0, 1.0);
+    float r0 = pow((1.0 - u_ior) / (1.0 + u_ior), 2.0);
+    float silW = clamp(minDim * 0.10, 5.5, 34.0);
+    float edgeSil = smoothstep(silW, 0.0, edgeDist) * smoothstep(-4.5, 0.0, distMask);
+    float tiltW = clamp(length(N.xy) * 2.4, 0.0, 1.0);
+    float grazingW = clamp(edgeSil * 0.94 + tiltW * 0.55, 0.0, 1.0);
+    float cosVNeff = mix(cosVN, max(0.04, cosVN * 0.22 + 0.07 * tiltW), grazingW);
+    float F = r0 + (1.0 - r0) * pow(1.0 - cosVNeff, 5.0);
+    float fresCtl = clamp(u_fresnelReflect, 0.0, 2.0);
+    float Fr = fresCtl;
+    float cosVNrim = cosVNeff;
 
-    float refractionStrength = height_val * (0.5 + fresnelFactor * 0.3);
+    vec2 cenSafe = cKy + vec2(1e-4, 1e-4);
+    vec2 lensDir = gradLens + u_lensDepthEffect * normalize(cenSafe);
+    float ldLen = length(lensDir);
+    lensDir = ldLen > 1e-5 ? lensDir / ldLen : vec2(0.0);
 
-    vec3 refractedIn = refract(-viewDir, surfaceNormal3D, 1.0 / u_ior);
-    vec3 refractedOut = refract(refractedIn, -surfaceNormal3D, u_ior);
+    float lensRh = max(u_heightTransitionWidth, 1.0) * (1.0 + 0.55 * dome) + minDim * 0.11;
+    float sdIn = min(sdKy, 0.0);
+    float dLens = 0.0;
+    if ((-sdKy) < lensRh) {
+        dLens = circleMapKyant(1.0 - (-sdIn / lensRh)) * (-u_lensRefractionPx);
+    }
 
-    vec2 refractionOffset = refractedOut.xy * u_glassThickness * refractionStrength;
+    vec2 lensDeltaUv = (dLens * lensDir) / u_resolution;
+    float parallaxK = 0.052 * u_displacementScale;
+    vec2 parallax = (gradLens * height * (7.0 + 22.0 * F)) / u_resolution * parallaxK;
+    lensDeltaUv += parallax;
+    lensDeltaUv *= mix(0.78, 1.12, (1.0 - F) * (0.42 + 0.58 * height));
+    lensDeltaUv *= dropLens;
 
-    vec2 centerOffset = v_shapeCoord - vec2(0.5);
-    float distFromCenter = length(centerOffset);
-    vec2 bulgeDirection = distFromCenter > 0.0 ? normalize(centerOffset) : vec2(0.0);
+    float refrStr = height * (0.5 + F * 0.35);
+    vec3 refIn = refract(-V, N, 1.0 / u_ior);
+    vec3 refOut = (dot(refIn, refIn) < 0.001) ? vec3(0.0) : refract(refIn, -N, u_ior);
+    vec2 snellOff = (refOut.xy * u_glassThickness * refrStr / u_resolution) * u_displacementScale;
+    snellOff *= mix(0.72, 1.18, (1.0 - F) * (0.5 + 0.5 * height));
 
-    float bulgeFactor = smoothstep(0.0, 0.5, distFromCenter) * (1.0 - smoothstep(0.5, 1.0, distFromCenter));
-    bulgeFactor = pow(bulgeFactor, 0.5) * height_val * 0.015;
+    vec2 bDir = length(pPx) > 1e-3 ? -normalize(pPx) : vec2(0.0, -1.0);
+    float bulge = smoothstep(0.05, 0.38, tDeep) * (1.0 - smoothstep(0.52, 0.94, tDeep));
+    bulge = pow(max(bulge, 0.0), 0.62) * height * (0.014 + 0.01 * dome);
+    bulge *= smoothstep(0.02, 0.36, tDeep) * dropLens;
+    vec2 bulgeUv = bDir * bulge * u_glassSize / u_resolution;
+    lensDeltaUv *= pxNorm;
+    snellOff *= pxNorm * dropLens;
+    bulgeUv *= pxNorm;
 
-    vec2 bulgeOffsetScreen = (bulgeDirection * bulgeFactor * u_glassSize) / u_resolution;
-
-    vec2 baseOffset = (refractionOffset / u_resolution) * u_displacementScale + bulgeOffsetScreen;
-
+    vec2 baseOffset = lensDeltaUv + snellOff + bulgeUv;
+    vec2 uvCenter = clamp(v_screenTexCoord + baseOffset, vec2(0.0), vec2(1.0));
     float avgDim = (u_glassSize.x + u_glassSize.y) * 0.5;
 
-    float shadowExtent = mix(0.15, 0.60, clamp(u_shadowSoftness, 0.0, 1.0));
-    float innerShadowFalloff = avgDim * shadowExtent;
+    float caAmt = max(u_chromaticAberration, 0.0);
+    vec3 color;
 
-    float innerShadow = 1.0 - smoothstep(0.0, innerShadowFalloff, edgeDistance);
-    innerShadow = pow(innerShadow, 2.0);
-    innerShadow *= 0.85;
-    innerShadow *= (0.3 + height_val * 0.7);
+    if (caAmt < 0.02) {
+        if (u_useBlurredTexture == 1) {
+            color = texture2D(u_blurredTexture, uvCenter).rgb;
+        } else {
+            color = texture2D(u_backgroundTexture, uvCenter).rgb;
+        }
+    } else {
+        float chromaFar = avgDim * 0.5;
+        float edgeFac = pow(smoothstep(chromaFar, 0.0, edgeDist), 1.8);
+        float chromaBase = caAmt * 0.0018 * edgeFac;
+        float kyantChroma = caAmt * 0.0025
+            * ((cKy.x * cKy.y) / max(halfSz.x * halfSz.y, 1.0)) * edgeFac;
 
-    float chromaFalloffDistance = avgDim * 0.4;
-    float chromaEdgeFactor = smoothstep(chromaFalloffDistance, 0.0, edgeDistance);
-    chromaEdgeFactor = pow(chromaEdgeFactor, 1.5);
+        vec2 dispDir = length(gradLens) > 1e-4 ? normalize(gradLens)
+            : (length(pPx) > 1e-3 ? normalize(pPx) : vec2(0.0, 1.0));
+        vec2 chromaPush = dispDir * (chromaBase + kyantChroma) * pxNorm;
+        vec2 uvR = clamp(v_screenTexCoord + baseOffset + chromaPush * u_dispersionR, vec2(0.0), vec2(1.0));
+        vec2 uvG = uvCenter;
+        vec2 uvB = clamp(v_screenTexCoord + baseOffset - chromaPush * u_dispersionB, vec2(0.0), vec2(1.0));
 
-    float chromaIntensity = u_chromaticAberration * 0.003 * chromaEdgeFactor;
+        if (u_useBlurredTexture == 1) {
+            float r = texture2D(u_blurredTexture, uvR).r;
+            float g = texture2D(u_blurredTexture, uvG).g;
+            float b = texture2D(u_blurredTexture, uvB).b;
+            color = vec3(r, g, b);
+        } else {
+            float r = texture2D(u_backgroundTexture, uvR).r;
+            float g = texture2D(u_backgroundTexture, uvG).g;
+            float b = texture2D(u_backgroundTexture, uvB).b;
+            color = vec3(r, g, b);
+        }
+    }
 
-    vec2 chromaDir = distFromCenter > 0.0 ? normalize(centerOffset) : vec2(0.0);
+    color = applyVibrancy(color, u_vibrancy);
 
-    vec2 texelSize = 1.0 / u_resolution;
-    float blur = max(u_blurRadius, 1.0);
+    vec2 gDir = normalize(gradLens + vec2(1e-4));
+    float edgeG = reflShell * pow(1.0 - cosVNrim, 1.15) * mix(0.12, 1.0, F);
+    float reflW = min(0.9, edgeG * (0.1 + fresCtl * 0.46) * (0.28 + 0.72 * height));
+    vec2 reflUv = clamp(
+        v_screenTexCoord + baseOffset
+            + gDir * (4.0 + 38.0 * pow(1.0 - cosVNrim, 1.25) + length(N.xy) * 14.0) / u_resolution * pxNorm,
+        vec2(0.0),
+        vec2(1.0)
+    );
+    vec3 reflSample;
+    if (u_useBlurredTexture == 1) {
+        reflSample = texture2D(u_blurredTexture, reflUv).rgb;
+    } else {
+        reflSample = texture2D(u_backgroundTexture, reflUv).rgb;
+    }
+    color = mix(color, reflSample, reflW);
 
-    vec2 chromaOffsetR = -chromaDir * chromaIntensity;
-    vec2 chromaOffsetB = chromaDir * chromaIntensity;
+    vec3 skyHaze = vec3(0.88, 0.93, 1.02);
+    float skyW = min(0.88, edgeG * pow(1.0 - cosVNrim, 1.05) * (0.06 + fresCtl * 0.42) * (0.35 + 0.65 * height));
+    color = mix(color, mix(color, skyHaze, 0.55 + 0.1 * fresCtl), skyW);
 
-    vec3 blurredR = gaussianBlur(u_backgroundTexture, v_screenTexCoord, baseOffset + chromaOffsetR, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
-    vec3 blurredG = gaussianBlur(u_backgroundTexture, v_screenTexCoord, baseOffset, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
-    vec3 blurredB = gaussianBlur(u_backgroundTexture, v_screenTexCoord, baseOffset + chromaOffsetB, texelSize, blur, u_glassSize, glass_half_size_pixel, actualCornerRadius, u_sminSmoothing, inset, v_shapeCoord);
+    color *= u_brightness;
+    color = mix(color, color * u_glassColor.rgb, u_glassColor.a);
 
-    vec3 refractedColor = vec3(blurredR.r, blurredG.g, blurredB.b);
+    vec3 Lp = normalize(vec3(u_lightDir, 1.45));
+    vec3 Ls = normalize(vec3(-u_lightDir.x * 0.62 + 0.41, -u_lightDir.y * 0.62 + 0.33, 0.74));
+    vec3 Hp = normalize(Lp + V);
+    vec3 Hs = normalize(Ls + V);
 
-    vec3 brightenedColor = refractedColor * u_brightness;
+    float shadowExt = mix(0.15, 0.60, u_shadowSoftness > 1.0
+        ? clamp(u_shadowSoftness / 20.0, 0.0, 1.0)
+        : clamp(u_shadowSoftness, 0.0, 1.0));
+    float shadowFalloff = avgDim * shadowExt;
+    float innerShadow = 1.0 - smoothstep(0.0, shadowFalloff, edgeDist);
+    innerShadow = pow(innerShadow, 2.0) * 0.85 * (0.28 + height * 0.72);
+    color = mix(color, u_shadowColor.rgb * 0.25, innerShadow * u_shadowColor.a);
 
-    vec3 tintedColor = mix(brightenedColor, brightenedColor * u_glassColor.rgb, u_glassColor.a);
-    vec3 shadowColor = u_shadowColor.rgb * 0.3;
-    float shadowAmount = innerShadow * u_shadowColor.a;
-    vec3 finalColor = mix(tintedColor, shadowColor, shadowAmount);
+    float sh = max(u_shininess, 1.0);
+    float sp = u_specular * 1.05;
+    float specP = pow(max(dot(N, Hp), 0.0), sh) * sp;
+    specP *= (0.32 + 0.68 * height);
+    float specS = pow(max(dot(N, Hs), 0.0), sh * 0.68) * sp * 0.48;
+    specS *= (0.24 + 0.76 * height) * (0.42 + 0.58 * F);
+    color += (specP + specS) * vec3(0.99, 0.993, 1.0);
 
-    float overlayStrength = height_val * 0.03;
-    vec3 colorWithOverlay = mix(finalColor, u_overlayColor.rgb, overlayStrength);
+    vec3 Vn = normalize(V);
+    float dotNV = clamp(dot(N, Vn), 0.0, 1.0);
+    float Fnv = pow(1.0 - dotNV, 2.9);
+    float FedgeRim = pow(1.0 - cosVNrim, 3.25);
 
-    float outlineWidth = u_highlightWidth * 2.0;
-    float outlineInner = -outlineWidth * 0.3;
-    float outlineOuter = outlineWidth * 1.5;
+    float bandFracR = mix(0.056, 0.092, smoothstep(62.0, 218.0, minDim));
+    float bandR = clamp(minDim * bandFracR, 1.25, min(30.0, minDim * 0.26));
+    float shellRim = smoothstep(bandR * 1.22, 0.0, edgeDist) * smoothstep(-5.0, 0.0, distMask);
+    float shellInner = smoothstep(bandR * 2.05, bandR * 0.26, edgeDist) * smoothstep(-3.8, 0.0, distMask);
+    float centerQuiet = smoothstep(minDim * 0.2, minDim * 0.68, edgeDist);
+    float depthFade = mix(1.0, 0.58, centerQuiet);
 
-    float outlineMask = smoothstep(outlineOuter, outlineInner, edgeDistance) *
-                        smoothstep(-2.0, 0.0, dist_for_shape_boundary);
+    vec2 cn = cKy / max(halfSz, vec2(1.0));
+    vec2 Lxy = normalize(u_lightDir + vec2(1e-5));
+    vec2 gN = normalize(gradLens + vec2(1e-4));
+    vec2 tB = vec2(-gN.y, gN.x);
+    float wrapAlong = pow(clamp(abs(dot(normalize(tB + vec2(1e-5)), Lxy)), 0.0, 1.0), 2.8);
+    float borderAlign = pow(abs(dot(gN, Lxy)), 1.0);
+    float litAlign    = pow(max(0.0, dot(gN, Lxy)), 1.3);
 
-    float outlineIntensity = outlineMask * (0.6 + fresnelFactor * 0.4);
+    float tl = max(0.0, min(-cn.x, -cn.y));
+    float trc = max(0.0, min(cn.x, -cn.y));
+    float br = max(0.0, min(cn.x, cn.y));
+    float bl = max(0.0, min(-cn.x, cn.y));
+    float lightDiag = smoothstep(-0.3, 0.3, Lxy.x + Lxy.y * 0.46);
+    float pairOpp = pow(clamp(mix(tl + br, trc + bl, lightDiag), 0.0, 1.0), 1.06);
+    float runAlong = smoothstep(0.14, 0.98, max(abs(cn.x), abs(cn.y)));
+    float sx = exp(-abs(cn.y) * (2.25 + 1.85 * pairOpp));
+    float sy = exp(-abs(cn.x) * (2.25 + 1.85 * pairOpp));
+    float streakOpp = pairOpp * runAlong * max(sx, sy);
 
-    float outerEdgeHighlight = smoothstep(3.0, 0.0, edgeDistance) * smoothstep(-1.0, 0.0, dist_for_shape_boundary);
-    outerEdgeHighlight *= (0.5 + fresnelFactor * 0.5);
+    vec3 hiSoft = vec3(0.98, 0.992, 1.008);
+    vec3 hiVeil = vec3(0.966, 0.986, 1.018);
 
-    vec2 lightDir = normalize(vec2(-1.0, -1.0));
-    float lightDot = dot(surfaceNormal3D.xy, lightDir);
-    float directionalHighlight = smoothstep(-0.3, 0.5, lightDot) * outerEdgeHighlight;
+    float schlickW = F;
+    float rimDiffuse = FedgeRim * schlickW * shellRim * u_rimStrength * (0.1 + 0.34 * wrapAlong) * depthFade;
+    float rimInnerVeil = Fnv * schlickW * shellInner * u_rimStrength * 0.072 * depthFade;
+    float rimCorner = FedgeRim * schlickW * shellRim * streakOpp * u_rimStrength * 0.13 * (0.45 + 0.55 * height);
 
-    vec3 highlightColor = vec3(1.0);
+    color += hiSoft * rimDiffuse * edgePunch;
+    color += hiVeil * rimInnerVeil * edgePunch;
+    color += hiSoft * rimCorner * edgePunch;
 
-    vec3 withDirectionalHighlight = mix(colorWithOverlay, highlightColor, directionalHighlight * 0.5);
-    vec3 finalMixed = mix(withDirectionalHighlight, highlightColor, outlineIntensity * 0.7);
+    float rimBothBorders = borderAlign * shellRim * u_rimStrength * 0.26 * (0.55 + 0.45 * height) * depthFade;
+    float rimLitSide     = litAlign    * shellRim * u_rimStrength * 0.32 * (0.60 + 0.40 * height) * depthFade;
+    color += hiSoft * rimBothBorders * edgePunch;
+    color += hiSoft * rimLitSide * edgePunch;
 
-    gl_FragColor = vec4(finalMixed, opacity);
+    float faceSheenSoft = smoothstep(bandR * 2.55, 0.0, edgeDist) * smoothstep(-2.8, 0.0, distMask)
+        * smoothstep(-0.08, 0.74, dot(N.xy, -Lxy)) * Fnv * schlickW * u_rimStrength * 0.038;
+    color += hiSoft * faceSheenSoft * (0.52 + 0.48 * height) * edgePunch;
+
+    float plusHL = smoothstep(3.5 * pxNorm, 0.0, edgeDist) * u_plainHighlight * pow(1.0 - cosVNrim, 2.5) * (1.0 - 0.45 * centerQuiet);
+    color += plusHL * vec3(0.99, 0.995, 1.0);
+
+    if (u_causticIntensity > 0.001) {
+        float causticDot = dot(normalize(vec3(gradH * u_normalStrength, 0.45)), Lp);
+        float caust = pow(max(causticDot, 0.0), 7.0) * u_causticIntensity * height;
+        color += caust * vec3(1.0, 0.96, 0.90);
+    }
+
+    gl_FragColor = vec4(color, opacity * u_transmittance);
 }
