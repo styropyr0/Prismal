@@ -47,7 +47,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.styropyr0:Prismal:1.0.0'
+    implementation 'com.github.styropyr0:Prismal:v1.0.0'
 }
 ```
 
