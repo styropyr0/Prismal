@@ -57,7 +57,23 @@ class PrismalSlider @JvmOverloads constructor(
     private var currentValue = 0f
     private var onValueChanged: ((Float) -> Unit)? = null
     private var restBlur = 3f
+    private var pressChromatic = 4.5f
     private var accentColor = "#0088FF".toColorInt()
+    private var thumbIOR = 1.3f
+    private var thumbBrightness = 1.12f
+    private var thumbNormalStrength = 0.2f
+    private var thumbDisplacementScale = 2.8f
+    private var thumbShadowColor = Color.argb(65, 0, 0, 20)
+    private var thumbShadowSoftness = 0.25f
+    private var thumbThicknessPx = -1f
+    private var thumbHighlightWidth = -1f
+    private var thumbHeightBlurFactor = -1f
+    private var thumbMinSmoothing = 10f
+    private var thumbCornerRadiusPx = -1f
+    private var thumbRefractionInset = -1f
+    private var thumbEdgeFalloff = -1f
+    private var thumbParallaxScale = 0.4f
+    private var thumbShowNormals = false
     private val trackBgColor = Color.argb(51, 0x78, 0x78, 0x78)
     private val track = object : View(context) {
         private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = trackBgColor }
@@ -102,11 +118,12 @@ class PrismalSlider @JvmOverloads constructor(
     private fun applyPressState(t: Float) {
         val density = resources.displayMetrics.density
         val pressT = t.coerceIn(0f, 1f)
+        val restHBF = if (thumbHeightBlurFactor > 0f) thumbHeightBlurFactor * density else 8f * density
 
         thumb.setBlurRadius(lerp(restBlur, 0.8f, pressT))
-        thumb.setChromaticAberration(lerp(0f, 4.5f, pressT))
+        thumb.setChromaticAberration(lerp(0f, pressChromatic, pressT))
         thumb.setLensRefractionScale(lerp(0.6f, 1.8f, pressT))
-        thumb.setHeightBlurFactor(lerp(8f, 22f, pressT) * density)
+        thumb.setHeightBlurFactor(lerp(restHBF, restHBF * 2.75f, pressT))
 
         overlay.alpha = lerp(1f, 0f, pressT)
         thumb.updateBackground()
@@ -206,6 +223,23 @@ class PrismalSlider @JvmOverloads constructor(
             val c = a.getColor(R.styleable.PrismalSlider_psl_trackColor, accentColor)
             accentColor = c
             track.setFillColor(c)
+            restBlur = a.getFloat(R.styleable.PrismalSlider_psl_thumbBlurRadius, restBlur)
+            pressChromatic = a.getFloat(R.styleable.PrismalSlider_psl_thumbChromaticAberration, pressChromatic)
+            thumbIOR = a.getFloat(R.styleable.PrismalSlider_psl_thumbIOR, thumbIOR)
+            thumbBrightness = a.getFloat(R.styleable.PrismalSlider_psl_thumbBrightness, thumbBrightness)
+            thumbNormalStrength = a.getFloat(R.styleable.PrismalSlider_psl_thumbNormalStrength, thumbNormalStrength)
+            thumbDisplacementScale = a.getFloat(R.styleable.PrismalSlider_psl_thumbDisplacementScale, thumbDisplacementScale)
+            thumbShadowColor = a.getColor(R.styleable.PrismalSlider_psl_thumbShadowColor, thumbShadowColor)
+            thumbShadowSoftness = a.getFloat(R.styleable.PrismalSlider_psl_thumbShadowSoftness, thumbShadowSoftness)
+            thumbThicknessPx = a.getDimension(R.styleable.PrismalSlider_psl_thumbThickness, -1f)
+            thumbHighlightWidth = a.getFloat(R.styleable.PrismalSlider_psl_thumbHighlightWidth, -1f)
+            thumbHeightBlurFactor = a.getFloat(R.styleable.PrismalSlider_psl_thumbHeightBlurFactor, -1f)
+            thumbMinSmoothing = a.getFloat(R.styleable.PrismalSlider_psl_thumbMinSmoothing, thumbMinSmoothing)
+            thumbCornerRadiusPx = a.getDimension(R.styleable.PrismalSlider_psl_thumbCornerRadius, -1f)
+            thumbRefractionInset = a.getFloat(R.styleable.PrismalSlider_psl_thumbRefractionInset, -1f)
+            thumbEdgeFalloff = a.getFloat(R.styleable.PrismalSlider_psl_thumbEdgeRefractionFalloff, -1f)
+            thumbParallaxScale = a.getFloat(R.styleable.PrismalSlider_psl_thumbParallaxScale, thumbParallaxScale)
+            thumbShowNormals = a.getBoolean(R.styleable.PrismalSlider_psl_thumbShowNormals, false)
         }
 
         post { setupThumb(); applyPressState(0f) }
@@ -216,26 +250,28 @@ class PrismalSlider @JvmOverloads constructor(
 
         PrismalLiquidGlass.applyBase(thumb)
 
-        thumb.setCornerRadius(thumbR)
-        thumb.setIOR(1.3f)
-        thumb.setThickness(dp(1f))
+        thumb.setCornerRadius(if (thumbCornerRadiusPx > 0f) thumbCornerRadiusPx else thumbR)
+        thumb.setIOR(thumbIOR)
+        thumb.setThickness(if (thumbThicknessPx > 0f) thumbThicknessPx else dp(1f))
         thumb.setBlurRadius(restBlur)
-        thumb.setBrightness(1.12f)
+        thumb.setBrightness(thumbBrightness)
         thumb.setGlassColor(Color.argb(28, 255, 255, 255))
         thumb.setLensRefractionScale(19f)
-        thumb.setDisplacementScale(2.8f)
-        thumb.setNormalStrength(0.2f)
+        thumb.setDisplacementScale(thumbDisplacementScale)
+        thumb.setNormalStrength(thumbNormalStrength)
         thumb.setLiquidDomeStrength(5.15f)
         thumb.setFresnelReflectStrength(10f)
         thumb.setRimStrength(0f)
         thumb.setSpecular(.5f, 18f)
         thumb.setCausticIntensity(0f)
-        thumb.setHeightBlurFactor(12f * density)
-        thumb.setMinSmoothing(10f)
+        thumb.setMinSmoothing(thumbMinSmoothing)
         thumb.setLightDirection(42f, 78f)
-        thumb.setShadowProperties(Color.argb(65, 0, 0, 20), 0.25f)
-        thumb.setChromaticAberration(1.8f)
-        setThumbParallaxScale(0.4f)
+        thumb.setShadowProperties(thumbShadowColor, thumbShadowSoftness)
+        if (thumbHighlightWidth > 0f) thumb.setHighlightWidth(thumbHighlightWidth)
+        if (thumbRefractionInset > 0f) thumb.setRefractionInset(thumbRefractionInset)
+        if (thumbEdgeFalloff > 0f) thumb.setEdgeRefractionFalloff(thumbEdgeFalloff)
+        thumb.setShowNormals(thumbShowNormals)
+        thumb.setParallaxScale(thumbParallaxScale)
 
         thumb.updateBackground()
     }

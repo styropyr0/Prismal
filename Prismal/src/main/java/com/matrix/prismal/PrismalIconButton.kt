@@ -104,36 +104,19 @@ class PrismalIconButton @JvmOverloads constructor(
             try {
                 PrismalLiquidGlass.applyBase(prismalSurface)
                 with(prismalSurface) {
-                    setLiquidDomeStrength(0.72f)
-                    setFresnelReflectStrength(1.3f)
-                    setLensRefractionScale(0.55f)
-                    setShadowProperties("#22000000".toColorInt(), 0.18f)
+                    setLiquidDomeStrength(getFloat(R.styleable.PrismalIconButton_pib_liquidDomeStrength, 0.72f))
+                    setFresnelReflectStrength(getFloat(R.styleable.PrismalIconButton_pib_fresnelReflectStrength, 1.3f))
+                    setLensRefractionScale(getFloat(R.styleable.PrismalIconButton_pib_lensRefractionScale, 0.55f))
+                    setShadowProperties(
+                        getColor(R.styleable.PrismalIconButton_pib_shadowColor, "#22000000".toColorInt()),
+                        getFloat(R.styleable.PrismalIconButton_pib_shadowSoftness, 0.18f)
+                    )
                     setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.55f))
-                    setNormalStrength(
-                        getFloat(
-                            R.styleable.PrismalIconButton_pib_normalStrength,
-                            1.0f
-                        )
-                    )
-                    setDisplacementScale(
-                        getFloat(
-                            R.styleable.PrismalIconButton_pib_displacementScale,
-                            0.9f
-                        )
-                    )
-                    setChromaticAberration(
-                        getFloat(
-                            R.styleable.PrismalIconButton_pib_chromaticAberration,
-                            0f
-                        )
-                    )
+                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 1.0f))
+                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 0.9f))
+                    setChromaticAberration(getFloat(R.styleable.PrismalIconButton_pib_chromaticAberration, 0f))
                     setBrightness(getFloat(R.styleable.PrismalIconButton_pib_brightness, 1.12f))
-                    setHighlightWidth(
-                        getFloat(
-                            R.styleable.PrismalIconButton_pib_highlightWidth,
-                            1.2f
-                        )
-                    )
+                    setHighlightWidth(getFloat(R.styleable.PrismalIconButton_pib_highlightWidth, 1.2f))
                     setShowNormals(getBoolean(R.styleable.PrismalIconButton_pib_showNormals, false))
                 }
 
