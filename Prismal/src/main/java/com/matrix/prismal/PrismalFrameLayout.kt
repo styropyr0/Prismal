@@ -270,23 +270,24 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private fun captureFromRoot() {
         val root = rootView as? ViewGroup ?: return
 
-        val windowOffset = IntArray(2)
-        getLocationInWindow(windowOffset)
-        val screenOffset = IntArray(2)
-        getLocationOnScreen(screenOffset)
-
-        val statusBarHeight = screenOffset[1] - windowOffset[1]
+        val savedScaleX = scaleX
+        val savedScaleY = scaleY
+        scaleX = 1f
+        scaleY = 1f
 
         val rootLoc = IntArray(2)
         root.getLocationOnScreen(rootLoc)
         val viewLoc = IntArray(2)
         getLocationOnScreen(viewLoc)
 
-        val relX = viewLoc[0] - rootLoc[0]
-        val relY = viewLoc[1] - rootLoc[1] - statusBarHeight
+        scaleX = savedScaleX
+        scaleY = savedScaleY
 
-        val sx = scaleX.coerceAtLeast(1f)
-        val sy = scaleY.coerceAtLeast(1f)
+        val relX = viewLoc[0] - rootLoc[0]
+        val relY = viewLoc[1] - rootLoc[1]
+
+        val sx = savedScaleX.coerceAtLeast(1f)
+        val sy = savedScaleY.coerceAtLeast(1f)
         val extraX = ((sx - 1f) * pivotX).toInt()
         val extraY = ((sy - 1f) * pivotY).toInt()
 

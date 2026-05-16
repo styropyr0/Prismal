@@ -106,18 +106,27 @@ class PrismalSwitch @JvmOverloads constructor(
         thumb.setLensRefractionScale(lerp(0.5f, 1.2f, t))
         thumb.setHeightBlurFactor(lerp(6f, 18f, t) * density)
         overlay.alpha = lerp(1f, 0f, t)
-        thumb.updateBackground()
     }
 
     private fun applySquish() {
-        val v = normVel.coerceIn(-0.2f, 0.2f)
-        val sx = scaleXSpring.value / (1f - v * 0.75f)
-        val sy = scaleYSpring.value * (1f - abs(v) * 0.25f)
-        thumb.apply {
-            pivotX = thumbW / 2f
-            pivotY = thumbH / 2f
-            scaleX = sx
-            scaleY = sy
+        val pressScale = scaleXSpring.value
+
+        if (dragging && didDrag) {
+            val v = normVel.coerceIn(-0.2f, 0.2f)
+            val sx = pressScale
+            val sy = pressScale * (1f - abs(v) * 0.35f)
+
+            thumb.pivotX = thumbW / 2f
+            thumb.pivotY = thumbH / 2f
+            thumb.scaleX = sx
+            thumb.scaleY = sy
+        } else {
+            thumb.scaleX = pressScale
+            thumb.scaleY = pressScale
+        }
+
+        if (pressScale > 1.05f || dragging) {
+            thumb.updateBackground()
         }
     }
 
@@ -244,24 +253,26 @@ class PrismalSwitch @JvmOverloads constructor(
         }
         thumb.requestLayout()
         PrismalLiquidGlass.applyBase(thumb)
+
         thumb.setCornerRadius(thumbR)
-        thumb.setIOR(1.55f)
-        thumb.setBlurRadius(3f)
-        thumb.setBrightness(1.08f)
-        thumb.setLiquidDomeStrength(0.88f)
-        thumb.setFresnelReflectStrength(1.5f)
-        thumb.setSpecular(1.88f, 108f)
-        thumb.setRimStrength(2.0f)
-        thumb.setCausticIntensity(0.24f)
-        thumb.setNormalStrength(1.32f)
-        thumb.setDisplacementScale(1.04f)
-        thumb.setThickness(dp(4f))
-        thumb.setMinSmoothing(2.0f)
-        thumb.setHeightBlurFactor(3f * density)
-        thumb.setGlassColor(Color.argb(34, 255, 255, 255))
-        thumb.setLightDirection(-0.45f, -0.75f)
-        thumb.setShadowProperties(Color.argb(13, 0, 0, 0), 0.15f)
-        thumb.setLensRefractionScale(0.5f)
+        thumb.setIOR(1.3f)
+        thumb.setThickness(dp(1f))
+        thumb.setBrightness(1.12f)
+        thumb.setGlassColor(Color.argb(28, 255, 255, 255))
+        thumb.setLensRefractionScale(19f)
+        thumb.setDisplacementScale(2.8f)
+        thumb.setNormalStrength(0.2f)
+        thumb.setLiquidDomeStrength(5.15f)
+        thumb.setFresnelReflectStrength(10f)
+        thumb.setRimStrength(0f)
+        thumb.setSpecular(.5f, 18f)
+        thumb.setCausticIntensity(0f)
+        thumb.setHeightBlurFactor(12f * density)
+        thumb.setMinSmoothing(10f)
+        thumb.setLightDirection(42f, 78f)
+        thumb.setShadowProperties(Color.argb(65, 0, 0, 20), 0.25f)
+        thumb.setChromaticAberration(1.8f)
+
         applyFraction(fraction)
         applyPressState(0f)
         thumb.updateBackground()

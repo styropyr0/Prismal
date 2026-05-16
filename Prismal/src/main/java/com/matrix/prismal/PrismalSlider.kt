@@ -72,8 +72,8 @@ class PrismalSlider @JvmOverloads constructor(
         }
 
         override fun onDraw(c: Canvas) {
-            val w = width.toFloat();
-            val h = height.toFloat();
+            val w = width.toFloat()
+            val h = height.toFloat()
             val r = h / 2f
             c.drawRoundRect(0f, 0f, w, h, r, r, bgPaint)
             val fw = w * progress
@@ -91,18 +91,24 @@ class PrismalSlider @JvmOverloads constructor(
     private var velTracker: VelocityTracker? = null
     private var normVel = 0f
     private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t.coerceIn(0f, 1f)
-    private fun dp(v: Float) =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, resources.displayMetrics)
+    private fun dp(v: Float) = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP,
+        v,
+        resources.displayMetrics
+    )
 
     private fun maxTravel() = (width - thumbW).coerceAtLeast(0f)
 
     private fun applyPressState(t: Float) {
         val density = resources.displayMetrics.density
-        thumb.setBlurRadius(lerp(restBlur, 0f, t))
-        thumb.setChromaticAberration(lerp(0f, 6f, t))
-        thumb.setLensRefractionScale(lerp(0.5f, 1.3f, t))
-        thumb.setHeightBlurFactor(lerp(6f, 20f, t) * density)
-        overlay.alpha = lerp(1f, 0f, t)
+        val pressT = t.coerceIn(0f, 1f)
+
+        thumb.setBlurRadius(lerp(restBlur, 0.8f, pressT))
+        thumb.setChromaticAberration(lerp(0f, 4.5f, pressT))
+        thumb.setLensRefractionScale(lerp(0.6f, 1.8f, pressT))
+        thumb.setHeightBlurFactor(lerp(8f, 22f, pressT) * density)
+
+        overlay.alpha = lerp(1f, 0f, pressT)
         thumb.updateBackground()
     }
 
@@ -116,6 +122,7 @@ class PrismalSlider @JvmOverloads constructor(
             scaleX = sx
             scaleY = sy
         }
+        thumb.updateBackground()
     }
 
     private fun updateProgress(rawX: Float) {
@@ -181,8 +188,8 @@ class PrismalSlider @JvmOverloads constructor(
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
         })
         thumb.addView(
-            overlay, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+            overlay, LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
             )
         )
         thumb.setOnTouchListener(touchListener)
@@ -206,25 +213,30 @@ class PrismalSlider @JvmOverloads constructor(
 
     private fun setupThumb() {
         val density = resources.displayMetrics.density
+
         PrismalLiquidGlass.applyBase(thumb)
+
         thumb.setCornerRadius(thumbR)
-        thumb.setIOR(1.55f)
+        thumb.setIOR(1.3f)
+        thumb.setThickness(dp(1f))
         thumb.setBlurRadius(restBlur)
-        thumb.setBrightness(1.08f)
-        thumb.setLiquidDomeStrength(0.82f)
-        thumb.setFresnelReflectStrength(1.5f)
-        thumb.setSpecular(1.72f, 96f)
-        thumb.setRimStrength(1.8f)
-        thumb.setCausticIntensity(0.24f)
-        thumb.setNormalStrength(1.15f)
-        thumb.setDisplacementScale(1.15f)
-        thumb.setThickness(dp(4f))
-        thumb.setMinSmoothing(1.8f)
-        thumb.setHeightBlurFactor(3f * density)
-        thumb.setLightDirection(-0.45f, -0.75f)
-        thumb.setShadowProperties(Color.argb(72, 0, 0, 18), 0.2f)
-        thumb.setGlassColor(Color.argb(34, 255, 255, 255))
-        thumb.setLensRefractionScale(0.5f)
+        thumb.setBrightness(1.12f)
+        thumb.setGlassColor(Color.argb(28, 255, 255, 255))
+        thumb.setLensRefractionScale(19f)
+        thumb.setDisplacementScale(2.8f)
+        thumb.setNormalStrength(0.2f)
+        thumb.setLiquidDomeStrength(5.15f)
+        thumb.setFresnelReflectStrength(10f)
+        thumb.setRimStrength(0f)
+        thumb.setSpecular(.5f, 18f)
+        thumb.setCausticIntensity(0f)
+        thumb.setHeightBlurFactor(12f * density)
+        thumb.setMinSmoothing(10f)
+        thumb.setLightDirection(42f, 78f)
+        thumb.setShadowProperties(Color.argb(65, 0, 0, 20), 0.25f)
+        thumb.setChromaticAberration(1.8f)
+        setThumbParallaxScale(0.4f)
+
         thumb.updateBackground()
     }
 
@@ -381,6 +393,17 @@ class PrismalSlider @JvmOverloads constructor(
      * @param v Inset value in pixels.
      */
     fun setThumbRefractionInset(v: Float) = thumb.run { setRefractionInset(v); updateBackground() }
+
+    /**
+     * Sets the parallax scale for the thumb glass surface.
+     *
+     * Controls how much the background UV shifts based on the glass surface normal and height.
+     * Lower values (0.2–0.5) keep the background locked close to what is directly beneath the
+     * thumb; higher values (1+) add a more dramatic depth/lens wander effect.
+     *
+     * @param v Scale multiplier in `[0, 2]`. Default is `1f`.
+     */
+    fun setThumbParallaxScale(v: Float) = thumb.run { setParallaxScale(v); updateBackground() }
 
     /**
      * No-op - thumb dimensions are fixed at 40 × 24 dp. Retained for API compatibility with XML.

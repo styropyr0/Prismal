@@ -1,7 +1,5 @@
 package com.matrix.prismal
 
-import android.animation.AnimatorSet
-import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
@@ -10,38 +8,33 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
-import android.view.View
 import android.view.ViewGroup
-import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.graphics.toColorInt
+import com.matrix.prismal.utils.SpringAnimator
 
 /**
- * **PrismalIconButton** - A circular, glass-like button designed for icons, powered by
- * Prismal's real-time rendering system.
+ * A circular liquid-glass button for icons.
  *
- * This component creates a refractive, glossy surface that animates smoothly when pressed,
- * featuring depth and distortion effects that mimic real glass materials.
- * It is ideal for toolbar actions, floating buttons, or compact controls.
+ * ## Appearance
+ * Applies [PrismalLiquidGlass.applyBase] then scales thickness, blur band, and refraction inset
+ * proportionally to the actual pixel diameter on every [onSizeChanged], so the glass proportions
+ * are correct at any button size without manual tuning.
  *
- * ### Key Features
- * - Circular glass surface with adaptive sizing.
- * - Smooth press/release scaling animation with refractive pulse.
- * - Configurable optical parameters (IOR, blur, chromatic aberration, etc.).
- * - Supports any drawable or vector icon via `setIcon()`.
- * - Fully functional as a normal Android button with `setOnClickListener()`.
+ * ## Press animation
+ * Two [SpringAnimator] instances replace the previous `ValueAnimator`:
+ * - **scaleSpring** (`ζ = 0.7`, `k = 500`) — slightly underdamped so the surface briefly overshoots
+ *   1.0 on release, giving the characteristic iOS spring-back click feel.
+ * - **pressSpring** (`ζ = 1.0`, `k = 1200`) — critically damped, tracks the finger instantly with
+ *   no oscillation. Drives blur (rest → 0), chromatic aberration (0 → 3.5 px), and lens
+ *   distortion (0.55 → 1.3) so the glass "activates" on press.
  *
- * ### Usage Example
- * ```kotlin
- * val iconButton = PrismalIconButton(context).apply {
- *     setIcon(R.drawable.ic_heart)
- *     setIOR(1.8f)
- *     setBlurRadius(2.5f)
- *     setOnClickListener { Log.d("PrismalIconButton", "Clicked!") }
- * }
- * ```
+ * ## XML attributes (`pib_` prefix)
+ * `pib_iconSrc`, `pib_iconPadding`, `pib_iconTint`, `pib_buttonSize`, `pib_pressScale`,
+ * `pib_ior`, `pib_blurRadius`, `pib_normalStrength`, `pib_displacementScale`,
+ * `pib_chromaticAberration`, `pib_brightness`, `pib_highlightWidth`, `pib_showNormals`
  *
  * @author Saurav Sajeev
  */
@@ -50,35 +43,51 @@ class PrismalIconButton @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
-
     private val prismalSurface = PrismalFrameLayout(context)
     private val iconView = AppCompatImageView(context)
-
     private var pressScale = 0.88f
-    private var animDuration = 180L
+    private var restBlur = 2f
     private var clickListener: (() -> Unit)? = null
-    private var iconTint: Int
     private var defaultSizePx = 0
     private var lastGlassSizePx = 0
+    private val scaleSpring = SpringAnimator(0.7f, 500f)
+    private val pressSpring = SpringAnimator(1.0f, 1200f)
 
     private fun dp(value: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics
     )
 
+    private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t.coerceIn(0f, 1f)
+
+    private fun applyPressState(t: Float) {
+        prismalSurface.setBlurRadius(lerp(restBlur, 0f, t))
+        prismalSurface.setChromaticAberration(lerp(0f, 3.5f, t))
+        prismalSurface.setLensRefractionScale(lerp(0.55f, 1.3f, t))
+        prismalSurface.updateBackground()
+    }
+
+    private fun applyScale(t: Float) {
+        val s = lerp(1f, pressScale, t).coerceIn(0.1f, 2f)
+        prismalSurface.scaleX = s
+        prismalSurface.scaleY = s
+    }
+
     private val touchListener = OnTouchListener { _, event ->
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                animatePress(true)
-                prismalSurface.setDebug(true)
+                pressSpring.animateTo(1f)
+                scaleSpring.animateTo(1f)
+                parent?.requestDisallowInterceptTouchEvent(true)
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                animatePress(false)
-                prismalSurface.setDebug(false)
+                pressSpring.animateTo(0f)
+                scaleSpring.animateTo(0f)
                 if (event.actionMasked == MotionEvent.ACTION_UP) {
                     clickListener?.invoke()
                     performClick()
                 }
+                parent?.requestDisallowInterceptTouchEvent(false)
             }
         }
         true
@@ -87,6 +96,8 @@ class PrismalIconButton @JvmOverloads constructor(
     init {
         isClickable = true
         isFocusable = true
+        clipChildren = false
+        clipToPadding = false
 
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalIconButton, 0, 0).apply {
             try {
@@ -97,7 +108,6 @@ class PrismalIconButton @JvmOverloads constructor(
                     setLensRefractionScale(0.55f)
                     setShadowProperties("#22000000".toColorInt(), 0.18f)
                     setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.55f))
-                    setBlurRadius(getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 2f))
                     setNormalStrength(
                         getFloat(
                             R.styleable.PrismalIconButton_pib_normalStrength,
@@ -126,19 +136,25 @@ class PrismalIconButton @JvmOverloads constructor(
                     setShowNormals(getBoolean(R.styleable.PrismalIconButton_pib_showNormals, false))
                 }
 
-                defaultSizePx = getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f)).toInt()
+                restBlur = getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 2f)
+                prismalSurface.setBlurRadius(restBlur)
+
+                defaultSizePx =
+                    getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f)).toInt()
                 val iconPadding =
                     getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
                 val iconRes = getResourceId(R.styleable.PrismalIconButton_pib_iconSrc, 0)
-                iconTint = getColor(R.styleable.PrismalIconButton_pib_iconTint, Color.BLACK)
+                val iconTint = getColor(R.styleable.PrismalIconButton_pib_iconTint, Color.BLACK)
                 pressScale = getFloat(R.styleable.PrismalIconButton_pib_pressScale, 0.88f)
-                animDuration = getInt(R.styleable.PrismalIconButton_pib_animDuration, 180).toLong()
 
                 addView(
                     prismalSurface,
-                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER)
+                    LayoutParams(
+                        LayoutParams.MATCH_PARENT,
+                        LayoutParams.MATCH_PARENT,
+                        Gravity.CENTER
+                    )
                 )
-
                 prismalSurface.addView(
                     iconView,
                     LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT).apply {
@@ -147,20 +163,23 @@ class PrismalIconButton @JvmOverloads constructor(
                 )
 
                 if (iconRes != 0) {
-                    with(iconView) {
-                        setImageResource(iconRes)
-                        scaleType = ImageView.ScaleType.FIT_CENTER
-                        imageTintList = ColorStateList.valueOf(iconTint)
-                    }
+                    iconView.setImageResource(iconRes)
+                    iconView.scaleType = ImageView.ScaleType.FIT_CENTER
+                    iconView.imageTintList = ColorStateList.valueOf(iconTint)
                 }
             } finally {
                 recycle()
             }
         }
 
+        pressSpring.onUpdate = { applyPressState(it) }
+        scaleSpring.onUpdate = { applyScale(it) }
+        pressSpring.snapTo(0f)
+        scaleSpring.snapTo(0f)
+        applyPressState(0f)
+        applyScale(0f)
+
         prismalSurface.setOnTouchListener(touchListener)
-        clipChildren = false
-        clipToPadding = false
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -168,28 +187,27 @@ class PrismalIconButton @JvmOverloads constructor(
         val hMode = MeasureSpec.getMode(heightMeasureSpec)
         val wSize = MeasureSpec.getSize(widthMeasureSpec)
         val hSize = MeasureSpec.getSize(heightMeasureSpec)
-
         val resolvedW = when (wMode) {
             MeasureSpec.EXACTLY -> wSize
-            MeasureSpec.AT_MOST -> if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT) {
-                defaultSizePx.coerceAtMost(wSize)
-            } else {
+            MeasureSpec.AT_MOST -> if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT) defaultSizePx.coerceAtMost(
                 wSize
-            }
+            ) else wSize
+
             else -> defaultSizePx
         }
         val resolvedH = when (hMode) {
             MeasureSpec.EXACTLY -> hSize
-            MeasureSpec.AT_MOST -> if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) {
-                defaultSizePx.coerceAtMost(hSize)
-            } else {
+            MeasureSpec.AT_MOST -> if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) defaultSizePx.coerceAtMost(
                 hSize
-            }
+            ) else hSize
+
             else -> defaultSizePx
         }
         val side = minOf(resolvedW, resolvedH)
-        val sideSpec = MeasureSpec.makeMeasureSpec(side, MeasureSpec.EXACTLY)
-        super.onMeasure(sideSpec, sideSpec)
+        super.onMeasure(
+            MeasureSpec.makeMeasureSpec(side, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(side, MeasureSpec.EXACTLY)
+        )
     }
 
     override fun onAttachedToWindow() {
@@ -205,15 +223,16 @@ class PrismalIconButton @JvmOverloads constructor(
         val side = minOf(w, h)
         if (side <= 0) return
         applySizeScaledGlass(side)
-        val radius = side / 2f
-        prismalSurface.setCornerRadius(radius)
+        prismalSurface.setCornerRadius(side / 2f)
         prismalSurface.updateBackground()
     }
 
-    /**
-     * Scales glass thickness, blur band, and refraction inset to the button diameter so small
-     * controls do not inherit card-sized defaults from [PrismalLiquidGlass.applyBase].
-     */
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        pressSpring.cancel()
+        scaleSpring.cancel()
+    }
+
     private fun applySizeScaledGlass(sidePx: Int) {
         if (sidePx == lastGlassSizePx) return
         lastGlassSizePx = sidePx
@@ -224,104 +243,41 @@ class PrismalIconButton @JvmOverloads constructor(
         prismalSurface.setRefractionInset((sidePx * 0.35f).coerceIn(4f * density, 20f * density))
     }
 
-    private fun animatePress(pressed: Boolean) {
-        val scaleStart = if (pressed) 1f else pressScale
-        val scaleEnd = if (pressed) pressScale else 1f
-        val durationScale = if (pressed) animDuration / 2 else animDuration
+    /** Refreshes the glass background texture. Call after the content behind this button changes. */
+    fun updateBackground() = prismalSurface.updateBackground()
 
-        val scaleAnim = ValueAnimator.ofFloat(scaleStart, scaleEnd).apply {
-            duration = durationScale
-            interpolator = OvershootInterpolator(3f)
-            addUpdateListener {
-                val s = it.animatedValue as Float
-                prismalSurface.scaleX = s
-                prismalSurface.scaleY = s
-                iconView.scaleX = s
-                iconView.scaleY = s
-            }
-        }
-
-        val pulseAnim = ValueAnimator.ofFloat(
-            if (pressed) 1f else 0.5f,
-            if (pressed) 1.3f else 1f
-        ).apply {
-            duration = animDuration
-            addUpdateListener {
-                val strength = it.animatedValue as Float
-                prismalSurface.setNormalStrength(8f * strength)
-                prismalSurface.updateBackground()
-            }
-        }
-
-        AnimatorSet().apply {
-            playTogether(scaleAnim, pulseAnim)
-            start()
-        }
-    }
-
-    /**
-     * Triggers an update to the background texture by scheduling a capture of the underlying view hierarchy.
-     * This is useful for refreshing the glass effect when the content beneath changes (e.g., after scrolling or layout updates).
-     */
-    fun updateBackground() {
-        prismalSurface.updateBackground()
-    }
-
-    /**
-     * Sets the icon drawable resource displayed in the button.
-     *
-     * @param resId Drawable resource ID.
-     */
+    /** Sets the icon drawable displayed inside the button. */
     fun setIcon(resId: Int) {
         iconView.setImageResource(resId)
         iconView.scaleType = ImageView.ScaleType.FIT_CENTER
     }
 
-    /**
-     * Sets the **Index of Refraction (IOR)** for the glass surface.
-     *
-     * @param value IOR value typically between `1.0f` and `2.0f`.
-     */
+    /** Index of Refraction. Typical range: 1.3 – 2.0. Default: 1.55. */
     fun setIOR(value: Float) {
-        prismalSurface.setIOR(value)
-        prismalSurface.updateBackground()
+        prismalSurface.setIOR(value); prismalSurface.updateBackground()
     }
 
     /**
-     * Sets the blur radius for the refracted background.
-     *
-     * @param value Blur radius in dp.
+     * Resting blur radius in dp. Reduces to 0 on press to sharpen the glass as the button
+     * activates, then restores on release.
      */
     fun setBlurRadius(value: Float) {
-        prismalSurface.setBlurRadius(value)
-        prismalSurface.updateBackground()
+        restBlur = value
+        applyPressState(pressSpring.value)
     }
 
-    /**
-     * Sets the chromatic aberration intensity.
-     *
-     * @param value Aberration intensity, typically `0f`–`10f`.
-     */
+    /** RGB channel split in pixels. Applied only during the press animation (0 at rest). */
     fun setChromaticAberration(value: Float) {
         prismalSurface.setChromaticAberration(value)
         prismalSurface.updateBackground()
     }
 
-    /**
-     * Sets the displacement scale for the glass surface.
-     *
-     * @param value Distortion strength in pixels.
-     */
+    /** Lens distortion scale factor. */
     fun setDisplacementScale(value: Float) {
         prismalSurface.setDisplacementScale(value)
         prismalSurface.updateBackground()
     }
 
-    /**
-     * Assigns a click listener for this button.
-     *
-     * @param l Listener invoked when the user clicks the button.
-     */
     override fun setOnClickListener(l: OnClickListener?) {
         clickListener = { l?.onClick(this) }
     }
