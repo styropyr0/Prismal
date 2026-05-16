@@ -14,6 +14,7 @@ import android.view.Gravity
 import android.widget.FrameLayout
 import com.matrix.prismal.utils.SpringAnimator
 import kotlin.math.abs
+import androidx.core.graphics.toColorInt
 
 /**
  * **PrismalSwitch** - An iOS-style liquid-glass toggle with tap and drag support.
@@ -56,8 +57,8 @@ class PrismalSwitch @JvmOverloads constructor(
     private var isOn = false
     private var fraction = 0f
     private var onToggleChanged: ((Boolean) -> Unit)? = null
-    private val onColor = Color.parseColor("#34C759")
-    private val offColor = Color.argb(51, 0x78, 0x78, 0x78)
+    private val onColor = "#34C759".toColorInt()
+    private val offColor = Color.argb(140, 0x78, 0x78, 0x78)
     private val trackView = object : View(context) {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         var frac = 0f
@@ -110,21 +111,10 @@ class PrismalSwitch @JvmOverloads constructor(
 
     private fun applySquish() {
         val pressScale = scaleXSpring.value
-
-        if (dragging && didDrag) {
-            val v = normVel.coerceIn(-0.2f, 0.2f)
-            val sx = pressScale
-            val sy = pressScale * (1f - abs(v) * 0.35f)
-
-            thumb.pivotX = thumbW / 2f
-            thumb.pivotY = thumbH / 2f
-            thumb.scaleX = sx
-            thumb.scaleY = sy
-        } else {
-            thumb.scaleX = pressScale
-            thumb.scaleY = pressScale
-        }
-
+        thumb.pivotX = thumbW / 2f
+        thumb.pivotY = thumbH / 2f
+        thumb.scaleX = pressScale
+        thumb.scaleY = pressScale
         if (pressScale > 1.05f || dragging) {
             thumb.updateBackground()
         }
@@ -174,12 +164,7 @@ class PrismalSwitch @JvmOverloads constructor(
                 dragging = false
                 normVel = 0f
                 velTracker?.recycle(); velTracker = null
-
-                if (didDrag) {
-                    isOn = fraction >= 0.5f
-                } else {
-                    isOn = !isOn
-                }
+                isOn = if (didDrag) fraction >= 0.5f else !isOn
                 posSpring.animateTo(if (isOn) 1f else 0f)
                 onToggleChanged?.invoke(isOn)
 
@@ -220,11 +205,7 @@ class PrismalSwitch @JvmOverloads constructor(
         addView(thumb, LayoutParams(thumbW.toInt(), thumbH.toInt()).apply {
             gravity = Gravity.CENTER_VERTICAL
         })
-        thumb.addView(
-            overlay, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
-            )
-        )
+        thumb.addView(overlay, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
 
         posSpring.onUpdate = { f ->
             applyFraction(f)
@@ -259,9 +240,9 @@ class PrismalSwitch @JvmOverloads constructor(
         thumb.setThickness(dp(1f))
         thumb.setBrightness(1.12f)
         thumb.setGlassColor(Color.argb(28, 255, 255, 255))
-        thumb.setLensRefractionScale(19f)
+        thumb.setLensRefractionScale(50f)
         thumb.setDisplacementScale(2.8f)
-        thumb.setNormalStrength(0.2f)
+        thumb.setNormalStrength(1f)
         thumb.setLiquidDomeStrength(5.15f)
         thumb.setFresnelReflectStrength(10f)
         thumb.setRimStrength(0f)
