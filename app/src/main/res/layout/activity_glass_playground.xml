@@ -4,26 +4,18 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-        <FrameLayout
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
+            android:paddingTop="300dp"
             android:paddingBottom="32dp">
-
-
-            <androidx.core.widget.NestedScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fillViewport="true">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="300dp"
-                android:paddingHorizontal="16dp"
-                android:paddingBottom="32dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -438,27 +430,28 @@
                 android:text="Show normals (debug)"
                 android:textColor="#FFFFFF" />
 
-            </LinearLayout>
-            </androidx.core.widget.NestedScrollView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 
-            <com.matrix.prismal.PrismalFrameLayout
-                android:id="@+id/playgroundHeroGlass"
-                android:layout_width="match_parent"
-                android:layout_height="280dp"
-                android:layout_marginTop="8dp">
+    <com.matrix.prismal.PrismalFrameLayout
+        android:id="@+id/playgroundHeroGlass"
+        android:layout_width="match_parent"
+        android:layout_height="280dp"
+        android:layout_marginTop="8dp">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:fontFamily="@font/dm_sans_medium"
-                    android:padding="28dp"
-                    android:text="Liquid glass\n(Kyant-style live controls)"
-                    android:textAlignment="center"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </com.matrix.prismal.PrismalFrameLayout>
-        </FrameLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:fontFamily="@font/dm_sans_medium"
+            android:padding="28dp"
+            android:text="Liquid glass\n(Kyant-style live controls)"
+            android:textAlignment="center"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </com.matrix.prismal.PrismalFrameLayout>
+
 </FrameLayout>

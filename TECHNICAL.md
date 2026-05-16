@@ -35,7 +35,7 @@
 
 Prismal renders an iOS-style liquid glass material on Android using **OpenGL ES 2.0** inside a `GLSurfaceView`. The key property of the material is that it refracts, blurs, tints, and lights the content *underneath* it - not a static overlay, but a physically-inspired live effect driven by a GLSL fragment shader.
 
-The approach is fundamentally different from Android's native `RenderEffect` (AGSL) used by kyant0's backdrop library. Prismal runs in its own OpenGL context, captures the underlying view hierarchy into a bitmap, uploads it as a texture, and computes the glass appearance entirely on the GPU per fragment.
+The approach is fundamentally different from Android's native `RenderEffect` (AGSL) used by typical backdrop-blur libraries. Prismal runs in its own OpenGL context, captures the underlying view hierarchy into a bitmap, uploads it as a texture, and computes the glass appearance entirely on the GPU per fragment.
 
 ---
 
@@ -152,7 +152,7 @@ float sdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
 }
 ```
 
-This is the kyant0 SDF. `abs(coord)` folds all four quadrants into one (top-right), subtracts the inner rectangle extent `(halfSize - radius)`, then uses `length(max(..., 0))` for the rounded corner arc and `min(max(...), 0)` for the interior. It supports per-quadrant radii by calling `radiusAtCentered` before the call to pick the right radius for the fragment's corner.
+`abs(coord)` folds all four quadrants into one (top-right), subtracts the inner rectangle extent `(halfSize - radius)`, then uses `length(max(..., 0))` for the rounded corner arc and `min(max(...), 0)` for the interior. It supports per-quadrant radii by calling `radiusAtCentered` before the call to pick the right radius for the fragment's corner.
 
 ### `sdRoundBox` - smooth-min version
 
@@ -306,7 +306,7 @@ Beyond Snell refraction there are two more UV offset contributions:
 
 ### Lens distortion (`dLens`)
 
-Inspired by kyant0's lens effect: pixels near the silhouette are pushed inward (barrel) or outward (pincushion) based on the SDF depth. The kyant `circleMapKyant` function maps the ramp nonlinearly:
+Lens distortion pushes pixels near the silhouette inward (barrel) or outward (pincushion) based on the SDF depth. The `circleMapKyant` function maps the ramp nonlinearly:
 
 ```glsl
 float circleMapKyant(float x) {
@@ -356,7 +356,7 @@ vec2 uvB = baseOffset - chromaPush * u_dispersionB;   // blue shifts inward
 
 `u_dispersionR` and `u_dispersionB` are independent multipliers (defaults = 1.0), letting you model asymmetric glass dispersion (e.g. heavy flint glass has stronger blue shift).
 
-`kyantChroma` adds an extra diagonal push proportional to `(x·y) / (halfW · halfH)` - a cross-pattern aberration that matches the corner distortion visible in real wide-angle lenses.
+The cross-pattern chroma term adds an extra diagonal push proportional to `(x·y) / (halfW · halfH)` — aberration that matches the corner distortion visible in real wide-angle lenses.
 
 The effect is gated by `edgeFac = pow(smoothstep(chromaFar, 0, edgeDist), 1.8)` - aberration only appears near the silhouette where thickness (and therefore dispersion) is maximum.
 
@@ -441,14 +441,14 @@ float pairOpp = pow(mix(tl + br, trc + bl, lightDiag), 1.06);
 
 `runAlong * max(sx, sy)` gives exponential fall-off perpendicular to the streak axis - creating a sharp diagonal highlight through the lit corners as if light skims along the glass edge.
 
-### `rimBothBorders` - the opposite-side highlight (kyant's key trick)
+### `rimBothBorders` - the opposite-side highlight
 
 ```glsl
 float borderAlign = pow(abs(dot(gN, Lxy)), 1.0);
 color += hiSoft * rimBothBorders * edgePunch;
 ```
 
-`abs(dot(gN, Lxy))` - the absolute value of the dot product between the SDF gradient and the light direction. Using `abs` makes this **maximum on BOTH the lit border AND the opposite border** (the one facing 180° away from the light). This is the defining characteristic of kyant0's liquid glass - real backlit glass shows a highlight on the shaded side because light enters the glass, total-internally-reflects, and exits the opposite face.
+`abs(dot(gN, Lxy))` - the absolute value of the dot product between the SDF gradient and the light direction. Using `abs` makes this **maximum on BOTH the lit border AND the opposite border** (the one facing 180° away from the light). This is a defining characteristic of iOS-style liquid glass — real backlit glass shows a highlight on the shaded side because light enters the glass, total-internally-reflects, and exits the opposite face.
 
 ### `rimLitSide` - lit-side emphasis
 
@@ -568,7 +568,7 @@ FrameLayout (PrismalSlider)
     └── View (white overlay)   ← alpha=1 at rest, fades to 0 on press
 ```
 
-- The white overlay sits above the GLSurface (which renders behind the Window surface) and is used to hide the glass at rest, revealing it only when the user presses - exactly matching kyant0's `onDrawSurface { drawRect(Color.White.copy(alpha = 1f - progress)) }`.
+- The white overlay sits above the GLSurface (which renders behind the Window surface) and is used to hide the glass at rest, revealing it only when the user presses — a white rect whose alpha fades from `1f` to `0f` as press progress increases.
 - Background capture (`thumb.updateBackground()`) is called on every `ACTION_MOVE` event. The `captureScheduled` deduplication flag inside `PrismalFrameLayout` ensures only one capture per frame even if many events arrive.
 
 ### PrismalSwitch
@@ -582,7 +582,7 @@ FrameLayout (PrismalSwitch, gravity=CENTER_VERTICAL for children)
 ```
 
 - `fraction ∈ [0,1]` is the live animated value (driven by `posSpring`). The track colour and thumb X position are both keyed to `fraction` so the colour crossfade is perfectly in sync with thumb travel.
-- `travelPx = trackW - thumbW - 2·padPx = 64 - 40 - 4 = 20dp` - matches kyant0's `dragWidth = 20dp`.
+- `travelPx = trackW - thumbW - 2·padPx = 64 - 40 - 4 = 20dp` of horizontal drag travel.
 - Tap vs drag: if `|rawX - dragStartX| > touchSlop` → drag mode (snap to nearest 0/1 on release). Otherwise → toggle mode (invert `isOn`).
 
 ### PrismalIconButton
