@@ -223,19 +223,37 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     }
 
     private fun captureFromHost(host: ViewGroup) {
-        val sx = scaleX.coerceAtLeast(1f)
-        val sy = scaleY.coerceAtLeast(1f)
+        val savedScaleX = scaleX
+        val savedScaleY = scaleY
+        scaleX = 1f
+        scaleY = 1f
+
+        val hostLoc = IntArray(2)
+        host.getLocationInWindow(hostLoc)
+        val viewLoc = IntArray(2)
+        getLocationInWindow(viewLoc)
+
+        val relX = viewLoc[0] - hostLoc[0]
+        val relY = viewLoc[1] - hostLoc[1]
+
+        scaleX = savedScaleX
+        scaleY = savedScaleY
+
+        val sx = savedScaleX.coerceAtLeast(1f)
+        val sy = savedScaleY.coerceAtLeast(1f)
         val extraX = ((sx - 1f) * pivotX).toInt()
         val extraY = ((sy - 1f) * pivotY).toInt()
 
-        val cropX = (left + translationX).toInt() - extraX
-        val cropY = (top + translationY).toInt() - extraY
-        val cropW = width + 2 * extraX
-        val cropH = height + 2 * extraY
+        val cropX = (relX - extraX).coerceAtLeast(0)
+        val cropY = (relY - extraY).coerceAtLeast(0)
+        val cropW = (width + 2 * extraX).coerceAtMost(host.width - cropX)
+        val cropH = (height + 2 * extraY).coerceAtMost(host.height - cropY)
+
         if (cropW <= 0 || cropH <= 0) return
 
         val croppedBitmap = createBitmap(cropW, cropH)
         val canvas = Canvas(croppedBitmap)
+
         canvas.translate(-cropX.toFloat(), -cropY.toFloat())
 
         val wasVisible = visibility
@@ -244,7 +262,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         visibility = wasVisible
 
         glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(sx, sy)
+            renderer.setBackdropSampleScale(1f, 1f)
             renderer.setBackgroundTexture(croppedBitmap)
         }
     }
@@ -252,18 +270,28 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private fun captureFromRoot() {
         val root = rootView as? ViewGroup ?: return
 
-        val loc = IntArray(2)
-        root.getLocationOnScreen(loc)
-        val btnLoc = IntArray(2)
-        getLocationOnScreen(btnLoc)
+        val windowOffset = IntArray(2)
+        getLocationInWindow(windowOffset)
+        val screenOffset = IntArray(2)
+        getLocationOnScreen(screenOffset)
+
+        val statusBarHeight = screenOffset[1] - windowOffset[1]
+
+        val rootLoc = IntArray(2)
+        root.getLocationOnScreen(rootLoc)
+        val viewLoc = IntArray(2)
+        getLocationOnScreen(viewLoc)
+
+        val relX = viewLoc[0] - rootLoc[0]
+        val relY = viewLoc[1] - rootLoc[1] - statusBarHeight
 
         val sx = scaleX.coerceAtLeast(1f)
         val sy = scaleY.coerceAtLeast(1f)
         val extraX = ((sx - 1f) * pivotX).toInt()
         val extraY = ((sy - 1f) * pivotY).toInt()
 
-        val cropX = (btnLoc[0] - loc[0] - extraX).coerceAtLeast(0)
-        val cropY = (btnLoc[1] - loc[1] - extraY).coerceAtLeast(0)
+        val cropX = (relX - extraX).coerceAtLeast(0)
+        val cropY = (relY - extraY).coerceAtLeast(0)
         val cropW = (width + 2 * extraX).coerceAtMost(root.width - cropX)
         val cropH = (height + 2 * extraY).coerceAtMost(root.height - cropY)
 
@@ -275,14 +303,12 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         val wasVisible = visibility
         visibility = INVISIBLE
-
         canvas.drawColor(Color.WHITE)
         root.draw(canvas)
-
         visibility = wasVisible
 
         glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(sx, sy)
+            renderer.setBackdropSampleScale(1f, 1f)
             renderer.setBackgroundTexture(croppedBitmap)
         }
     }
@@ -299,9 +325,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * glass correctly "zooms out" to cover the expanded visual area even between captures.
      */
     fun updateBackdropScale() {
-        val sx = scaleX.coerceAtLeast(1f)
-        val sy = scaleY.coerceAtLeast(1f)
-        glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
+        glSurface.queueAndRender { renderer.setBackdropSampleScale(1f, 1f) }
     }
 
     /**
