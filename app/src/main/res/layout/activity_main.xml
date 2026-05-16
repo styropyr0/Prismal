@@ -181,7 +181,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/dm_sans_medium"
-                            android:text="Drag show"
+                            android:text="Playground"
                             android:textAlignment="center"
                             android:textColor="#FFFFFF"
                             android:textSize="17sp"
@@ -191,8 +191,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:alpha="0.9"
-                            android:text="Drag the glass card in full screen. Tap →"
+                            android:text="Customize the properties"
                             android:textAlignment="center"
                             android:textColor="#E6FFFFFF"
                             android:textSize="14sp" />
@@ -220,7 +221,7 @@
 
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="12dp"
-                    app:pib_iconSrc="@drawable/icon"
+                    app:pib_iconSrc="@drawable/ic_drag"
                     app:pib_iconTint="#FFFFFF"
                     app:pib_ior="1.8"
                     app:pib_pressScale="0.85" />
@@ -286,6 +287,7 @@
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
                                 android:text="now"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -294,6 +296,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:alpha="0.85"
                             android:ellipsize="end"
                             android:maxLines="2"
@@ -354,6 +357,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:text="2m ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
@@ -365,6 +369,7 @@
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
                             android:ellipsize="end"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:maxLines="2"
                             android:text="Your invoice #4821 is ready to view."
                             android:textColor="#E6FFFFFF"
@@ -423,6 +428,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:text="10m ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
@@ -433,6 +439,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:ellipsize="end"
                             android:maxLines="2"
                             android:text="Team standup starts in 15 minutes."
@@ -493,6 +500,7 @@
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
                                 android:text="1h ago"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -502,6 +510,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:ellipsize="end"
                             android:maxLines="2"
                             android:text="New memory: Last Summer — 24 photos."
@@ -562,6 +571,7 @@
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
                                 android:text="2h ago"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -573,6 +583,7 @@
                             android:alpha="0.85"
                             android:ellipsize="end"
                             android:maxLines="2"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:text="Traffic on your usual route. Leave 10 min early."
                             android:textColor="#E6FFFFFF"
                             android:textSize="13sp" />
@@ -630,6 +641,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:text="3h ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
@@ -638,6 +650,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
                             android:ellipsize="end"
@@ -700,6 +713,7 @@
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
                                 android:text="5h ago"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -708,6 +722,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:alpha="0.85"
                             android:ellipsize="end"
                             android:maxLines="2"
@@ -768,6 +783,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
+                                android:fontFamily="@font/dm_sans_medium"
                                 android:text="6h ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
@@ -779,6 +795,7 @@
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
                             android:ellipsize="end"
+                            android:fontFamily="@font/dm_sans_medium"
                             android:maxLines="2"
                             android:text="Don't forget: pick up groceries on the way home."
                             android:textColor="#E6FFFFFF"
