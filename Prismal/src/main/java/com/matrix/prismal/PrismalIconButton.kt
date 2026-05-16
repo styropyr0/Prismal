@@ -66,6 +66,7 @@ class PrismalIconButton @JvmOverloads constructor(
                 animatePress(true)
                 prismalSurface.setDebug(true)
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 animatePress(false)
                 prismalSurface.setDebug(false)
@@ -84,20 +85,47 @@ class PrismalIconButton @JvmOverloads constructor(
 
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalIconButton, 0, 0).apply {
             try {
+                PrismalLiquidGlass.applyBase(prismalSurface)
                 with(prismalSurface) {
-                    setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.85f))
-                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 4f))
-                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 4f))
-                    setBlurRadius(getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 1.5f))
-                    setChromaticAberration(getFloat(R.styleable.PrismalIconButton_pib_chromaticAberration, 8f))
-                    setBrightness(getFloat(R.styleable.PrismalIconButton_pib_brightness, 1.3f))
-                    setHighlightWidth(getFloat(R.styleable.PrismalIconButton_pib_highlightWidth, 4f))
+                    setThickness(dp(5f))
+                    setHeightBlurFactor(dp(4f))
+                    setLiquidDomeStrength(0.72f)
+                    setFresnelReflectStrength(1.3f)
+                    setLensRefractionScale(0.55f)
+                    setShadowProperties("#22000000".toColorInt(), 0.18f)
+                    setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.55f))
+                    setBlurRadius(getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 2f))
+                    setNormalStrength(
+                        getFloat(
+                            R.styleable.PrismalIconButton_pib_normalStrength,
+                            1.0f
+                        )
+                    )
+                    setDisplacementScale(
+                        getFloat(
+                            R.styleable.PrismalIconButton_pib_displacementScale,
+                            0.9f
+                        )
+                    )
+                    setChromaticAberration(
+                        getFloat(
+                            R.styleable.PrismalIconButton_pib_chromaticAberration,
+                            0f
+                        )
+                    )
+                    setBrightness(getFloat(R.styleable.PrismalIconButton_pib_brightness, 1.12f))
+                    setHighlightWidth(
+                        getFloat(
+                            R.styleable.PrismalIconButton_pib_highlightWidth,
+                            1.2f
+                        )
+                    )
                     setShowNormals(getBoolean(R.styleable.PrismalIconButton_pib_showNormals, false))
-                    setShadowProperties("#33222222".toColorInt(), 0.5f)
                 }
 
                 val buttonSize = getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f))
-                val iconPadding = getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
+                val iconPadding =
+                    getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
                 val iconRes = getResourceId(R.styleable.PrismalIconButton_pib_iconSrc, 0)
                 iconTint = getColor(R.styleable.PrismalIconButton_pib_iconTint, Color.BLACK)
                 pressScale = getFloat(R.styleable.PrismalIconButton_pib_pressScale, 0.88f)

@@ -13,40 +13,44 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
 import com.matrix.prismal.filters.PrismalFilter
 import com.matrix.prismal.renderer.PrismalGlassRenderer
+import androidx.core.graphics.withClip
 
 /**
- * A custom FrameLayout that renders a realistic glass overlay effect using OpenGL ES 2.0.
- * This view captures the underlying content as a texture and applies refraction, blur, displacement,
- * and other glass-like distortions via shaders. It supports touch interactions for dynamic effects
- * like ripples or distortions under the finger.
+ * A `FrameLayout` subclass that renders an iOS-style liquid glass material over its children
+ * using an embedded OpenGL ES 2.0 surface.
  *
- * ### Key Features:
- * - **Real-time background capture**: Automatically captures and updates the texture from the view hierarchy
- *   beneath it (e.g., on layout changes or scrolls).
- * - **Customizable glass properties**: Adjust IOR, thickness, corner radius, blur, chromatic aberration,
- *   and more via public setter methods.
- * - **Touch handling**: Responds to touch events to simulate interactive distortions.
- * - **Performance notes**: Uses `RENDERMODE_CONTINUOUSLY` for smooth animations; consider throttling
- *   background captures for large hierarchies to avoid jank.
+ * ## How it works
+ * On each [updateBackground] call, the view hierarchy beneath this layout is drawn into a
+ * `Bitmap` and uploaded to the GPU as a background texture. The OpenGL renderer then runs a
+ * GLSL fragment shader that applies refraction, Gaussian frosting, Snell's law lens distortion,
+ * Fresnel rim highlights, Blinn-Phong dual specular, chromatic aberration, and caustics on
+ * top of the captured content - composited back into the normal view hierarchy.
  *
- * ### Usage:
- * Add to your layout XML as `<com.matrix.prismal.PrismalFrameLayout>`, and place child views (e.g., buttons or text)
- * inside it for overlay rendering. The glass effect will be drawn on top of captured background.
- *
- * ### Example:
- * ```
+ * ## Quick start
+ * ```xml
  * <com.matrix.prismal.PrismalFrameLayout
- *     android:layout_width="match_parent"
- *     android:layout_height="60dp">
- *     <TextView android:text="Press Me" ... />
- * </com.matrix.prismal.PrismalFrameLayout>
+ *     android:layout_width=”match_parent”
+ *     android:layout_height=”120dp”
+ *     app:pfl_cornerRadius=”24dp”
+ *     app:pfl_ior=”1.55”
+ *     app:pfl_blurRadius=”4” />
+ * ```
+ * ```kotlin
+ * PrismalLiquidGlass.applyBase(myGlassView)   // apply the canonical iOS recipe
+ * myGlassView.updateBackground()              // capture the current backdrop
  * ```
  *
- * @see [setRefractionInset] for edge refraction control
- * @see [setIOR] for material realism
- * @see [updateBackground] to manually refresh the captured texture
+ * ## Threading
+ * All setter methods are safe to call from any thread- they queue work onto the GL thread
+ * internally. [updateBackground] must be called from the main thread.
  *
- * @author Saurav Sajeev
+ * ## Sizing constraint
+ * The `thickness` parameter (`pfl_glassThickness`) controls the SDF edge-ramp width.
+ * Keep it below ~40 % of `min(width, height) / 2` or the entire shape collapses into a border
+ * ring. See [setThickness] for details.
+ *
+ * @see PrismalLiquidGlass.applyBase
+ * @see updateBackground
  */
 @SuppressLint("ClickableViewAccessibility")
 open class PrismalFrameLayout @JvmOverloads constructor(
@@ -92,6 +96,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         glSurface.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         glSurface.setOnTouchListener(this)
 
+        val density = context.resources.displayMetrics.density
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalFrameLayout, 0, 0).apply {
             try {
                  getFloat(R.styleable.PrismalFrameLayout_pfl_glassWidth, -1f).takeIf { it > 0 }?.let { w ->
@@ -100,20 +105,38 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                      }
                  }
 
-                 setIOR(getFloat(R.styleable.PrismalFrameLayout_pfl_ior, 1.5f))
-                 setThickness(getDimension(R.styleable.PrismalFrameLayout_pfl_glassThickness, 15f))
-                 setNormalStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_normalStrength, 1.2f))
-                 setDisplacementScale(getFloat(R.styleable.PrismalFrameLayout_pfl_displacementScale, 1.0f))
-                 setHeightBlurFactor(getFloat(R.styleable.PrismalFrameLayout_pfl_heightTransitionWidth, 8f))
-                 setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 1.0f))
-                 setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 2.5f))
-                 setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 1.0f))
-                 setChromaticAberration(getFloat(R.styleable.PrismalFrameLayout_pfl_chromaticAberration, 2.0f))
-                 setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.15f))
+                 setIOR(getFloat(R.styleable.PrismalFrameLayout_pfl_ior, 1.55f))
+                 setThickness(getDimension(R.styleable.PrismalFrameLayout_pfl_glassThickness, 18f * density))
+                 setNormalStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_normalStrength, 1.15f))
+                 setDisplacementScale(getFloat(R.styleable.PrismalFrameLayout_pfl_displacementScale, 1.15f))
+                 setHeightBlurFactor(getFloat(R.styleable.PrismalFrameLayout_pfl_heightTransitionWidth, 15.3f))
+                 setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 1.8f))
+                 setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 3.85f))
+                 setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 1f))
+                 setChromaticAberration(getFloat(R.styleable.PrismalFrameLayout_pfl_chromaticAberration, 0f))
+                 setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.08f))
                  setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_pfl_showNormals, false))
-                 setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_pfl_cornerRadius, 10f))
-                 setShadowProperties("#23FFFFFF".toColorInt(), getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 0.2f))
+                 setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_pfl_cornerRadius, 28f * density))
+                 setShadowProperties("#23FFFFFF".toColorInt(), getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 10f))
                  setGlassColor("#230000FF".toColorInt())
+                 setLightDirection(
+                     getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirX, -0.5f),
+                     getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirY, -0.8f)
+                 )
+                 setSpecular(
+                     getFloat(R.styleable.PrismalFrameLayout_pfl_specular, 1.35f),
+                     getFloat(R.styleable.PrismalFrameLayout_pfl_shininess, 72f)
+                 )
+                 setRimStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_rimStrength, 1.05f))
+                 setDispersion(
+                     getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionR, 1.0f),
+                     getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionB, 1.0f)
+                 )
+                 setCausticIntensity(getFloat(R.styleable.PrismalFrameLayout_pfl_causticIntensity, 0.28f))
+                 setTransmittance(getFloat(R.styleable.PrismalFrameLayout_pfl_transmittance, 1.0f))
+                 setLiquidDomeStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_liquidDome, 0.78f))
+                 setFresnelReflectStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_fresnelReflect, 1.05f))
+                 setLensRefractionScale(getFloat(R.styleable.PrismalFrameLayout_pfl_lensRefractionScale, 1f))
             } finally {
                 recycle()
             }
@@ -134,10 +157,9 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     }
 
     override fun dispatchDraw(canvas: Canvas) {
-        val checkpoint = canvas.save()
-        canvas.clipPath(clipPath)
-        super.dispatchDraw(canvas)
-        canvas.restoreToCount(checkpoint)
+        canvas.withClip(clipPath) {
+            super.dispatchDraw(canvas)
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -353,6 +375,64 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     fun setGlassColor(color: Int) = glSurface.queueAndRender { renderer.setGlassColor(color) }
 
     fun setFilter(value: PrismalFilter) = glSurface.queueAndRender { renderer.setFilter(value) }
+
+    /**
+     * Sets the dominant light direction used for specular highlights and the directional edge arc.
+     * Coordinates are 2-D screen-space direction; (−0.5, −0.8) places the light at upper-left.
+     *
+     * @param x Horizontal component of the light direction vector.
+     * @param y Vertical component of the light direction vector.
+     */
+    fun setLightDirection(x: Float, y: Float) = glSurface.queueAndRender { renderer.setLightDirection(x, y) }
+
+    /**
+     * Controls the Blinn-Phong specular highlight: a crisp, directional glint characteristic of
+     * real glass surfaces.
+     *
+     * @param intensity Brightness of the specular spot (0 = none, 1 = neutral, 3+ = very bright).
+     * @param shininess Glossiness power - higher values produce a smaller, sharper highlight (e.g. 16–256).
+     */
+    fun setSpecular(intensity: Float, shininess: Float) =
+        glSurface.queueAndRender { renderer.setSpecular(intensity, shininess) }
+
+    /**
+     * Sets the strength of the Fresnel-based rim/edge glow - the characteristic bright white ring
+     * visible on the boundary of real glass. This is a defining visual trait of iOS-style glass.
+     *
+     * @param value Glow strength (0 = no rim, 0.6 = default, 2+ = very bright halo).
+     */
+    fun setRimStrength(value: Float) = glSurface.queueAndRender { renderer.setRimStrength(value) }
+
+    /**
+     * Sets per-channel chromatic dispersion multipliers, controlling how much red and blue light
+     * separate from the reference green channel at glass edges (rainbow fringe effect).
+     *
+     * @param r Red-channel dispersion scale (> 0 = shifts outward from glass centre).
+     * @param b Blue-channel dispersion scale (> 0 = shifts inward toward glass centre).
+     */
+    fun setDispersion(r: Float, b: Float) = glSurface.queueAndRender { renderer.setDispersion(r, b) }
+
+    /**
+     * Sets the intensity of the caustic inner-brightening effect, simulating light focusing
+     * inside the glass volume. Creates warm bright patches that shift with the glass normals.
+     *
+     * @param value Caustic intensity (0 = disabled, 0.15 = subtle, 0.6+ = dramatic).
+     */
+    fun setCausticIntensity(value: Float) = glSurface.queueAndRender { renderer.setCausticIntensity(value) }
+
+    /**
+     * Controls the overall transmittance (opacity) of the glass layer.
+     * At 1.0 the glass fully occupies its shape; at 0.0 it is invisible.
+     *
+     * @param value Transmittance in [0, 1] (default: 1.0).
+     */
+    fun setTransmittance(value: Float) = glSurface.queueAndRender { renderer.setTransmittance(value) }
+
+    fun setLiquidDomeStrength(value: Float) = glSurface.queueAndRender { renderer.setLiquidDomeStrength(value) }
+
+    fun setFresnelReflectStrength(value: Float) = glSurface.queueAndRender { renderer.setFresnelReflectStrength(value) }
+
+    fun setLensRefractionScale(value: Float) = glSurface.queueAndRender { renderer.setLensRefractionScale(value) }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         if (!debug) return false
