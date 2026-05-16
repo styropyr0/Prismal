@@ -141,10 +141,10 @@ A **Signed Distance Field (SDF)** is a scalar function `f(p)` that returns the s
 
 Prismal uses two SDF variants for the rounded rectangle:
 
-### `sdRoundedRectKyant` - exact, per-quadrant radius
+### `sdRoundedRectRealistic` - exact, per-quadrant radius
 
 ```glsl
-float sdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
+float sdRoundedRectRealistic(vec2 coord, vec2 halfSize, float radius) {
     vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
     float outside = length(max(cornerCoord, 0.0)) - radius;
     float inside  = min(max(cornerCoord.x, cornerCoord.y), 0.0);
@@ -162,7 +162,7 @@ float sdRoundBox(vec2 p, vec2 b, float r, float k) { ... }
 
 Uses `smax_poly` / `smin_poly` (polynomial smooth-min/max) for the corner join. The `k` parameter controls blending radius - higher = softer, rounder corners at the join. This is used for the height field and opacity mask because smoothed edges look better for the ramp profile.
 
-### `gradSdRoundedRectKyant` - analytic gradient
+### `gradSdRoundedRectRealistic` - analytic gradient
 
 The analytic gradient of the SDF (the outward normal in 2D screen space) is used to:
 - Drive the lens distortion direction
@@ -306,10 +306,10 @@ Beyond Snell refraction there are two more UV offset contributions:
 
 ### Lens distortion (`dLens`)
 
-Lens distortion pushes pixels near the silhouette inward (barrel) or outward (pincushion) based on the SDF depth. The `circleMapKyant` function maps the ramp nonlinearly:
+Lens distortion pushes pixels near the silhouette inward (barrel) or outward (pincushion) based on the SDF depth. The `circleMapRealistic` function maps the ramp nonlinearly:
 
 ```glsl
-float circleMapKyant(float x) {
+float circleMapRealistic(float x) {
     return 1.0 - sqrt(max(0.0, 1.0 - x * x));  // quarter-circle ease-out
 }
 ```
@@ -348,7 +348,7 @@ When `u_chromaticAberration > 0`, the shader samples three separate UV coordinat
 
 ```glsl
 vec2 dispDir  = normalize(gradLens);     // radially outward from centre
-vec2 chromaPush = dispDir * (chromaBase + kyantChroma) * pxNorm;
+vec2 chromaPush = dispDir * (chromaBase + realChroma) * pxNorm;
 vec2 uvR = baseOffset + chromaPush * u_dispersionR;   // red shifts outward
 vec2 uvG = baseOffset;                                // green stays centred
 vec2 uvB = baseOffset - chromaPush * u_dispersionB;   // blue shifts inward
