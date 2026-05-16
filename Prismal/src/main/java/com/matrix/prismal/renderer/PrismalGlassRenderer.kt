@@ -105,6 +105,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var uDispersionB = -1
     private var uCausticIntensity = -1
     private var uTransmittance = -1
+    private var uBackdropSampleScale = -1
+    private var uParallaxScale = -1
 
     // Geometry buffers
     private lateinit var quadBuffer: FloatBuffer
@@ -159,6 +161,9 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var liquidDome = 0.78f
     private var fresnelReflect = 1.0f
     private var lensRefractionUserScale = 1.0f
+    private var backdropSampleScaleX = 1f
+    private var backdropSampleScaleY = 1f
+    private var parallaxScale = 1f
 
     // Renderer
     override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
@@ -243,6 +248,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         uDispersionB = GLES20.glGetUniformLocation(glassProgram, "u_dispersionB")
         uCausticIntensity = GLES20.glGetUniformLocation(glassProgram, "u_causticIntensity")
         uTransmittance = GLES20.glGetUniformLocation(glassProgram, "u_transmittance")
+        uBackdropSampleScale = GLES20.glGetUniformLocation(glassProgram, "u_backdropSampleScale")
+        uParallaxScale = GLES20.glGetUniformLocation(glassProgram, "u_parallaxScale")
 
         GLES20.glClearColor(0f, 0f, 0f, 0f)
         GLES20.glEnable(GLES20.GL_BLEND)
@@ -373,6 +380,12 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         GLES20.glUniform1f(uDispersionB, dispersionB)
         GLES20.glUniform1f(uCausticIntensity, causticIntensity)
         GLES20.glUniform1f(uTransmittance, transmittance)
+        if (uBackdropSampleScale >= 0) {
+            GLES20.glUniform2f(uBackdropSampleScale, backdropSampleScaleX, backdropSampleScaleY)
+        }
+        if (uParallaxScale >= 0) {
+            GLES20.glUniform1f(uParallaxScale, parallaxScale)
+        }
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
@@ -679,6 +692,17 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     /** Overall lens distortion scale (1 = default). */
     fun setLensRefractionScale(v: Float) {
         lensRefractionUserScale = max(0.25f, v)
+    }
+
+    /** Scales backdrop UVs from center — lower values magnify (flat lens). Used by switch thumb. */
+    fun setBackdropSampleScale(sx: Float, sy: Float) {
+        backdropSampleScaleX = max(0.01f, sx)
+        backdropSampleScaleY = max(0.01f, sy)
+    }
+
+    /** Multiplier on parallax UV shift; reduce on small thumbs to keep the track centered. */
+    fun setParallaxScale(v: Float) {
+        parallaxScale = v.coerceIn(0f, 2f)
     }
 
     /** 0 = flat sigmoid slab, 1 = strong spherical-cap “droplet” volume */

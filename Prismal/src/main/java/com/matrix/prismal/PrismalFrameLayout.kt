@@ -8,6 +8,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
@@ -72,6 +73,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private var debug = false
     private var lastCaptureTime = 0L
     private val minCaptureInterval = 0L
+    private var captureHost: ViewGroup? = null
 
     private val scrollListener = ViewTreeObserver.OnScrollChangedListener {
         scheduleCaptureBackground()
@@ -196,40 +198,92 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         }
     }
 
+    /**
+     * When set (e.g. to a [com.matrix.prismal.PrismalSwitch]), background capture draws this host
+     * in local coordinates so the track stays aligned under the thumb instead of sampling the
+     * full window with parallax skew.
+     */
+    fun setCaptureHost(host: ViewGroup?) {
+        captureHost = host
+    }
+
     internal fun captureAndSetBackground() {
         if (width <= 0 || height <= 0) return
 
         try {
-            val root = rootView ?: return
-
-            val loc = IntArray(2)
-            root.getLocationOnScreen(loc)
-            val btnLoc = IntArray(2)
-            getLocationOnScreen(btnLoc)
-
-            val cropX = (btnLoc[0] - loc[0]).coerceAtLeast(0)
-            val cropY = (btnLoc[1] - loc[1]).coerceAtLeast(0)
-            val cropW = width.coerceAtMost(root.width - cropX)
-            val cropH = height.coerceAtMost(root.height - cropY)
-
-            if (cropW <= 0 || cropH <= 0) return
-
-            val croppedBitmap = createBitmap(cropW, cropH)
-            val canvas = Canvas(croppedBitmap)
-            canvas.translate(-cropX.toFloat(), -cropY.toFloat())
-
-            val wasVisible = visibility
-            visibility = INVISIBLE
-
-            canvas.drawColor(Color.WHITE)
-            root.draw(canvas)
-
-            visibility = wasVisible
-
-            glSurface.queueAndRender { renderer.setBackgroundTexture(croppedBitmap) }
-
+            val host = captureHost
+            if (host != null) {
+                captureFromHost(host)
+            } else {
+                captureFromRoot()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun captureFromHost(host: ViewGroup) {
+        val sx = scaleX.coerceAtLeast(1f)
+        val sy = scaleY.coerceAtLeast(1f)
+        val extraX = ((sx - 1f) * pivotX).toInt()
+        val extraY = ((sy - 1f) * pivotY).toInt()
+
+        val cropX = (left + translationX).toInt() - extraX
+        val cropY = (top + translationY).toInt() - extraY
+        val cropW = width + 2 * extraX
+        val cropH = height + 2 * extraY
+        if (cropW <= 0 || cropH <= 0) return
+
+        val croppedBitmap = createBitmap(cropW, cropH)
+        val canvas = Canvas(croppedBitmap)
+        canvas.translate(-cropX.toFloat(), -cropY.toFloat())
+
+        val wasVisible = visibility
+        visibility = INVISIBLE
+        host.draw(canvas)
+        visibility = wasVisible
+
+        glSurface.queueAndRender {
+            renderer.setBackdropSampleScale(sx, sy)
+            renderer.setBackgroundTexture(croppedBitmap)
+        }
+    }
+
+    private fun captureFromRoot() {
+        val root = rootView as? ViewGroup ?: return
+
+        val loc = IntArray(2)
+        root.getLocationOnScreen(loc)
+        val btnLoc = IntArray(2)
+        getLocationOnScreen(btnLoc)
+
+        val sx = scaleX.coerceAtLeast(1f)
+        val sy = scaleY.coerceAtLeast(1f)
+        val extraX = ((sx - 1f) * pivotX).toInt()
+        val extraY = ((sy - 1f) * pivotY).toInt()
+
+        val cropX = (btnLoc[0] - loc[0] - extraX).coerceAtLeast(0)
+        val cropY = (btnLoc[1] - loc[1] - extraY).coerceAtLeast(0)
+        val cropW = (width + 2 * extraX).coerceAtMost(root.width - cropX)
+        val cropH = (height + 2 * extraY).coerceAtMost(root.height - cropY)
+
+        if (cropW <= 0 || cropH <= 0) return
+
+        val croppedBitmap = createBitmap(cropW, cropH)
+        val canvas = Canvas(croppedBitmap)
+        canvas.translate(-cropX.toFloat(), -cropY.toFloat())
+
+        val wasVisible = visibility
+        visibility = INVISIBLE
+
+        canvas.drawColor(Color.WHITE)
+        root.draw(canvas)
+
+        visibility = wasVisible
+
+        glSurface.queueAndRender {
+            renderer.setBackdropSampleScale(sx, sy)
+            renderer.setBackgroundTexture(croppedBitmap)
         }
     }
 
@@ -238,6 +292,17 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * This is useful for refreshing the glass effect when the content beneath changes (e.g., after scrolling or layout updates).
      */
     fun updateBackground() = scheduleCaptureBackground()
+
+    /**
+     * Pushes the current [scaleX]/[scaleY] to the backdrop sample scale uniform without
+     * triggering a full bitmap re-capture. Call this on every scale-animation frame so the
+     * glass correctly "zooms out" to cover the expanded visual area even between captures.
+     */
+    fun updateBackdropScale() {
+        val sx = scaleX.coerceAtLeast(1f)
+        val sy = scaleY.coerceAtLeast(1f)
+        glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
+    }
 
     /**
      * Sets the refraction inset value, which controls the distance from the edge where refraction effects are applied.
@@ -433,6 +498,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     fun setFresnelReflectStrength(value: Float) = glSurface.queueAndRender { renderer.setFresnelReflectStrength(value) }
 
     fun setLensRefractionScale(value: Float) = glSurface.queueAndRender { renderer.setLensRefractionScale(value) }
+
+    fun setBackdropSampleScale(sx: Float, sy: Float) = glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
+
+    fun setParallaxScale(value: Float) = glSurface.queueAndRender { renderer.setParallaxScale(value) }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         if (!debug) return false

@@ -52,6 +52,9 @@ uniform float u_shadowSoftness;
 uniform float u_causticIntensity;
 uniform float u_transmittance;
 
+uniform vec2  u_backdropSampleScale;
+uniform float u_parallaxScale;
+
 uniform int   u_showNormals;
 
 varying vec2 v_screenTexCoord;
@@ -67,14 +70,14 @@ float radiusAtCentered(vec2 c, vec4 radii) {
     }
 }
 
-float sdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
+float sdRoundedRectRealistic(vec2 coord, vec2 halfSize, float radius) {
     vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
     float outside = length(max(cornerCoord, 0.0)) - radius;
     float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
     return outside + inside;
 }
 
-vec2 gradSdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
+vec2 gradSdRoundedRectRealistic(vec2 coord, vec2 halfSize, float radius) {
     vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
     if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
         vec2 m = max(cornerCoord, 0.0);
@@ -87,7 +90,7 @@ vec2 gradSdRoundedRectKyant(vec2 coord, vec2 halfSize, float radius) {
     }
 }
 
-float circleMapKyant(float x) {
+float circleMapRealistic(float x) {
     x = clamp(x, 0.0, 1.0);
     return 1.0 - sqrt(max(0.0, 1.0 - x * x));
 }
@@ -136,6 +139,12 @@ vec3 applyVibrancy(vec3 rgb, float sat) {
     return clamp(mix(vec3(L), rgb, sat), 0.0, 1.0);
 }
 
+vec2 backdropUv(vec2 screenUv, vec2 offset) {
+    vec2 s = max(u_backdropSampleScale, vec2(0.01));
+    vec2 scaled = (screenUv - 0.5) / s + 0.5;
+    return clamp(scaled + offset, vec2(0.0), vec2(1.0));
+}
+
 void main() {
     vec2 halfSz = u_glassSize * 0.5;
     float minDim = min(halfSz.x, halfSz.y);
@@ -149,11 +158,11 @@ void main() {
 
     float crMax = min(halfSz.x, halfSz.y);
     float radCorner = min(radiusAtCentered(cKy, u_cornerRadii), crMax);
-    float sdKy = sdRoundedRectKyant(cKy, halfSz, radCorner);
+    float sdKy = sdRoundedRectRealistic(cKy, halfSz, radCorner);
 
     float distMask = sdRoundBox(pPx, halfSz, crMask, u_sminSmoothing);
     float edgeDist = -distMask;
-    float reflShell = smoothstep(clamp(minDim * 0.10, 5.0, 28.0), 0.0, edgeDist) * smoothstep(-4.5, 0.0, distMask);
+    float reflShell = smoothstep(clamp(minDim * 0.12, 2.5, 28.0), 0.0, edgeDist) * smoothstep(-4.5, 0.0, distMask);
     float inset = max(u_refractionInset, 2.0);
     float opacity = 1.0 - smoothstep(-inset, 0.0, distMask);
     opacity = mix(opacity, 1.0, smoothstep(0.0, 1.5, edgeDist));
@@ -161,11 +170,13 @@ void main() {
 
     float dome = clamp(u_liquidDome, 0.0, 1.0);
     float tw = max(u_heightTransitionWidth * (1.0 + 0.38 * dome) + minDim * 0.085, 1.0);
+
+    tw = min(tw, minDim * 0.72);
     float hSig = getHeightFromDist(distMask, tw);
     vec2 gradHSig = computeGradientHeight(pPx, halfSz, crMask, u_sminSmoothing, tw);
 
     float gradRadius = min(radCorner * 1.5, min(halfSz.x, halfSz.y));
-    vec2 gradLens = gradSdRoundedRectKyant(cKy, halfSz, gradRadius);
+    vec2 gradLens = gradSdRoundedRectRealistic(cKy, halfSz, gradRadius);
 
     float innerReach = max(min(halfSz.x, halfSz.y) - crMask * 0.42, minDim * 0.22);
     innerReach = min(innerReach, max(halfSz.x, halfSz.y) * 0.52 + minDim * 0.08);
@@ -210,7 +221,7 @@ void main() {
     vec3 V = vec3(0.0, 0.0, 1.0);
     float cosVN = clamp(dot(N, V), 0.0, 1.0);
     float r0 = pow((1.0 - u_ior) / (1.0 + u_ior), 2.0);
-    float silW = clamp(minDim * 0.10, 5.5, 34.0);
+    float silW = clamp(minDim * 0.12, 2.5, 34.0);
     float edgeSil = smoothstep(silW, 0.0, edgeDist) * smoothstep(-4.5, 0.0, distMask);
     float tiltW = clamp(length(N.xy) * 2.4, 0.0, 1.0);
     float grazingW = clamp(edgeSil * 0.94 + tiltW * 0.55, 0.0, 1.0);
@@ -225,16 +236,16 @@ void main() {
     float ldLen = length(lensDir);
     lensDir = ldLen > 1e-5 ? lensDir / ldLen : vec2(0.0);
 
-    float lensRh = max(u_heightTransitionWidth, 1.0) * (1.0 + 0.55 * dome) + minDim * 0.11;
+    float lensRh = min(max(u_heightTransitionWidth, 1.0) * (1.0 + 0.55 * dome) + minDim * 0.11, minDim * 0.92);
     float sdIn = min(sdKy, 0.0);
     float dLens = 0.0;
     if ((-sdKy) < lensRh) {
-        dLens = circleMapKyant(1.0 - (-sdIn / lensRh)) * (-u_lensRefractionPx);
+        dLens = circleMapRealistic(1.0 - (-sdIn / lensRh)) * (-u_lensRefractionPx);
     }
 
     vec2 lensDeltaUv = (dLens * lensDir) / u_resolution;
     float parallaxK = 0.052 * u_displacementScale;
-    vec2 parallax = (gradLens * height * (7.0 + 22.0 * F)) / u_resolution * parallaxK;
+    vec2 parallax = (gradLens * height * (7.0 + 22.0 * F)) / u_resolution * parallaxK * u_parallaxScale;
     lensDeltaUv += parallax;
     lensDeltaUv *= mix(0.78, 1.12, (1.0 - F) * (0.42 + 0.58 * height));
     lensDeltaUv *= dropLens;
@@ -255,7 +266,7 @@ void main() {
     bulgeUv *= pxNorm;
 
     vec2 baseOffset = lensDeltaUv + snellOff + bulgeUv;
-    vec2 uvCenter = clamp(v_screenTexCoord + baseOffset, vec2(0.0), vec2(1.0));
+    vec2 uvCenter = backdropUv(v_screenTexCoord, baseOffset);
     float avgDim = (u_glassSize.x + u_glassSize.y) * 0.5;
 
     float caAmt = max(u_chromaticAberration, 0.0);
@@ -271,15 +282,15 @@ void main() {
         float chromaFar = avgDim * 0.5;
         float edgeFac = pow(smoothstep(chromaFar, 0.0, edgeDist), 1.8);
         float chromaBase = caAmt * 0.0018 * edgeFac;
-        float kyantChroma = caAmt * 0.0025
+        float realChroma = caAmt * 0.0025
             * ((cKy.x * cKy.y) / max(halfSz.x * halfSz.y, 1.0)) * edgeFac;
 
         vec2 dispDir = length(gradLens) > 1e-4 ? normalize(gradLens)
             : (length(pPx) > 1e-3 ? normalize(pPx) : vec2(0.0, 1.0));
-        vec2 chromaPush = dispDir * (chromaBase + kyantChroma) * pxNorm;
-        vec2 uvR = clamp(v_screenTexCoord + baseOffset + chromaPush * u_dispersionR, vec2(0.0), vec2(1.0));
+        vec2 chromaPush = dispDir * (chromaBase + realChroma) * pxNorm;
+        vec2 uvR = backdropUv(v_screenTexCoord, baseOffset + chromaPush * u_dispersionR);
         vec2 uvG = uvCenter;
-        vec2 uvB = clamp(v_screenTexCoord + baseOffset - chromaPush * u_dispersionB, vec2(0.0), vec2(1.0));
+        vec2 uvB = backdropUv(v_screenTexCoord, baseOffset - chromaPush * u_dispersionB);
 
         if (u_useBlurredTexture == 1) {
             float r = texture2D(u_blurredTexture, uvR).r;
