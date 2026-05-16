@@ -1,29 +1,46 @@
 <resources>
     <declare-styleable name="PrismalFrameLayout">
+        <!-- Shape -->
         <attr name="pfl_glassWidth" format="float" />
         <attr name="pfl_glassHeight" format="float" />
         <attr name="pfl_glassThickness" format="dimension" />
         <attr name="pfl_cornerRadius" format="dimension" />
+        <!-- Glass optics -->
         <attr name="pfl_ior" format="float" />
         <attr name="pfl_normalStrength" format="float" />
         <attr name="pfl_displacementScale" format="float" />
         <attr name="pfl_heightTransitionWidth" format="float" />
         <attr name="pfl_minSmoothing" format="float" />
+        <!-- Blur & chromatic -->
         <attr name="pfl_blurRadius" format="float" />
-        <attr name="pfl_highlightWidth" format="float" />
         <attr name="pfl_chromaticAberration" format="float" />
+        <attr name="pfl_dispersionR" format="float" />
+        <attr name="pfl_dispersionB" format="float" />
+        <!-- Color & brightness -->
         <attr name="pfl_brightness" format="float" />
-        <attr name="pfl_showNormals" format="boolean" />
+        <attr name="pfl_transmittance" format="float" />
+        <!-- Lighting & specular -->
+        <attr name="pfl_lightDirX" format="float" />
+        <attr name="pfl_lightDirY" format="float" />
+        <attr name="pfl_specular" format="float" />
+        <attr name="pfl_shininess" format="float" />
+        <attr name="pfl_rimStrength" format="float" />
+        <attr name="pfl_highlightWidth" format="float" />
+        <attr name="pfl_causticIntensity" format="float" />
+        <attr name="pfl_liquidDome" format="float" />
+        <attr name="pfl_fresnelReflect" format="float" />
+        <attr name="pfl_lensRefractionScale" format="float" />
+        <!-- Shadow -->
         <attr name="pfl_shadowSoftness" format="float" />
+        <!-- Debug -->
+        <attr name="pfl_showNormals" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="PrismalSwitch">
         <attr name="psw_isOn" format="boolean" />
-        <attr name="psw_animDuration" format="integer" />
         <attr name="psw_trackHeight" format="dimension" />
         <attr name="psw_onColor" format="color" />
         <attr name="psw_offColor" format="color" />
-        <attr name="psw_thumbWidth" format="dimension" />
         <attr name="psw_thumbCornerRadius" format="dimension" />
         <attr name="psw_thumbIOR" format="float" />
         <attr name="psw_thumbNormalStrength" format="float" />
@@ -31,20 +48,20 @@
         <attr name="psw_thumbBlurRadius" format="float" />
         <attr name="psw_thumbChromaticAberration" format="float" />
         <attr name="psw_thumbBrightness" format="float" />
+        <attr name="psw_thumbShadowColor" format="color" />
         <attr name="psw_thumbShadowSoftness" format="float" />
-        <attr name="psw_thumbShadowAlpha" format="integer" />
         <attr name="psw_thumbThickness" format="dimension" />
         <attr name="psw_thumbHighlightWidth" format="float" />
         <attr name="psw_thumbHeightBlurFactor" format="float" />
         <attr name="psw_thumbMinSmoothing" format="float" />
         <attr name="psw_thumbRefractionInset" format="float" />
         <attr name="psw_thumbEdgeRefractionFalloff" format="float" />
+        <attr name="psw_thumbShowNormals" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="PrismalSlider">
         <attr name="psl_maxValue" format="float" />
         <attr name="psl_trackColor" format="color" />
-        <attr name="psl_thumbWidth" format="dimension" />
         <attr name="psl_thumbCornerRadius" format="dimension" />
         <attr name="psl_thumbIOR" format="float" />
         <attr name="psl_thumbNormalStrength" format="float" />
@@ -52,15 +69,16 @@
         <attr name="psl_thumbBlurRadius" format="float" />
         <attr name="psl_thumbChromaticAberration" format="float" />
         <attr name="psl_thumbBrightness" format="float" />
+        <attr name="psl_thumbShadowColor" format="color" />
         <attr name="psl_thumbShadowSoftness" format="float" />
-        <attr name="psl_thumbShadowAlpha" format="integer" />
         <attr name="psl_thumbThickness" format="dimension" />
         <attr name="psl_thumbHighlightWidth" format="float" />
         <attr name="psl_thumbHeightBlurFactor" format="float" />
         <attr name="psl_thumbMinSmoothing" format="float" />
         <attr name="psl_thumbRefractionInset" format="float" />
         <attr name="psl_thumbEdgeRefractionFalloff" format="float" />
-        <attr name="psl_thumbShadowColor" format="color" />
+        <attr name="psl_thumbParallaxScale" format="float" />
+        <attr name="psl_thumbShowNormals" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="PrismalButton">
@@ -81,7 +99,6 @@
         <attr name="pib_iconSrc" format="reference" />
         <attr name="pib_iconTint" format="color" />
         <attr name="pib_pressScale" format="float" />
-        <attr name="pib_animDuration" format="integer" />
         <attr name="pib_ior" format="float" />
         <attr name="pib_normalStrength" format="float" />
         <attr name="pib_displacementScale" format="float" />
@@ -90,5 +107,10 @@
         <attr name="pib_brightness" format="float" />
         <attr name="pib_highlightWidth" format="float" />
         <attr name="pib_showNormals" format="boolean" />
+        <attr name="pib_shadowColor" format="color" />
+        <attr name="pib_shadowSoftness" format="float" />
+        <attr name="pib_liquidDomeStrength" format="float" />
+        <attr name="pib_fresnelReflectStrength" format="float" />
+        <attr name="pib_lensRefractionScale" format="float" />
     </declare-styleable>
 </resources>
