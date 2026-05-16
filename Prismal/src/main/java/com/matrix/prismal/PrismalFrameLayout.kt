@@ -16,6 +16,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
 import com.matrix.prismal.filters.PrismalFilter
 import com.matrix.prismal.renderer.PrismalGlassRenderer
+import com.matrix.prismal.utils.SpringAnimator
 import androidx.core.graphics.withClip
 
 /**
@@ -77,7 +78,14 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private val minCaptureInterval = 0L
     private var captureHost: ViewGroup? = null
 
-    private var hasClickCallback = false
+    private var hasClickListenerCallback = false
+    private var hasClickWithAnimCallback = false
+    private val hasClickCallback get() = hasClickListenerCallback || hasClickWithAnimCallback
+
+    private var clickWithAnimListener: (() -> Unit)? = null
+    private var clickAnimPressScale = 0.95f
+    private val clickAnimSpring = SpringAnimator(0.55f, 350f)
+
     private var glowX = 0f
     private var glowY = 0f
     private var glowAlpha = 0f
