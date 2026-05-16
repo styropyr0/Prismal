@@ -45,12 +45,12 @@ class PrismalIconButton @JvmOverloads constructor(
 ) : FrameLayout(context, attrs) {
     private val prismalSurface = PrismalFrameLayout(context)
     private val iconView = AppCompatImageView(context)
-    private var pressScale = 0.88f
+    private var pressScale = 0.82f
     private var restBlur = 2f
     private var clickListener: (() -> Unit)? = null
     private var defaultSizePx = 0
     private var lastGlassSizePx = 0
-    private val scaleSpring = SpringAnimator(0.7f, 500f)
+    private val scaleSpring = SpringAnimator(0.4f, 500f)
     private val pressSpring = SpringAnimator(1.0f, 1200f)
 
     private fun dp(value: Float) = TypedValue.applyDimension(
@@ -63,11 +63,10 @@ class PrismalIconButton @JvmOverloads constructor(
         prismalSurface.setBlurRadius(lerp(restBlur, 0f, t))
         prismalSurface.setChromaticAberration(lerp(0f, 3.5f, t))
         prismalSurface.setLensRefractionScale(lerp(0.55f, 1.3f, t))
-        prismalSurface.updateBackground()
     }
 
     private fun applyScale(t: Float) {
-        val s = lerp(1f, pressScale, t).coerceIn(0.1f, 2f)
+        val s = (1f + (pressScale - 1f) * t).coerceIn(0.1f, 2f)
         prismalSurface.scaleX = s
         prismalSurface.scaleY = s
     }
@@ -77,12 +76,14 @@ class PrismalIconButton @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 pressSpring.animateTo(1f)
                 scaleSpring.animateTo(1f)
+                prismalSurface.showGlow(event.x, event.y)
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 pressSpring.animateTo(0f)
                 scaleSpring.animateTo(0f)
+                prismalSurface.hideGlow()
                 if (event.actionMasked == MotionEvent.ACTION_UP) {
                     clickListener?.invoke()
                     performClick()
@@ -145,7 +146,7 @@ class PrismalIconButton @JvmOverloads constructor(
                     getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
                 val iconRes = getResourceId(R.styleable.PrismalIconButton_pib_iconSrc, 0)
                 val iconTint = getColor(R.styleable.PrismalIconButton_pib_iconTint, Color.BLACK)
-                pressScale = getFloat(R.styleable.PrismalIconButton_pib_pressScale, 0.88f)
+                pressScale = getFloat(R.styleable.PrismalIconButton_pib_pressScale, 0.82f)
 
                 addView(
                     prismalSurface,
@@ -189,7 +190,7 @@ class PrismalIconButton @JvmOverloads constructor(
         val hSize = MeasureSpec.getSize(heightMeasureSpec)
         val resolvedW = when (wMode) {
             MeasureSpec.EXACTLY -> wSize
-            MeasureSpec.AT_MOST -> if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT) defaultSizePx.coerceAtMost(
+            MeasureSpec.AT_MOST -> if (layoutParams.width == LayoutParams.WRAP_CONTENT) defaultSizePx.coerceAtMost(
                 wSize
             ) else wSize
 
@@ -197,7 +198,7 @@ class PrismalIconButton @JvmOverloads constructor(
         }
         val resolvedH = when (hMode) {
             MeasureSpec.EXACTLY -> hSize
-            MeasureSpec.AT_MOST -> if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) defaultSizePx.coerceAtMost(
+            MeasureSpec.AT_MOST -> if (layoutParams.height == LayoutParams.WRAP_CONTENT) defaultSizePx.coerceAtMost(
                 hSize
             ) else hSize
 
@@ -280,5 +281,6 @@ class PrismalIconButton @JvmOverloads constructor(
 
     override fun setOnClickListener(l: OnClickListener?) {
         clickListener = { l?.onClick(this) }
+        prismalSurface.setGlowEnabled(l != null)
     }
 }

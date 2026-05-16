@@ -5,10 +5,12 @@ import android.content.Context
 import android.graphics.*
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
+import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.ViewGroup
+import kotlin.math.hypot
 import android.widget.FrameLayout
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
@@ -75,6 +77,25 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private val minCaptureInterval = 0L
     private var captureHost: ViewGroup? = null
 
+    private var hasClickCallback = false
+    private var glowX = 0f
+    private var glowY = 0f
+    private var glowAlpha = 0f
+    private var glowIn = false
+    private var glowLastNanos = 0L
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private val glowCallback: Choreographer.FrameCallback = Choreographer.FrameCallback { nanos ->
+        val dt = if (glowLastNanos == 0L) 0.016f
+        else ((nanos - glowLastNanos) / 1_000_000_000f).coerceAtMost(0.048f)
+        glowLastNanos = nanos
+        glowAlpha = if (glowIn) (glowAlpha + dt / 0.12f).coerceAtMost(1f)
+        else (glowAlpha - dt / 0.28f).coerceAtLeast(0f)
+        invalidate()
+        val settled = if (glowIn) glowAlpha >= 1f else glowAlpha <= 0f
+        if (!settled) Choreographer.getInstance().postFrameCallback(glowCallback)
+    }
+
     private val scrollListener = ViewTreeObserver.OnScrollChangedListener {
         scheduleCaptureBackground()
     }
@@ -101,44 +122,101 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         val density = context.resources.displayMetrics.density
         context.theme.obtainStyledAttributes(attrs, R.styleable.PrismalFrameLayout, 0, 0).apply {
             try {
-                 getFloat(R.styleable.PrismalFrameLayout_pfl_glassWidth, -1f).takeIf { it > 0 }?.let { w ->
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_glassHeight, -1f).takeIf { it > 0 }?.let { h ->
-                         setGlassSize(w, h)
-                     }
-                 }
+                getFloat(R.styleable.PrismalFrameLayout_pfl_glassWidth, -1f).takeIf { it > 0 }
+                    ?.let { w ->
+                        getFloat(
+                            R.styleable.PrismalFrameLayout_pfl_glassHeight,
+                            -1f
+                        ).takeIf { it > 0 }?.let { h ->
+                            setGlassSize(w, h)
+                        }
+                    }
 
-                 setIOR(getFloat(R.styleable.PrismalFrameLayout_pfl_ior, 1.55f))
-                 setThickness(getDimension(R.styleable.PrismalFrameLayout_pfl_glassThickness, 18f * density))
-                 setNormalStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_normalStrength, 1.15f))
-                 setDisplacementScale(getFloat(R.styleable.PrismalFrameLayout_pfl_displacementScale, 1.15f))
-                 setHeightBlurFactor(getFloat(R.styleable.PrismalFrameLayout_pfl_heightTransitionWidth, 15.3f))
-                 setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 1.8f))
-                 setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 3.85f))
-                 setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 1f))
-                 setChromaticAberration(getFloat(R.styleable.PrismalFrameLayout_pfl_chromaticAberration, 0f))
-                 setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.08f))
-                 setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_pfl_showNormals, false))
-                 setCornerRadius(getDimension(R.styleable.PrismalFrameLayout_pfl_cornerRadius, 28f * density))
-                 setShadowProperties("#23FFFFFF".toColorInt(), getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 10f))
-                 setGlassColor("#230000FF".toColorInt())
-                 setLightDirection(
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirX, -0.5f),
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirY, -0.8f)
-                 )
-                 setSpecular(
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_specular, 1.35f),
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_shininess, 72f)
-                 )
-                 setRimStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_rimStrength, 1.05f))
-                 setDispersion(
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionR, 1.0f),
-                     getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionB, 1.0f)
-                 )
-                 setCausticIntensity(getFloat(R.styleable.PrismalFrameLayout_pfl_causticIntensity, 0.28f))
-                 setTransmittance(getFloat(R.styleable.PrismalFrameLayout_pfl_transmittance, 1.0f))
-                 setLiquidDomeStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_liquidDome, 0.78f))
-                 setFresnelReflectStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_fresnelReflect, 1.05f))
-                 setLensRefractionScale(getFloat(R.styleable.PrismalFrameLayout_pfl_lensRefractionScale, 1f))
+                setIOR(getFloat(R.styleable.PrismalFrameLayout_pfl_ior, 1.55f))
+                setThickness(
+                    getDimension(
+                        R.styleable.PrismalFrameLayout_pfl_glassThickness,
+                        18f * density
+                    )
+                )
+                setNormalStrength(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_normalStrength,
+                        1.15f
+                    )
+                )
+                setDisplacementScale(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_displacementScale,
+                        1.15f
+                    )
+                )
+                setHeightBlurFactor(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_heightTransitionWidth,
+                        15.3f
+                    )
+                )
+                setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 1.8f))
+                setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 3.85f))
+                setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 1f))
+                setChromaticAberration(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_chromaticAberration,
+                        0f
+                    )
+                )
+                setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.08f))
+                setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_pfl_showNormals, false))
+                setCornerRadius(
+                    getDimension(
+                        R.styleable.PrismalFrameLayout_pfl_cornerRadius,
+                        28f * density
+                    )
+                )
+                setShadowProperties(
+                    "#23FFFFFF".toColorInt(),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 10f)
+                )
+                setGlassColor("#230000FF".toColorInt())
+                setLightDirection(
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirX, -0.5f),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirY, -0.8f)
+                )
+                setSpecular(
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_specular, 1.35f),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_shininess, 72f)
+                )
+                setRimStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_rimStrength, 1.05f))
+                setDispersion(
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionR, 1.0f),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionB, 1.0f)
+                )
+                setCausticIntensity(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_causticIntensity,
+                        0.28f
+                    )
+                )
+                setTransmittance(getFloat(R.styleable.PrismalFrameLayout_pfl_transmittance, 1.0f))
+                setLiquidDomeStrength(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_liquidDome,
+                        0.78f
+                    )
+                )
+                setFresnelReflectStrength(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_fresnelReflect,
+                        1.05f
+                    )
+                )
+                setLensRefractionScale(
+                    getFloat(
+                        R.styleable.PrismalFrameLayout_pfl_lensRefractionScale,
+                        1f
+                    )
+                )
             } finally {
                 recycle()
             }
@@ -161,6 +239,20 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     override fun dispatchDraw(canvas: Canvas) {
         canvas.withClip(clipPath) {
             super.dispatchDraw(canvas)
+            if (hasClickCallback && glowAlpha > 0f) {
+                val maxR = hypot(width.toFloat(), height.toFloat())
+                glowPaint.shader = RadialGradient(
+                    glowX, glowY, maxR,
+                    intArrayOf(
+                        Color.argb((glowAlpha * 100).toInt(), 255, 255, 255),
+                        Color.argb((glowAlpha * 45).toInt(), 255, 255, 255),
+                        Color.TRANSPARENT
+                    ),
+                    floatArrayOf(0f, 0.38f, 1f),
+                    Shader.TileMode.CLAMP
+                )
+                canvas.drawCircle(glowX, glowY, maxR, glowPaint)
+            }
         }
     }
 
@@ -174,6 +266,54 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         super.onDetachedFromWindow()
         viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.removeOnScrollChangedListener(scrollListener)
+        Choreographer.getInstance().removeFrameCallback(glowCallback)
+    }
+
+    override fun setOnClickListener(l: OnClickListener?) {
+        hasClickCallback = l != null
+        super.setOnClickListener(l)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (hasClickCallback) {
+            val ch = Choreographer.getInstance()
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    glowX = event.x; glowY = event.y
+                    glowIn = true; glowLastNanos = 0L
+                    ch.removeFrameCallback(glowCallback)
+                    ch.postFrameCallback(glowCallback)
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    glowIn = false; glowLastNanos = 0L
+                    ch.removeFrameCallback(glowCallback)
+                    ch.postFrameCallback(glowCallback)
+                }
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
+    internal fun setGlowEnabled(enabled: Boolean) {
+        hasClickCallback = enabled
+    }
+
+    internal fun showGlow(x: Float, y: Float) {
+        if (!hasClickCallback) return
+        glowX = x; glowY = y
+        glowIn = true; glowLastNanos = 0L
+        val ch = Choreographer.getInstance()
+        ch.removeFrameCallback(glowCallback)
+        ch.postFrameCallback(glowCallback)
+    }
+
+    internal fun hideGlow() {
+        if (!hasClickCallback) return
+        glowIn = false; glowLastNanos = 0L
+        val ch = Choreographer.getInstance()
+        ch.removeFrameCallback(glowCallback)
+        ch.postFrameCallback(glowCallback)
     }
 
     private fun scheduleCaptureBackground() {
@@ -334,7 +474,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The inset value in pixels (default: 20f).
      */
-    fun setRefractionInset(value: Float) = glSurface.queueAndRender { renderer.setRefractionInset(value) }
+    fun setRefractionInset(value: Float) =
+        glSurface.queueAndRender { renderer.setRefractionInset(value) }
 
     /**
      * Sets the size of the glass effect area.
@@ -342,7 +483,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * @param width The width of the glass in pixels.
      * @param height The height of the glass in pixels.
      */
-    fun setGlassSize(width: Float, height: Float) = glSurface.queueAndRender { renderer.setGlassSize(width, height) }
+    fun setGlassSize(width: Float, height: Float) =
+        glSurface.queueAndRender { renderer.setGlassSize(width, height) }
 
     /**
      * Sets the corner radius for rounded corners on the glass effect.
@@ -374,28 +516,32 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The strength multiplier (default: 1.2f).
      */
-    fun setNormalStrength(value: Float) = glSurface.queueAndRender { renderer.setNormalStrength(value) }
+    fun setNormalStrength(value: Float) =
+        glSurface.queueAndRender { renderer.setNormalStrength(value) }
 
     /**
      * Sets the scale for displacement mapping, which warps the texture based on height data.
      *
      * @param value The displacement scale multiplier (default: 1.0f).
      */
-    fun setDisplacementScale(value: Float) = glSurface.queueAndRender { renderer.setDisplacementScale(value) }
+    fun setDisplacementScale(value: Float) =
+        glSurface.queueAndRender { renderer.setDisplacementScale(value) }
 
     /**
      * Sets the blur factor applied based on the simulated glass height/depth.
      *
      * @param value The height-to-blur scaling factor (default: 8f).
      */
-    fun setHeightBlurFactor(value: Float) = glSurface.queueAndRender { renderer.setHeightBlurFactor(value) }
+    fun setHeightBlurFactor(value: Float) =
+        glSurface.queueAndRender { renderer.setHeightBlurFactor(value) }
 
     /**
      * Sets the minimum smoothing value for SDF (Signed Distance Field) operations in the shader.
      *
      * @param value The smoothing threshold (default: 1.0f).
      */
-    fun setMinSmoothing(value: Float) = glSurface.queueAndRender { renderer.setSminSmoothing(value) }
+    fun setMinSmoothing(value: Float) =
+        glSurface.queueAndRender { renderer.setSminSmoothing(value) }
 
     /**
      * Sets the radius for the overall blur effect in the glass rendering.
@@ -409,14 +555,16 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The highlight width in pixels (default: 4.0f).
      */
-    fun setHighlightWidth(value: Float) = glSurface.queueAndRender { renderer.setHighlightWidth(value) }
+    fun setHighlightWidth(value: Float) =
+        glSurface.queueAndRender { renderer.setHighlightWidth(value) }
 
     /**
      * Sets the intensity of chromatic aberration, simulating color fringing at edges.
      *
      * @param value The aberration strength (default: 2.0f).
      */
-    fun setChromaticAberration(value: Float) = glSurface.queueAndRender { renderer.setChromaticAberration(value) }
+    fun setChromaticAberration(value: Float) =
+        glSurface.queueAndRender { renderer.setChromaticAberration(value) }
 
     /**
      * Sets the overall brightness multiplier for the glass effect.
@@ -447,7 +595,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The falloff sharpness (higher values = sharper transition; default: 4f).
      */
-    fun setEdgeRefractionFalloff(value: Float) = glSurface.queueAndRender { renderer.setEdgeRefractionFalloff(value) }
+    fun setEdgeRefractionFalloff(value: Float) =
+        glSurface.queueAndRender { renderer.setEdgeRefractionFalloff(value) }
 
     /**
      * Enables or disables debug mode for the glass renderer (e.g., visualizing internals).
@@ -473,7 +622,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * @param x Horizontal component of the light direction vector.
      * @param y Vertical component of the light direction vector.
      */
-    fun setLightDirection(x: Float, y: Float) = glSurface.queueAndRender { renderer.setLightDirection(x, y) }
+    fun setLightDirection(x: Float, y: Float) =
+        glSurface.queueAndRender { renderer.setLightDirection(x, y) }
 
     /**
      * Controls the Blinn-Phong specular highlight: a crisp, directional glint characteristic of
@@ -500,7 +650,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * @param r Red-channel dispersion scale (> 0 = shifts outward from glass centre).
      * @param b Blue-channel dispersion scale (> 0 = shifts inward toward glass centre).
      */
-    fun setDispersion(r: Float, b: Float) = glSurface.queueAndRender { renderer.setDispersion(r, b) }
+    fun setDispersion(r: Float, b: Float) =
+        glSurface.queueAndRender { renderer.setDispersion(r, b) }
 
     /**
      * Sets the intensity of the caustic inner-brightening effect, simulating light focusing
@@ -508,7 +659,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value Caustic intensity (0 = disabled, 0.15 = subtle, 0.6+ = dramatic).
      */
-    fun setCausticIntensity(value: Float) = glSurface.queueAndRender { renderer.setCausticIntensity(value) }
+    fun setCausticIntensity(value: Float) =
+        glSurface.queueAndRender { renderer.setCausticIntensity(value) }
 
     /**
      * Controls the overall transmittance (opacity) of the glass layer.
@@ -516,17 +668,23 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value Transmittance in [0, 1] (default: 1.0).
      */
-    fun setTransmittance(value: Float) = glSurface.queueAndRender { renderer.setTransmittance(value) }
+    fun setTransmittance(value: Float) =
+        glSurface.queueAndRender { renderer.setTransmittance(value) }
 
-    fun setLiquidDomeStrength(value: Float) = glSurface.queueAndRender { renderer.setLiquidDomeStrength(value) }
+    fun setLiquidDomeStrength(value: Float) =
+        glSurface.queueAndRender { renderer.setLiquidDomeStrength(value) }
 
-    fun setFresnelReflectStrength(value: Float) = glSurface.queueAndRender { renderer.setFresnelReflectStrength(value) }
+    fun setFresnelReflectStrength(value: Float) =
+        glSurface.queueAndRender { renderer.setFresnelReflectStrength(value) }
 
-    fun setLensRefractionScale(value: Float) = glSurface.queueAndRender { renderer.setLensRefractionScale(value) }
+    fun setLensRefractionScale(value: Float) =
+        glSurface.queueAndRender { renderer.setLensRefractionScale(value) }
 
-    fun setBackdropSampleScale(sx: Float, sy: Float) = glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
+    fun setBackdropSampleScale(sx: Float, sy: Float) =
+        glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
 
-    fun setParallaxScale(value: Float) = glSurface.queueAndRender { renderer.setParallaxScale(value) }
+    fun setParallaxScale(value: Float) =
+        glSurface.queueAndRender { renderer.setParallaxScale(value) }
 
     override fun onTouch(v: View?, event: MotionEvent): Boolean {
         if (!debug) return false
@@ -538,9 +696,11 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                     renderer.setMousePosition(event.x, event.y)
                 }
             }
+
             MotionEvent.ACTION_MOVE -> glSurface.queueAndRender {
                 renderer.setMousePosition(event.x, event.y)
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> glSurface.queueAndRender {
                 renderer.setTouching(false)
             }
