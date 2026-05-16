@@ -24,7 +24,6 @@
   <img src="screenshots/Screenshot_20260517_014046.png" width="23%" />
   <img src="screenshots/Screenshot_20260517_015304.png" width="23%" />
   <img src="screenshots/Screenshot_20260517_015537.png" width="23%" />
-  <img src="screenshots/Screenshot_20260517_013906.png" width="23%" />
 </p>
 
 ### Components on various backgrounds
