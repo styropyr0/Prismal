@@ -676,7 +676,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         lightDirX = x; lightDirY = y
     }
 
-    /** Kyant-style overall lens distortion scale (1 = default). */
+    /** Overall lens distortion scale (1 = default). */
     fun setLensRefractionScale(v: Float) {
         lensRefractionUserScale = max(0.25f, v)
     }

@@ -8,7 +8,10 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -55,6 +58,8 @@ class PrismalIconButton @JvmOverloads constructor(
     private var animDuration = 180L
     private var clickListener: (() -> Unit)? = null
     private var iconTint: Int
+    private var defaultSizePx = 0
+    private var lastGlassSizePx = 0
 
     private fun dp(value: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics
@@ -87,8 +92,6 @@ class PrismalIconButton @JvmOverloads constructor(
             try {
                 PrismalLiquidGlass.applyBase(prismalSurface)
                 with(prismalSurface) {
-                    setThickness(dp(5f))
-                    setHeightBlurFactor(dp(4f))
                     setLiquidDomeStrength(0.72f)
                     setFresnelReflectStrength(1.3f)
                     setLensRefractionScale(0.55f)
@@ -123,7 +126,7 @@ class PrismalIconButton @JvmOverloads constructor(
                     setShowNormals(getBoolean(R.styleable.PrismalIconButton_pib_showNormals, false))
                 }
 
-                val buttonSize = getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f))
+                defaultSizePx = getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f)).toInt()
                 val iconPadding =
                     getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
                 val iconRes = getResourceId(R.styleable.PrismalIconButton_pib_iconSrc, 0)
@@ -133,7 +136,7 @@ class PrismalIconButton @JvmOverloads constructor(
 
                 addView(
                     prismalSurface,
-                    LayoutParams(buttonSize.toInt(), buttonSize.toInt())
+                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER)
                 )
 
                 prismalSurface.addView(
@@ -156,14 +159,69 @@ class PrismalIconButton @JvmOverloads constructor(
         }
 
         prismalSurface.setOnTouchListener(touchListener)
-        clipToOutline = true
+        clipChildren = false
+        clipToPadding = false
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val wMode = MeasureSpec.getMode(widthMeasureSpec)
+        val hMode = MeasureSpec.getMode(heightMeasureSpec)
+        val wSize = MeasureSpec.getSize(widthMeasureSpec)
+        val hSize = MeasureSpec.getSize(heightMeasureSpec)
+
+        val resolvedW = when (wMode) {
+            MeasureSpec.EXACTLY -> wSize
+            MeasureSpec.AT_MOST -> if (layoutParams.width == ViewGroup.LayoutParams.WRAP_CONTENT) {
+                defaultSizePx.coerceAtMost(wSize)
+            } else {
+                wSize
+            }
+            else -> defaultSizePx
+        }
+        val resolvedH = when (hMode) {
+            MeasureSpec.EXACTLY -> hSize
+            MeasureSpec.AT_MOST -> if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT) {
+                defaultSizePx.coerceAtMost(hSize)
+            } else {
+                hSize
+            }
+            else -> defaultSizePx
+        }
+        val side = minOf(resolvedW, resolvedH)
+        val sideSpec = MeasureSpec.makeMeasureSpec(side, MeasureSpec.EXACTLY)
+        super.onMeasure(sideSpec, sideSpec)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        (parent as? ViewGroup)?.let {
+            it.clipChildren = false
+            it.clipToPadding = false
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        val radius = minOf(w, h) / 2f
+        val side = minOf(w, h)
+        if (side <= 0) return
+        applySizeScaledGlass(side)
+        val radius = side / 2f
         prismalSurface.setCornerRadius(radius)
         prismalSurface.updateBackground()
+    }
+
+    /**
+     * Scales glass thickness, blur band, and refraction inset to the button diameter so small
+     * controls do not inherit card-sized defaults from [PrismalLiquidGlass.applyBase].
+     */
+    private fun applySizeScaledGlass(sidePx: Int) {
+        if (sidePx == lastGlassSizePx) return
+        lastGlassSizePx = sidePx
+        val density = resources.displayMetrics.density
+        val sideDp = sidePx / density
+        prismalSurface.setThickness((sideDp * 0.095f).coerceIn(3f, 6f) * density)
+        prismalSurface.setHeightBlurFactor((sideDp * 0.07f).coerceIn(2.5f, 5f) * density)
+        prismalSurface.setRefractionInset((sidePx * 0.35f).coerceIn(4f * density, 20f * density))
     }
 
     private fun animatePress(pressed: Boolean) {
