@@ -135,7 +135,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun goToPlayground() {
-        startActivity(Intent(this, GlassPlaygroundActivity::class.java))
+        startActivity(Intent(this, GlassPlaygroundActivity::class.java).apply {
+            pickedImageUri?.let {
+                putExtra("BACKGROUND_URI", it.toString())
+            } ?: run {
+                putExtra("BACKGROUND_RES_ID", resList[currIndex])
+            }
+        })
     }
 
     private fun setListeners() {
@@ -157,7 +163,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<Button>(R.id.btnGlassPlayground).setOnClickListener {
+        prismalFrameLayout2.setOnClickWithAnimationListener {
             goToPlayground()
         }
 

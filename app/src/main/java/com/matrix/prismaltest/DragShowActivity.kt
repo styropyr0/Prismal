@@ -12,6 +12,8 @@ import androidx.core.net.toUri
 
 class DragShowActivity : AppCompatActivity() {
 
+    private lateinit var prismalLayout: PrismalFrameLayout
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +34,9 @@ class DragShowActivity : AppCompatActivity() {
 
         val draggableLayout = findViewById<LinearLayout>(R.id.draggableLayout)
         val container = findViewById<FrameLayout>(R.id.draggableContainer)
-        val prismalLayout = findViewById<PrismalFrameLayout>(R.id.prismalFrame4)
+        prismalLayout = findViewById(R.id.prismalFrame4)
+
+        GlassPlaygroundPrefs.applyTo(this, prismalLayout)
 
         var dX = 0f
         var dY = 0f
@@ -58,5 +62,11 @@ class DragShowActivity : AppCompatActivity() {
             }
             true
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        GlassPlaygroundPrefs.applyTo(this, prismalLayout)
+        prismalLayout.post { prismalLayout.updateBackground() }
     }
 }

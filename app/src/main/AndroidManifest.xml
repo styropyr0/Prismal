@@ -25,6 +25,11 @@
             android:name=".DragShowActivity"
             android:screenOrientation="portrait"
             android:exported="false" />
+
+        <activity
+            android:name=".GlassPlaygroundActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
     </application>
 
 </manifest>

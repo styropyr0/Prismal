@@ -51,13 +51,6 @@
                 android:textColor="#FFFFFF"
                 android:textSize="17sp" />
 
-            <Button
-                android:id="@+id/btnGlassPlayground"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:text="Liquid glass playground" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -70,7 +63,6 @@
                     android:id="@+id/prev"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    app:pib_animDuration="200"
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="14dp"
                     app:pib_iconSrc="@drawable/ic_prev"
@@ -93,7 +85,7 @@
                     android:id="@+id/next"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    app:pib_animDuration="200"
+
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="14dp"
                     app:pib_iconSrc="@drawable/ic_next"
@@ -103,45 +95,34 @@
 
             </LinearLayout>
 
-            <com.matrix.prismal.PrismalSwitch
-                android:id="@+id/prismalSwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:visibility="gone"
-                app:psw_thumbThickness="10dp"
-                app:psw_trackHeight="31dp" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:paddingVertical="6dp"
-                android:visibility="gone">
-
-                <com.matrix.prismal.PrismalIconButton
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    app:pib_animDuration="200"
-                    app:pib_blurRadius="2.5"
-                    app:pib_iconPadding="14dp"
-                    app:pib_iconSrc="@drawable/icon"
-                    app:pib_iconTint="#FFFFFF"
-                    app:pib_ior="1.8"
-                    app:pib_pressScale="0.85" />
-            </LinearLayout>
-
-            <com.matrix.prismal.PrismalSlider
-                android:id="@+id/prismalSlider"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_gravity="center"
                 android:layout_marginTop="10dp"
                 android:clipChildren="false"
-                android:visibility="gone" />
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <com.matrix.prismal.PrismalSlider
+                    android:id="@+id/prismalSlider"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clipChildren="false" />
+
+                <com.matrix.prismal.PrismalSwitch
+                    android:id="@+id/prismalSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    app:psw_thumbThickness="10dp"
+                    app:psw_trackHeight="31dp" />
+
+            </LinearLayout>
 
             <com.matrix.prismal.PrismalSlider
                 android:id="@+id/prismalSlider1"
@@ -164,10 +145,9 @@
                     android:id="@+id/prismalIconButton2"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    app:pib_animDuration="200"
+                    android:visibility="gone"
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="12dp"
-                    android:visibility="gone"
                     app:pib_iconSrc="@drawable/icon"
                     app:pib_iconTint="#FFFFFF"
                     app:pib_ior="1.8"
@@ -224,7 +204,7 @@
                     android:id="@+id/prismalIconButton"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    app:pib_animDuration="200"
+
                     android:layout_marginEnd="10dp"
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="14dp"
@@ -237,7 +217,7 @@
                     android:id="@+id/prismalIconButton3"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    app:pib_animDuration="200"
+
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="12dp"
                     app:pib_iconSrc="@drawable/icon"
