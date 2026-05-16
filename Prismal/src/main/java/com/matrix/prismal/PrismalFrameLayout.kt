@@ -42,7 +42,11 @@ import androidx.core.graphics.withClip
  * ```kotlin
  * PrismalLiquidGlass.applyBase(myGlassView)   // apply the canonical iOS recipe
  * myGlassView.updateBackground()              // capture the current backdrop
+ * myGlassView.setOnClickWithAnimationListener { /* spring press + glow */ }
  * ```
+ *
+ * Use [setOnClickWithAnimationListener] for interactive glass cards. It is separate from
+ * [setOnClickListener] so subclasses such as [PrismalSwitch] are not affected.
  *
  * ## Threading
  * All setter methods are safe to call from any thread- they queue work onto the GL thread
@@ -79,12 +83,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private var captureHost: ViewGroup? = null
 
     private var hasClickListenerCallback = false
-    private var hasClickWithAnimCallback = false
-    private val hasClickCallback get() = hasClickListenerCallback || hasClickWithAnimCallback
+    private var glowEnabled = false
+    private val hasClickCallback get() =
+        hasClickListenerCallback || glowEnabled || clickWithAnimListener != null
 
     private var clickWithAnimListener: (() -> Unit)? = null
-    private var clickAnimPressScale = 0.95f
-    private val clickAnimSpring = SpringAnimator(0.55f, 350f)
+    private var clickAnimPressScale = 0.96f
+    private val clickAnimSpring = SpringAnimator(0.55f, 380f)
 
     private var glowX = 0f
     private var glowY = 0f
@@ -235,6 +240,15 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.addOnScrollChangedListener(scrollListener)
+
+        clickAnimSpring.onUpdate = { t ->
+            val s = 1f + (clickAnimPressScale - 1f) * t.coerceIn(0f, 1f)
+            pivotX = width / 2f
+            pivotY = height / 2f
+            scaleX = s
+            scaleY = s
+        }
+        clickAnimSpring.snapTo(0f)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -275,36 +289,94 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.removeOnScrollChangedListener(scrollListener)
         Choreographer.getInstance().removeFrameCallback(glowCallback)
+        clickAnimSpring.cancel()
     }
 
     override fun setOnClickListener(l: OnClickListener?) {
-        hasClickCallback = l != null
+        hasClickListenerCallback = l != null
+        updateClickableState()
         super.setOnClickListener(l)
     }
 
+    /**
+     * Sets a click listener with a spring press-scale animation and radial glow.
+     * Independent of [setOnClickListener] — use this on glass cards; child components
+     * (e.g. [PrismalSwitch]) can keep their own touch handling without conflict.
+     */
+    fun setOnClickWithAnimationListener(l: (() -> Unit)?) {
+        clickWithAnimListener = l
+        updateClickableState()
+    }
+
+    /** Java-friendly overload for [setOnClickWithAnimationListener]. */
+    fun setOnClickWithAnimationListener(l: OnClickListener?) {
+        setOnClickWithAnimationListener(if (l != null) { { l.onClick(this) } } else null)
+    }
+
+    /**
+     * Target scale while pressed (default `0.96`). `1.0` disables the shrink effect.
+     */
+    fun setClickAnimationPressScale(scale: Float) {
+        clickAnimPressScale = scale.coerceIn(0.5f, 1f)
+    }
+
+    private fun updateClickableState() {
+        val wantsClick = hasClickListenerCallback || clickWithAnimListener != null
+        isClickable = wantsClick
+        isFocusable = wantsClick
+    }
+
+    private fun pulseGlow(at: MotionEvent) {
+        if (!hasClickCallback) return
+        val ch = Choreographer.getInstance()
+        when (at.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                glowX = at.x
+                glowY = at.y
+                glowIn = true
+                glowLastNanos = 0L
+                ch.removeFrameCallback(glowCallback)
+                ch.postFrameCallback(glowCallback)
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                glowIn = false
+                glowLastNanos = 0L
+                ch.removeFrameCallback(glowCallback)
+                ch.postFrameCallback(glowCallback)
+            }
+        }
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (hasClickCallback) {
-            val ch = Choreographer.getInstance()
+        if (clickWithAnimListener != null) {
+            pulseGlow(event)
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    glowX = event.x; glowY = event.y
-                    glowIn = true; glowLastNanos = 0L
-                    ch.removeFrameCallback(glowCallback)
-                    ch.postFrameCallback(glowCallback)
+                    clickAnimSpring.animateTo(1f)
+                    parent?.requestDisallowInterceptTouchEvent(true)
                 }
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    glowIn = false; glowLastNanos = 0L
-                    ch.removeFrameCallback(glowCallback)
-                    ch.postFrameCallback(glowCallback)
+                    clickAnimSpring.animateTo(0f)
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                    if (event.actionMasked == MotionEvent.ACTION_UP) {
+                        clickWithAnimListener?.invoke()
+                        performClick()
+                    }
                 }
             }
+            return true
+        }
+
+        if (hasClickListenerCallback || glowEnabled) {
+            pulseGlow(event)
         }
         return super.onTouchEvent(event)
     }
 
     internal fun setGlowEnabled(enabled: Boolean) {
-        hasClickCallback = enabled
+        glowEnabled = enabled
     }
 
     internal fun showGlow(x: Float, y: Float) {
