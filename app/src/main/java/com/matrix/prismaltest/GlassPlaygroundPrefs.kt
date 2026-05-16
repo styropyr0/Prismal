@@ -12,9 +12,9 @@ import kotlin.math.roundToInt
  */
 object GlassPlaygroundMappings {
 
-    fun blurFromProgress(p: Int) = 0.45f + p * 0.1f
+    fun blurFromProgress(p: Int) = 0.45f + p * 0.6f
     fun progressFromBlur(blur: Float) =
-        ((blur - 0.45f) / 0.1f).roundToInt().coerceIn(0, 100)
+        ((blur - 0.45f) / 0.6f).roundToInt().coerceIn(0, 100)
 
     /** [p] is 0–200 (wide refraction band control). */
     fun heightBlurFromProgress(p: Int) = 2f + (p.coerceIn(0, 200) / 200f) * 44f
@@ -25,9 +25,9 @@ object GlassPlaygroundMappings {
     fun progressFromLensScale(s: Float) =
         ((s - 0.35f) * 95f).roundToInt().coerceIn(0, 100)
 
-    fun chromaFromProgress(p: Int) = p * 0.95f
+    fun chromaFromProgress(p: Int) = p * 0.2f
     fun progressFromChroma(c: Float) =
-        (c / 0.95f).roundToInt().coerceIn(0, 100)
+        (c / 0.2f).roundToInt().coerceIn(0, 100)
 
     fun cornerDpFromProgress(p: Int) = 8f + 52f * (p / 100f)
     fun progressFromCornerDp(dp: Float) =

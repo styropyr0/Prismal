@@ -145,7 +145,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                         }
                     }
 
-                setIOR(getFloat(R.styleable.PrismalFrameLayout_pfl_ior, 1.55f))
+                setIOR(getFloat(R.styleable.PrismalFrameLayout_pfl_ior, 1.42222f))
                 setThickness(
                     getDimension(
                         R.styleable.PrismalFrameLayout_pfl_glassThickness,
@@ -155,13 +155,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                 setNormalStrength(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_normalStrength,
-                        1.15f
+                        3.6515f
                     )
                 )
                 setDisplacementScale(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_displacementScale,
-                        1.15f
+                        1f
                     )
                 )
                 setHeightBlurFactor(
@@ -170,16 +170,16 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                         15.3f
                     )
                 )
-                setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 1.8f))
-                setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 3.85f))
-                setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 1f))
+                setMinSmoothing(getFloat(R.styleable.PrismalFrameLayout_pfl_minSmoothing, 4.0f))
+                setBlurRadius(getFloat(R.styleable.PrismalFrameLayout_pfl_blurRadius, 2f))
+                setHighlightWidth(getFloat(R.styleable.PrismalFrameLayout_pfl_highlightWidth, 0.35f))
                 setChromaticAberration(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_chromaticAberration,
-                        0f
+                        26f
                     )
                 )
-                setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.08f))
+                setBrightness(getFloat(R.styleable.PrismalFrameLayout_pfl_brightness, 1.21f))
                 setShowNormals(getBoolean(R.styleable.PrismalFrameLayout_pfl_showNormals, false))
                 setCornerRadius(
                     getDimension(
@@ -193,41 +193,41 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                 )
                 setGlassColor("#230000FF".toColorInt())
                 setLightDirection(
-                    getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirX, -0.5f),
-                    getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirY, -0.8f)
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirX, 1.0f),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirY, 1.0f)
                 )
                 setSpecular(
-                    getFloat(R.styleable.PrismalFrameLayout_pfl_specular, 1.35f),
-                    getFloat(R.styleable.PrismalFrameLayout_pfl_shininess, 72f)
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_specular, 2.4184f),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_shininess, 152.6f)
                 )
-                setRimStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_rimStrength, 1.05f))
+                setRimStrength(getFloat(R.styleable.PrismalFrameLayout_pfl_rimStrength, 0.18f))
                 setDispersion(
-                    getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionR, 1.0f),
-                    getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionB, 1.0f)
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionR, 0.39000002f),
+                    getFloat(R.styleable.PrismalFrameLayout_pfl_dispersionB, 0.375f)
                 )
                 setCausticIntensity(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_causticIntensity,
-                        0.28f
+                        0.1445f
                     )
                 )
                 setTransmittance(getFloat(R.styleable.PrismalFrameLayout_pfl_transmittance, 1.0f))
                 setLiquidDomeStrength(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_liquidDome,
-                        0.78f
+                        1.3f
                     )
                 )
                 setFresnelReflectStrength(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_fresnelReflect,
-                        1.05f
+                        1.98f
                     )
                 )
                 setLensRefractionScale(
                     getFloat(
                         R.styleable.PrismalFrameLayout_pfl_lensRefractionScale,
-                        1f
+                        1.2973684f
                     )
                 )
             } finally {

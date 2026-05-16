@@ -19,6 +19,7 @@
             android:id="@+id/draggableLayout"
             android:layout_width="match_parent"
             android:layout_height="80dp"
+            android:layout_gravity="center"
             android:layout_marginHorizontal="66dp"
             android:gravity="center">
 
