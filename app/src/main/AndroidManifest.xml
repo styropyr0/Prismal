@@ -13,6 +13,7 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
+            android:hardwareAccelerated="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,11 +25,13 @@
         <activity
             android:name=".DragShowActivity"
             android:screenOrientation="portrait"
+            android:hardwareAccelerated="true"
             android:exported="false" />
 
         <activity
             android:name=".GlassPlaygroundActivity"
             android:screenOrientation="portrait"
+            android:hardwareAccelerated="true"
             android:exported="false" />
     </application>
 

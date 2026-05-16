@@ -1,27 +1,31 @@
-# Prismal - Glassmorphism for Android (BETA)
+# Prismal - Liquid Glass for Android
 
-> **Real-time glassmorphism rendering library for Android for Android XML Components**  
-> High-performance OpenGL ES 2.0 library delivering physically accurate glass refraction, blur, and chromatic aberration effects for Android UI components.
+> **Real-time liquid glass rendering library for Android**  
+> OpenGL ES 2.0 library delivering physically accurate refraction, blur, chromatic aberration, Fresnel, specular, and spring-physics animations for Android UI components.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![OpenGL ES](https://img.shields.io/badge/OpenGL%20ES-2.0-red.svg)](https://www.khronos.org/opengles/)
-[![Min SDK](https://img.shields.io/badge/Min%20SDK-21-orange.svg)](https://developer.android.com/about/versions/lollipop)
+[![Min SDK](https://img.shields.io/badge/Min%20SDK-25-orange.svg)](https://developer.android.com/about/versions/nougat)
+
 ---
 
 ## Overview
 
-Prismal is an Android library that provides real-time glassmorphism effects through custom OpenGL ES 2.0 shaders. It captures content behind UI elements and applies optical distortions including refraction, blur, and chromatic aberration to simulate realistic glass materials.
+Prismal renders an iOS-style liquid glass material on Android. Each component captures the view hierarchy behind it into a GPU texture, then applies a physically derived rendering pipeline: signed-distance-field shape, circular-arc height profile, spherical meniscus normals, Snell's-law double refraction, two-pass Gaussian blur, dual Blinn-Phong specular, Fresnel rim highlights on both the lit and opposite borders, caustics, and a spring-physics animation system.
 
 ### Key Features
 
-- **Real-time Glass Rendering** - GPU-accelerated shader-based effects with live background capture
-- **Physically Based Refraction** - Accurate light bending using Index of Refraction (IOR), Fresnel effects, and double refraction
-- **Chromatic Aberration** - Realistic RGB color separation at glass edges
-- **Interactive Components** - Touch-responsive animations and dynamic distortions
-- **Pre-built Components** - Ready-to-use buttons, switches, sliders, and containers
-- **Performance Optimized** - Efficient rendering with minimal overdraw and smart texture caching
-- **Fully Customizable** - Extensive XML attributes and runtime APIs
+- **Physically based rendering** - Snell's law double refraction, Schlick Fresnel, dual Blinn-Phong specular, spherical meniscus edge profile
+- **Circular-arc height field** - `√(2t − t²)` cross-section guarantees zero thickness at the silhouette; no flat linear edges
+- **Dual border rim highlights** - both the directly lit rim and the opposite rim glow simultaneously, matching real polished glass
+- **Two-pass Gaussian blur** - separable horizontal + vertical passes for efficient frosted-glass depth
+- **Spring physics** - `Choreographer`-driven damped harmonic oscillator replaces `ValueAnimator` for press, travel, and click feedback
+- **Animated glass cards** - `setOnClickWithAnimationListener()` adds spring press-scale and radial glow without conflicting with `setOnClickListener` or child controls
+- **Optional shared scene** - `pfl_sharedHierarchicalCapture` / `PrismalScene` for one root capture + one blur pass across multiple glass views (default: independent per view)
+- **Canonical material preset** - `PrismalLiquidGlass.applyBase()` applies the full calibrated optical recipe in one call
+- **Pre-built components** - `PrismalFrameLayout`, `PrismalIconButton`, `PrismalSwitch`, `PrismalSlider`, `PrismalButton`
+- **Fully customizable** - extensive XML attributes and runtime Kotlin API
 
 ---
 
@@ -43,72 +47,56 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.styropyr0:prismal:1.0.0'
+    implementation 'com.github.styropyr0:Prismal:1.0.0'
 }
-```
-
-### Maven
-
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
-<dependency>
-    <groupId>com.github.yourusername</groupId>
-    <artifactId>prismal</artifactId>
-    <version>1.0.0</version>
-</dependency>
 ```
 
 ### Requirements
 
-- **Min SDK**: 25 (Android 7, Nougat)
-- **Target SDK**: 36
-- **OpenGL ES**: 2.0+
-- **Kotlin**: 2.0.21
+| Item | Requirement |
+|------|-------------|
+| Min SDK | 25 (Android 7, Nougat) |
+| Target SDK | 36 |
+| OpenGL ES | 2.0+ |
+| Kotlin | 2.0+ |
 
 ---
 
 ## Quick Start
 
-### Basic Usage
-
-Add Prismal components to your layout:
-
 ```xml
 <com.matrix.prismal.PrismalFrameLayout
-    android:layout_width="300dp"
-    android:layout_height="200dp"
-    app:ior="1.5"
-    app:blurRadius="3"
-    app:cornerRadius="20dp">
+    android:layout_width="match_parent"
+    android:layout_height="120dp"
+    app:pfl_cornerRadius="24dp"
+    app:pfl_blurRadius="3">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Glass Container"
-        android:textColor="@android:color/white"
-        android:layout_gravity="center" />
+        android:layout_gravity="center"
+        android:text="Liquid glass"
+        android:textColor="#FFFFFF" />
 
 </com.matrix.prismal.PrismalFrameLayout>
 ```
 
-### Programmatic Configuration
-
 ```kotlin
-val glassLayout = findViewById<PrismalFrameLayout>(R.id.glassContainer)
+val glassCard = findViewById<PrismalFrameLayout>(R.id.glassCard)
 
-glassLayout.apply {
-    setIOR(1.5f)
-    setCornerRadius(25f)
-    setThickness(15f)
-    setBlurRadius(4f)
-    setBrightness(1.2f)
-    setChromaticAberration(2f)
+// Apply the built-in calibrated material recipe
+PrismalLiquidGlass.applyBase(glassCard)
+
+// Override individual parameters as needed
+glassCard.setIOR(1.65f)
+glassCard.setBlurRadius(4f)
+
+// Refresh after the background changes
+glassCard.updateBackground()
+
+// Optional: iOS-style press animation + glow (separate from setOnClickListener)
+glassCard.setOnClickWithAnimationListener {
+    // handle tap
 }
 ```
 
@@ -118,131 +106,243 @@ glassLayout.apply {
 
 ### PrismalFrameLayout
 
-Base container that renders glass effects. Acts as a standard `FrameLayout` with an OpenGL-rendered glass surface beneath its children.
-> Note that, all of the other Prismal views are subclasses of PrismalFrameLayout. PrismalFrameLayout handles most of the works within, such that it would be easier for users to make their own subclasses. All you need to do is inherit from PrismalFrameLayout, set up renderer (PrismalGlassRenderer), and implement methods for changing properties.
+Base container. Renders the glass material over its children using an embedded `GLSurfaceView`. All other Prismal components are built on top of this class.
+
+**How it works:** `updateBackground()` draws the view hierarchy beneath this layout into a `Bitmap`, uploads it to the GPU, and triggers a new render. The GLSL fragment shader then applies the full optical pipeline.
+
+#### Shared hierarchical capture (opt-in)
+
+By default each `PrismalFrameLayout` owns its own backdrop capture and blur. For screens with **many glass panels** (notification stacks, settings lists), enable shared capture so the window root is sampled once:
+
+```
+Root scene → one backdrop texture → one blur pass → each member draws its glass quad
+```
+
+```xml
+<com.matrix.prismal.PrismalFrameLayout
+    app:pfl_sharedHierarchicalCapture="true"
+    ... />
+```
+
+```kotlin
+// Runtime opt-in (set before attach when possible, or via XML)
+glassRow.setSharedHierarchicalCapture(true)
+
+// Optional explicit scene handle (same root groups siblings)
+val root = findViewById<ViewGroup>(android.R.id.content)
+PrismalScene.getOrCreate(root)
+```
+
+| Mode | Capture | Blur | GL surfaces |
+|------|---------|------|-------------|
+| Default | Per view | Per view | One per `PrismalFrameLayout` |
+| Shared | Once per root update | Once (max member blur radius) | One hidden master + one per member (shared EGL context) |
+
+**Notes**
+
+- Does not apply when [setCaptureHost] is set (switch/slider thumbs keep local capture).
+- Each member still renders in its own `GLSurfaceView` so children stay **above** the glass (correct z-order).
+- Call `updateBackground()` on any member — or scroll/layout — to refresh the shared backdrop for all members.
+
+#### Interactive click
+
+Use **`setOnClickWithAnimationListener`** for tappable glass cards (toolbars, notification rows, hero panels). It is intentionally separate from Android’s **`setOnClickListener`**:
+
+| API | Behavior |
+|-----|----------|
+| `setOnClickWithAnimationListener` | Spring press-scale (default → 0.96), radial touch glow, then fires your callback on release |
+| `setOnClickListener` | Standard Android click; optional glow only when a listener is registered |
+
+Subclasses such as `PrismalSwitch` and `PrismalSlider` manage their own touch handling on the thumb - they are unaffected unless you call the animated API on them directly. `PrismalIconButton` uses its own press optics and glow via an internal `PrismalFrameLayout`.
+
+```kotlin
+glassCard.setOnClickWithAnimationListener {
+    startActivity(Intent(this, DetailActivity::class.java))
+}
+
+// Tune press depth (0.5 – 1.0; 1.0 = no shrink)
+glassCard.setClickAnimationPressScale(0.94f)
+
+// Java
+glassCard.setOnClickWithAnimationListener(OnClickListener { v -> /* … */ })
+```
 
 #### XML Attributes
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `app:glassWidth` | float | view width | Glass surface width |
-| `app:glassHeight` | float | view height | Glass surface height |
-| `app:ior` | float | 1.5 | Index of Refraction (1.0-2.0) |
-| `app:glassThickness` | dimension | 15dp | Glass thickness affecting distortion |
-| `app:normalStrength` | float | 1.2 | Surface normal influence |
-| `app:displacementScale` | float | 1.0 | Displacement mapping intensity |
-| `app:heightTransitionWidth` | float | 8.0 | Height field transition width |
-| `app:minSmoothing` | float | 1.0 | SDF smoothing threshold |
-| `app:blurRadius` | float | 2.5 | Background blur radius |
-| `app:highlightWidth` | float | 4.0 | Edge highlight width |
-| `app:chromaticAberration` | float | 2.0 | RGB color split intensity |
-| `app:brightness` | float | 1.15 | Overall brightness multiplier |
-| `app:cornerRadius` | dimension | 10dp | Corner rounding |
-| `app:showNormals` | boolean | false | Debug: visualize surface normals |
-
-#### API Methods
-
-```kotlin
-setRefractionInset(value: Float)
-setGlassSize(width: Float, height: Float)
-setCornerRadius(radius: Float)
-setIOR(value: Float)
-setThickness(value: Float)
-setNormalStrength(value: Float)
-setDisplacementScale(value: Float)
-setHeightBlurFactor(value: Float)
-setMinSmoothing(value: Float)
-setBlurRadius(value: Float)
-setHighlightWidth(value: Float)
-setChromaticAberration(value: Float)
-setBrightness(value: Float)
-setShowNormals(show: Boolean)
-setShadowProperties(color: Int, softness: Float)
-setEdgeRefractionFalloff(value: Float)
-updateBackground()
-```
-
----
-
-### PrismalButton
-
-Pressable glass button with scale animations and interactive refraction effects.
-
-#### XML Example
-
-```xml
-<com.matrix.prismal.PrismalButton
-    android:id="@+id/glassButton"
-    android:layout_width="200dp"
-    android:layout_height="60dp"
-    app:ior="1.85"
-    app:normalStrength="8"
-    app:blurRadius="1"
-    app:cornerRadius="32dp">
-
-    <TextView
-        android:text="Press Me"
-        android:textColor="#FFFFFF"
-        android:layout_gravity="center" />
-
-</com.matrix.prismal.PrismalButton>
-```
-
-#### Attributes
-
-- `app:ior` (float, default: 1.85)
-- `app:normalStrength` (float, default: 8)
-- `app:displacementScale` (float, default: 10)
-- `app:blurRadius` (float, default: 1)
-- `app:chromaticAberration` (float, default: 8)
-- `app:cornerRadius` (dimension, default: 32dp)
-- `app:brightness` (float, default: 1.0)
-- `app:highlightWidth` (float, default: 4)
-- `app:showNormals` (boolean, default: false)
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `pfl_glassWidth` | float | Override rendered surface width (px) |
+| `pfl_glassHeight` | float | Override rendered surface height (px) |
+| `pfl_cornerRadius` | dimension | Corner radius (px) |
+| `pfl_glassThickness` | dimension | Edge ramp width - see sizing rule below |
+| `pfl_ior` | float | Index of Refraction (1.0 – 2.0, default 1.5) |
+| `pfl_normalStrength` | float | Surface normal influence (default 1.2) |
+| `pfl_displacementScale` | float | Lens distortion intensity (default 1.0) |
+| `pfl_heightTransitionWidth` | float | Height field ramp width (deprecated - use `pfl_glassThickness`) |
+| `pfl_minSmoothing` | float | SDF edge smoothing (default 1.0) |
+| `pfl_blurRadius` | float | Background blur radius in dp (default 2.5) |
+| `pfl_chromaticAberration` | float | RGB channel split in px (default 2.0) |
+| `pfl_brightness` | float | Overall brightness multiplier (default 1.15) |
+| `pfl_specular` | float | Specular highlight intensity |
+| `pfl_shininess` | float | Specular exponent (Blinn-Phong) |
+| `pfl_rimStrength` | float | Rim / border highlight intensity |
+| `pfl_highlightWidth` | float | Top-surface highlight band width |
+| `pfl_causticIntensity` | float | Caustic light concentration intensity |
+| `pfl_liquidDome` | float | Dome curvature strength (0 – 1) |
+| `pfl_fresnelReflect` | float | Fresnel reflectivity boost at grazing angles |
+| `pfl_lensRefractionScale` | float | Lens distortion scale factor |
+| `pfl_lightDirX` | float | Light direction X component |
+| `pfl_lightDirY` | float | Light direction Y component |
+| `pfl_shadowSoftness` | float | Drop shadow blur extent (0 – 1) |
+| `pfl_transmittance` | float | Glass transmittance (opacity of refracted background) |
+| `pfl_showNormals` | boolean | Debug: visualize surface normals as RGB |
+| `pfl_sharedHierarchicalCapture` | boolean | Opt into [PrismalScene] shared root capture (default `false`) |
 
 #### API
 
 ```kotlin
+// Shape
+setGlassSize(width: Float, height: Float)
+setCornerRadius(radius: Float)
+setRefractionInset(value: Float)
+
+// Optics
 setIOR(value: Float)
+setThickness(value: Float)               // edge ramp width in px - keep < ~40% of min(w,h)/2
 setNormalStrength(value: Float)
 setDisplacementScale(value: Float)
+setMinSmoothing(value: Float)
+setLiquidDomeStrength(value: Float)
+setFresnelReflectStrength(value: Float)
+setLensRefractionScale(value: Float)
+
+// Blur & chromatic
 setBlurRadius(value: Float)
 setChromaticAberration(value: Float)
-setCornerRadius(value: Float)
-setBrightness(value: Float)
+setHeightBlurFactor(value: Float)
+
+// Lighting
+setLightDirection(x: Float, y: Float)
+setSpecular(strength: Float, shininess: Float)
+setRimStrength(value: Float)
 setHighlightWidth(value: Float)
-setShowNormals(enabled: Boolean)
-setOnClickListener(l: OnClickListener?)
+setCausticIntensity(value: Float)
+
+// Color
+setBrightness(value: Float)
+setGlassColor(color: Int)
+setTransmittance(value: Float)
+
+// Shadow
+setShadowProperties(color: Int, softness: Float)
+
+// Debug
+setShowNormals(show: Boolean)
+setEdgeRefractionFalloff(value: Float)
+
+// Capture (advanced - used by switch/slider thumbs for aligned backdrop)
+setCaptureHost(host: ViewGroup?)
+
+// Click
+setOnClickWithAnimationListener(listener: (() -> Unit)?)
+setOnClickWithAnimationListener(listener: OnClickListener?)
+setClickAnimationPressScale(scale: Float)
+
+// Shared scene (opt-in)
+setSharedHierarchicalCapture(enabled: Boolean)
+isSharedHierarchicalCapture(): Boolean
+
+// Update
+updateBackground()
 ```
+
+See also [PrismalScene] for root-level scene management.
+
+#### Critical Sizing Rule
+
+`thickness` must be less than roughly **40% of `min(width, height) / 2`**. If it exceeds that, the entire shape falls within the edge ramp and renders as a hollow glowing ring. Recommended values by view size:
+
+| View size | Thickness |
+|-----------|-----------|
+| Large card (≥ 120 dp) | 18 dp (library default) |
+| Medium card (60 – 120 dp) | 8 – 12 dp |
+| Switch / slider thumb (24 dp) | 4 dp |
+| Icon button (52 – 56 dp) | 5 dp |
+
+---
+
+### PrismalScene
+
+Coordinates optional shared capture for a window root. Created automatically when any child calls `setSharedHierarchicalCapture(true)`; you can also warm it up explicitly:
+
+```kotlin
+PrismalScene.getOrCreate(activity.findViewById(android.R.id.content))
+```
+
+All opted-in `PrismalFrameLayout` instances under the same root share one hierarchical bitmap upload and one Gaussian blur. Each view still applies its own optical parameters via [GlassRenderState].
+
+---
+
+### PrismalLiquidGlass
+
+A singleton that holds the calibrated optical recipe for the liquid glass material. Call `applyBase(view)` to apply the full set of parameters to any `PrismalFrameLayout` in one step - IOR, thickness, specular, rim, caustic, dispersion, lighting, shadow, and transmittance.
+
+```kotlin
+// Apply the full recipe (recommended starting point for any glass surface)
+PrismalLiquidGlass.applyBase(myGlassView)
+
+// Then override individual params for your specific component size
+myGlassView.setThickness(dp(5f))    // scale down for small views
+myGlassView.setIOR(1.65f)
+```
+
+The base recipe is calibrated for large cards (≥ 120 dp). When applying to smaller components, override `thickness` and `heightBlurFactor` proportionally.
 
 ---
 
 ### PrismalIconButton
 
-Circular glass button optimized for icons with automatic corner radius calculation.
+Circular glass button for toolbar actions and compact controls. Sizes to `wrap_content` or layout dimensions; glass thickness, blur, and refraction scale with the measured diameter. Applies `PrismalLiquidGlass.applyBase()` internally, then overrides parameters per size on `onSizeChanged`.
+
+Press feedback uses two springs: scale (slight overshoot on release) and optics (blur → 0, chromatic aberration → 3.5 px, lens scale up while held).
 
 #### XML Example
 
 ```xml
 <com.matrix.prismal.PrismalIconButton
-    android:id="@+id/iconButton"
-    android:layout_width="56dp"
-    android:layout_height="56dp"
-    app:iconSrc="@drawable/ic_heart"
-    app:iconPadding="12dp"
-    app:ior="1.85"
-    app:blurRadius="1.5"
-    app:pressScale="0.88"
-    app:animDuration="180" />
+    android:id="@+id/playButton"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    app:pib_iconSrc="@drawable/ic_play"
+    app:pib_iconPadding="12dp"
+    app:pib_iconTint="#FFFFFF"
+    app:pib_ior="1.55"
+    app:pib_blurRadius="2.5"
+    app:pib_pressScale="0.82" />
 ```
 
-#### Attributes
+#### XML Attributes
 
-- `app:iconSrc` (reference) - Icon drawable
-- `app:iconPadding` (dimension, default: 8dp)
-- `app:pressScale` (float, default: 0.88)
-- `app:animDuration` (integer, default: 180ms)
-- All optical parameters from `PrismalButton`
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pib_iconSrc` | reference | - | Icon drawable resource |
+| `pib_iconPadding` | dimension | 8 dp | Padding inside the glass surface |
+| `pib_iconTint` | color | black | Icon tint color |
+| `pib_buttonSize` | dimension | - | Hint for minimum size when using `wrap_content` |
+| `pib_pressScale` | float | 0.82 | Scale factor at full press |
+| `pib_ior` | float | 1.55 | Index of Refraction |
+| `pib_blurRadius` | float | 2.0 | Resting background blur in dp |
+| `pib_normalStrength` | float | 1.0 | Surface normal influence |
+| `pib_displacementScale` | float | 0.9 | Lens distortion intensity |
+| `pib_chromaticAberration` | float | 0.0 | RGB split at rest (animated on press) |
+| `pib_brightness` | float | 1.12 | Brightness multiplier |
+| `pib_highlightWidth` | float | 1.2 | Top-surface highlight band |
+| `pib_liquidDomeStrength` | float | 0.72 | Dome curvature |
+| `pib_fresnelReflectStrength` | float | 1.3 | Fresnel reflect boost |
+| `pib_lensRefractionScale` | float | 0.55 | Lens distortion at rest |
+| `pib_shadowColor` | color | `#22000000` | Drop shadow colour |
+| `pib_shadowSoftness` | float | 0.18 | Drop shadow blur |
+| `pib_showNormals` | boolean | false | Debug: show surface normals |
 
 #### API
 
@@ -253,95 +353,115 @@ setBlurRadius(value: Float)
 setChromaticAberration(value: Float)
 setDisplacementScale(value: Float)
 setOnClickListener(l: OnClickListener?)
+updateBackground()
 ```
 
 ---
 
 ### PrismalSwitch
 
-Animated toggle switch with glass thumb and color-changing track.
+iOS-style toggle switch: 64 × 28 dp capsule track that colour-crossfades from grey to green, with a 40 × 24 dp capsule glass thumb. The thumb is frosted-white at rest and reveals the live glass material on press. Spring physics drive position, press scale, and velocity squish.
+
+Thumb travel is exactly `trackWidth − thumbWidth − 2 × padding` = **20 dp** at default size.
 
 #### XML Example
 
 ```xml
 <com.matrix.prismal.PrismalSwitch
-    android:id="@+id/glassSwitch"
-    android:layout_width="120dp"
-    android:layout_height="60dp"
-    app:isOn="false"
-    app:animDuration="250"
-    app:thumbWidth="60dp"
-    app:trackHeight="22dp"
-    app:onColor="#00B624"
-    app:offColor="#555555"
-    app:thumbIOR="1.85"
-    app:thumbBlurRadius="1"
-    app:thumbCornerRadius="50dp"
-    app:thumbShadowAlpha="70"
-    app:thumbShadowSoftness="0.2" />
+    android:id="@+id/mySwitch"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:psw_isOn="false"
+    app:psw_trackHeight="31dp" />
 ```
 
-#### Attributes
+#### XML Attributes
 
-- `app:isOn` (boolean, default: false)
-- `app:animDuration` (integer, default: 250ms)
-- `app:thumbWidth` (dimension, default: auto)
-- `app:trackHeight` (dimension, default: 22dp)
-- `app:onColor` (color, default: #00B624)
-- `app:offColor` (color, default: #555555)
-- `app:thumbIOR` (float, default: 1.85)
-- `app:thumbNormalStrength` (float, default: 8)
-- `app:thumbDisplacementScale` (float, default: 10)
-- `app:thumbBlurRadius` (float, default: 1)
-- `app:thumbChromaticAberration` (float, default: 8)
-- `app:thumbCornerRadius` (dimension, default: 50dp)
-- `app:thumbBrightness` (float, default: 1.175)
-- `app:thumbShadowSoftness` (float, default: 0.2)
-- `app:thumbShadowAlpha` (integer, default: 70)
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `psw_isOn` | boolean | false | Initial toggle state |
+| `psw_trackHeight` | dimension | 28 dp | Track height; thumb and travel scale proportionally |
+| `psw_onColor` / `psw_offColor` | color | green / grey | Track colours |
+| `psw_thumbCornerRadius` | dimension | auto | Thumb corner radius |
+| `psw_thumbIOR` | float | calibrated | Thumb index of refraction |
+| `psw_thumbBlurRadius` | float | calibrated | Thumb blur |
+| `psw_thumbNormalStrength` | float | calibrated | Thumb normal strength |
+| `psw_thumbDisplacementScale` | float | calibrated | Thumb lens scale |
+| `psw_thumbChromaticAberration` | float | 0 | Thumb RGB split |
+| `psw_thumbBrightness` | float | calibrated | Thumb brightness |
+| `psw_thumbThickness` | dimension | calibrated | Thumb edge ramp |
+| `psw_thumbHighlightWidth` | float | calibrated | Thumb highlight band |
+| `psw_thumbHeightBlurFactor` | float | calibrated | Height-field blur factor |
+| `psw_thumbMinSmoothing` | float | calibrated | SDF smoothing |
+| `psw_thumbRefractionInset` | float | calibrated | Refraction inset |
+| `psw_thumbEdgeRefractionFalloff` | float | calibrated | Edge refraction falloff |
+| `psw_thumbShadowColor` / `psw_thumbShadowSoftness` | color / float | - | Thumb shadow |
+| `psw_thumbShowNormals` | boolean | false | Debug normals on thumb |
 
 #### API
 
 ```kotlin
-setOn(on: Boolean, animated: Boolean = false)
+setOn(on: Boolean, animate: Boolean = false)
 isOn(): Boolean
+toggle(animate: Boolean = true)
+setOnToggleChangedListener(l: (Boolean) -> Unit)
+updateBackground()
+
+// Thumb optical overrides
 setThumbIOR(value: Float)
-setThumbNormalStrength(value: Float)
 setThumbBlurRadius(value: Float)
+setThumbBrightness(value: Float)
+setThumbNormalStrength(value: Float)
+setThumbDisplacementScale(value: Float)
+setThumbThickness(value: Float)
 setThumbChromaticAberration(value: Float)
 setThumbCornerRadius(value: Float)
-setThumbBrightness(value: Float)
+setThumbHighlightWidth(value: Float)
 setThumbShadow(color: Int, radius: Float)
-setOnToggleChangedListener(listener: (Boolean) -> Unit)
+setThumbHeightBlurFactor(value: Float)
+setThumbRefractionInset(value: Float)
+setThumbEdgeRefractionFalloff(value: Float)
 ```
 
 ---
 
 ### PrismalSlider
 
-Horizontal slider with draggable glass thumb on colored track.
+Horizontal slider: 6 dp capsule track with an accent-coloured fill, and a 40 × 24 dp capsule glass thumb. The thumb reveals the live glass material on press with velocity-based squish deformation. Calls `thumb.updateBackground()` on every `ACTION_MOVE` so the refracted background updates live as the thumb moves.
 
 #### XML Example
 
 ```xml
 <com.matrix.prismal.PrismalSlider
-    android:id="@+id/glassSlider"
+    android:id="@+id/volumeSlider"
     android:layout_width="match_parent"
-    android:layout_height="80dp"
-    app:maxValue="200"
-    app:thumbWidth="60dp"
-    app:thumbCornerRadius="50"
-    app:thumbIOR="1.85"
-    app:thumbBlurRadius="1"
-    app:thumbBrightness="1.175"
-    app:thumbShadowAlpha="80"
-    app:thumbShadowSoftness="0.2" />
+    android:layout_height="44dp"
+    app:psl_maxValue="100"
+    app:psl_trackColor="#0088FF" />
 ```
 
-#### Attributes
+#### XML Attributes
 
-- `app:maxValue` (float, default: 100)
-- `app:thumbWidth` (dimension, default: 60dp)
-- All thumb optical parameters matching `PrismalSwitch`
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `psl_maxValue` | float | 100 | Maximum slider value |
+| `psl_trackColor` | color | #0088FF | Accent fill colour |
+| `psl_thumbCornerRadius` | dimension | auto | Thumb corner radius |
+| `psl_thumbIOR` | float | calibrated | Thumb index of refraction |
+| `psl_thumbBlurRadius` | float | calibrated | Thumb blur |
+| `psl_thumbNormalStrength` | float | calibrated | Thumb normal strength |
+| `psl_thumbDisplacementScale` | float | calibrated | Thumb lens scale |
+| `psl_thumbChromaticAberration` | float | 0 | Thumb RGB split |
+| `psl_thumbBrightness` | float | calibrated | Thumb brightness |
+| `psl_thumbThickness` | dimension | calibrated | Thumb edge ramp |
+| `psl_thumbHighlightWidth` | float | calibrated | Thumb highlight band |
+| `psl_thumbHeightBlurFactor` | float | calibrated | Height-field blur factor |
+| `psl_thumbMinSmoothing` | float | calibrated | SDF smoothing |
+| `psl_thumbRefractionInset` | float | calibrated | Refraction inset |
+| `psl_thumbEdgeRefractionFalloff` | float | calibrated | Edge refraction falloff |
+| `psl_thumbParallaxScale` | float | calibrated | Backdrop parallax under thumb |
+| `psl_thumbShadowColor` / `psl_thumbShadowSoftness` | color / float | - | Thumb shadow |
+| `psl_thumbShowNormals` | boolean | false | Debug normals on thumb |
 
 #### API
 
@@ -349,457 +469,282 @@ Horizontal slider with draggable glass thumb on colored track.
 setValue(value: Float)
 getValue(): Float
 setMaxValue(value: Float)
-setOnValueChangedListener(listener: (Float) -> Unit)
-setThumbWidthDp(dpValue: Float)
+setOnValueChangedListener(l: (Float) -> Unit)
+updateBackground()
+getThumb(): PrismalFrameLayout
+
+// Thumb optical overrides
 setThumbIOR(value: Float)
 setThumbBlurRadius(value: Float)
+setThumbBrightness(value: Float)
+setThumbNormalStrength(value: Float)
+setThumbDisplacementScale(value: Float)
+setThumbThickness(value: Float)
 setThumbChromaticAberration(value: Float)
 setThumbCornerRadius(value: Float)
-setThumbBrightness(value: Float)
 setThumbShadow(color: Int, radius: Float)
-getThumb(): PrismalFrameLayout
+setThumbHeightBlurFactor(value: Float)
+setThumbRefractionInset(value: Float)
 ```
 
 ---
 
-## Shader Architecture
+### PrismalButton
 
-Prismal uses custom GLSL ES 2.0 shaders to achieve realistic glass effects through a multi-stage rendering pipeline.
+General-purpose pressable glass container. Renders the glass material over any child views with a scale animation on press.
 
-### Rendering Pipeline
+#### XML Example
 
-1. **Background Capture** - Captures view hierarchy as OpenGL texture
-2. **SDF Shape Generation** - Creates smooth rounded rectangle using signed distance fields
-3. **Height Field Calculation** - Generates depth map from SDF with sigmoid transition
-4. **Normal Computation** - Calculates surface normals via gradient sampling
-5. **Refraction** - Double refraction (air→glass→air) using Snell's law
-6. **Chromatic Aberration** - Separates RGB channels along refraction direction
-7. **Blur Application** - Shape-aware 9-tap blur respecting boundaries
-8. **Shadow & Highlights** - Adds depth with inner shadow and Fresnel highlights
-9. **Final Composition** - Combines all layers with opacity
+```xml
+<com.matrix.prismal.PrismalButton
+    android:layout_width="200dp"
+    android:layout_height="60dp"
+    app:pbtn_ior="1.55"
+    app:pbtn_blurRadius="2"
+    app:pbtn_cornerRadius="32dp">
 
-### Core Techniques
+    <TextView
+        android:text="Press me"
+        android:textColor="#FFFFFF"
+        android:layout_gravity="center" />
 
-#### Signed Distance Fields (SDF)
-
-Polynomial-smoothed SDFs create ultra-smooth glass edges:
-
-```glsl
-float smin_polynomial(float a, float b, float k) {
-    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-    return mix(b, a, h) - k * h * (1.0 - h);
-}
-
-float sdRoundedBoxSmooth(vec2 p, vec2 b, float r, float k_smooth) {
-    vec2 q = abs(p) - b + r;
-    float termA = smax_polynomial(q.x, q.y, k_smooth);
-    float termB = smin_polynomial(termA, 0.0, k_smooth * 0.5);
-    vec2 q_clamped = vec2(
-        smax_polynomial(q.x, 0.0, k_smooth),
-        smax_polynomial(q.y, 0.0, k_smooth)
-    );
-    return termB + length(q_clamped) - r;
-}
+</com.matrix.prismal.PrismalButton>
 ```
 
-#### Height Field Generation
+#### XML Attributes
 
-Converts distance field to glass thickness using sigmoid:
-
-```glsl
-float getHeightFromSDF(vec2 p, vec2 b, float r, float k, float transition) {
-    float dist = sdRoundedBoxSmooth(p, b, r, k);
-    float normalized_dist = dist / transition;
-    float height = 1.0 - (1.0 / (1.0 + exp(-normalized_dist * 6.0)));
-    return clamp(height, 0.0, 1.0);
-}
-```
-
-#### Fresnel Effect
-
-Schlick's approximation for angle-dependent reflectivity:
-
-```glsl
-float fresnel(vec3 normal, vec3 viewDir, float ior) {
-    float cosTheta = abs(dot(normal, viewDir));
-    float r0 = pow((1.0 - ior) / (1.0 + ior), 2.0);
-    return r0 + (1.0 - r0) * pow(1.0 - cosTheta, 5.0);
-}
-```
-
-#### Double Refraction
-
-Simulates light path through glass:
-
-```glsl
-vec3 refractedIn = refract(-viewDir, surfaceNormal3D, 1.0 / u_ior);
-vec3 refractedOut = refract(refractedIn, -surfaceNormal3D, u_ior);
-vec2 refractionOffset = refractedOut.xy * u_glassThickness * strength;
-```
-
-#### Chromatic Aberration
-
-Wavelength-dependent refraction:
-
-```glsl
-float chromaIntensity = u_chromaticAberration * 0.002 * depthFalloff;
-vec2 refractionDir = normalize(baseOffset);
-
-vec2 offsetR = baseOffset - refractionDir * chromaIntensity;
-vec2 offsetG = baseOffset;
-vec2 offsetB = baseOffset + refractionDir * chromaIntensity;
-
-vec3 refractedColor = vec3(cR.r, cG.g, cB.b);
-```
-
-#### Shape-Aware Blur
-
-9-tap blur respecting glass boundaries:
-
-```glsl
-vec3 blur9(sampler2D tex, vec2 uv, vec2 offset, ...) {
-    vec3 accum = vec3(0.0);
-    float weightSum = 0.0;
-    
-    for(int y = -1; y <= 1; ++y) {
-        for(int x = -1; x <= 1; ++x) {
-            vec2 sampleUV = uv + offset + sampleOffset;
-            float sampleOpacity = getShapeOpacity(sampleShapeCoord, ...);
-            
-            if(sampleOpacity > 0.001) {
-                accum += texture2D(tex, sampleUV).rgb * sampleOpacity;
-                weightSum += sampleOpacity;
-            }
-        }
-    }
-    
-    return weightSum > 0.001 ? accum / weightSum : vec3(0.0);
-}
-```
-
-### Shader Parameters (If you're a nerd or wish to contribute)
-
-| Uniform | Type | Range | Description |
-|---------|------|-------|-------------|
-| `u_ior` | float | 1.0-2.0 | Index of Refraction |
-| `u_glassThickness` | float | 1-100 | Glass depth |
-| `u_normalStrength` | float | 0-20 | Surface bumpiness |
-| `u_displacementScale` | float | 0.1-10 | Refraction displacement |
-| `u_cornerRadius` | float | 0-∞ | Corner radius in pixels |
-| `u_sminSmoothing` | float | 0-10 | SDF smoothing |
-| `u_heightTransitionWidth` | float | 1-50 | Height field transition |
-| `u_blurRadius` | float | 0-20 | Background blur |
-| `u_chromaticAberration` | float | 0-20 | RGB color split |
-| `u_brightness` | float | 0.5-2.0 | Brightness multiplier |
-| `u_refractionInset` | float | 0-100 | Edge fade distance |
-| `u_edgeRefractionFalloff` | float | 1-10 | Edge decay sharpness |
-| `u_shadowColor` | vec4 | RGBA | Inner shadow color |
-| `u_shadowSoftness` | float | 0-1 | Shadow blur extent |
-| `u_showNormals` | int | 0/1 | Debug mode |
-
-### Performance
-
-**Per-frame operations:**
-- 27 texture samples per fragment (9 × 3 RGB)
-- 4 height field evaluations for gradients
-- 2 refraction calculations
-- Early fragment discard for optimization
-
-**Typical performance:**
-- 60 FPS on mid-range devices (Snapdragon 600+)
-- ~2-3ms frame time for 300×200dp surface
-- Scales efficiently with hierarchy complexity
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `pbtn_ior` | float | Index of Refraction |
+| `pbtn_normalStrength` | float | Surface normal influence |
+| `pbtn_displacementScale` | float | Lens distortion intensity |
+| `pbtn_blurRadius` | float | Background blur in dp |
+| `pbtn_chromaticAberration` | float | RGB split in px |
+| `pbtn_cornerRadius` | dimension | Corner radius |
+| `pbtn_highlightWidth` | float | Top-surface highlight band |
+| `pbtn_brightness` | float | Brightness multiplier |
+| `pbtn_showNormals` | boolean | Debug: show surface normals |
 
 ---
 
-## Shader Setup
+## Rendering Architecture
 
-### Directory Structure
+### Pipeline
 
 ```
-app/
- └── src/
-      └── main/
-           └── res/
-                └── raw/
-                     ├── background_vert.vert
-                     └── background_frag.frag
-                     └── fragment_shader.frag
-                     └── vertex_shader.frag
+updateBackground()
+    │
+    ├─ Draw view hierarchy → Bitmap → GL texture (bgTex)
+    │
+    ├─ H-pass Gaussian blur: bgTex → blurFbo1/blurTex1
+    ├─ V-pass Gaussian blur: blurTex1 → blurFbo2/blurTex2   (frosted tex)
+    │
+    └─ Fragment shader per pixel:
+           SDF shape + height field
+           → surface normals (finite differences + meniscus blend)
+           → Snell's law double refraction offset
+           → chromatic aberration (per-channel offsets)
+           → sample blurTex2 at refracted UV  (frosted background)
+           → dual Blinn-Phong specular (key + fill)
+           → Fresnel rim highlights (lit border + opposite border)
+           → caustic overlay
+           → shadow
+           → composite
 ```
 
-### Vertex Shader
+### Height Field - Circular Arc
 
-It takes vertex positions (a_position) of a quad representing the glass surface, scales them by u_glassSize, and offsets them around the mouse position (u_mousePos). It then converts the result into clip-space coordinates for rendering (gl_Position). The shader also outputs normalized texture and shape coordinates for use in the fragment shader.
+The glass thickness cross-section follows a quarter-circle profile - zero at the silhouette, steep initial rise, flattening toward the centre. This matches the profile of a water droplet or polished glass lens:
 
-### Fragment Shader
-
-The complete fragment shader is provided in `fragment_shader.glsl`. It includes:
-- Smooth min/max polynomial functions
-- SDF rounded box calculations
-- Height field generation
-- Fresnel computation
-- Surface gradient calculation
-- Shape opacity functions
-- Blur implementation with shape awareness
-- Main rendering pipeline
-
-### Loading Shaders
-
-```kotlin
-object ShaderUtils {
-    fun loadFromAssets(context: Context, filename: String): String {
-        return context.assets.open(filename).bufferedReader().use { it.readText() }
-    }
-}
-
-class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Renderer {
-    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        val vertexSource = ShaderUtils.loadFromAssets(context, "shaders/vertex_shader.glsl")
-        val fragmentSource = ShaderUtils.loadFromAssets(context, "shaders/fragment_shader.glsl")
-        // Compile and link shaders...
-    }
+```glsl
+float getHeightFromDist(float dist, float tw) {
+    float t = clamp(-dist / tw, 0.0, 1.0);
+    return sqrt(max(0.0, 2.0 * t - t * t));
 }
 ```
+
+The formula `√(2t − t²)` traces a quarter-circle: `h(t=0) = 0` at the silhouette, `h(t=1) = 1` at the centre.
+
+### Spherical Meniscus Normal Blending
+
+Surface normals at the rim zone are blended toward a spherically curved meniscus normal, tilted outward and downward along the circular cross-section. This makes the silhouette read as a curved glass edge rather than a flat vertical wall:
+
+```glsl
+float menW     = clamp(edgeDist / tw, 0.0, 1.0);
+float menCirc  = sqrt(max(0.0, 1.0 - menW * menW));
+vec3 N_meniscus = normalize(vec3(-outward * menCirc * 0.95, 0.26 + 0.74 * menW));
+float menBlend  = smoothstep(tw * 0.5, 0.0, edgeDist)
+                * smoothstep(-6.0, 0.0, distMask) * 0.82;
+N = normalize(mix(N, N_meniscus, menBlend));
+```
+
+### Dual Border Rim Highlights
+
+Two rim terms illuminate both the lit border and the opposite border simultaneously. A real glass slab lit from one side shows a highlight on the far edge due to total internal reflection - the `abs()` in `borderAlign` reproduces this:
+
+```glsl
+float borderAlign = pow(abs(dot(gN, Lxy)), 1.0);    // both borders
+float litAlign    = pow(max(0.0, dot(gN, Lxy)), 1.3); // lit border only
+
+float rimBothBorders = borderAlign * shellRim * u_rimStrength * 0.26;
+float rimLitSide     = litAlign    * shellRim * u_rimStrength * 0.32;
+```
+
+### Snell's Law Double Refraction
+
+Light passes through two interfaces (air → glass → air):
+
+```glsl
+vec3 refIn  = refract(-V, N, 1.0 / u_ior);
+vec3 refOut = refract(refIn, -N, u_ior);
+vec2 refractionOffset = refOut.xy * u_glassThickness * strength;
+```
+
+### Fresnel (Schlick)
+
+Angle-dependent reflectivity, artificially boosted near the silhouette for flat panels:
+
+```glsl
+float r0 = pow((u_ior - 1.0) / (u_ior + 1.0), 2.0);
+float fresnelTerm = r0 + (1.0 - r0) * pow(1.0 - cosVNeff, 5.0);
+```
+
+### Shader Uniforms Reference
+
+| Uniform | Range | Description |
+|---------|-------|-------------|
+| `u_ior` | 1.0 – 2.0 | Index of Refraction |
+| `u_glassThickness` | 1 – 100 px | Edge ramp width (see sizing rule) |
+| `u_normalStrength` | 0 – 20 | Surface normal influence |
+| `u_displacementScale` | 0.1 – 10 | Lens distortion multiplier |
+| `u_blurRadius` | 0 – 20 dp | Background blur |
+| `u_chromaticAberration` | 0 – 20 px | RGB channel split |
+| `u_brightness` | 0.5 – 2.0 | Output brightness multiplier |
+| `u_rimStrength` | 0 – 3 | Rim highlight intensity |
+| `u_specularStrength` | 0 – 3 | Specular highlight intensity |
+| `u_shininess` | 8 – 256 | Blinn-Phong specular exponent |
+| `u_causticIntensity` | 0 – 1 | Caustic overlay strength |
+| `u_liquidDomeStrength` | 0 – 1 | Dome curvature amount |
+| `u_fresnelReflectStrength` | 0 – 3 | Fresnel boost factor |
+| `u_lensRefractionScale` | 0 – 2 | Lens distortion scale |
+| `u_cornerRadius` | 0 – ∞ px | Shape corner radius |
+| `u_shadowColor` | RGBA | Drop shadow colour |
+| `u_shadowSoftness` | 0 – 1 | Drop shadow blur extent |
 
 ---
 
-## Integration Guide
+## Spring Physics
 
-### Basic Integration
+Interactive components use `SpringAnimator` - a `Choreographer`-driven damped harmonic oscillator - instead of `ValueAnimator`. This includes slider/switch thumb travel, `PrismalIconButton` press optics, and `PrismalFrameLayout.setOnClickWithAnimationListener` press-scale.
 
-1. Add dependency to `build.gradle`
-2. Create shader files in `assets/shaders/`
-3. Add Prismal components to layouts
-4. Configure optical parameters
-
-### Custom Glass Materials
+**Model:** `F = −k(x − target) − d·v`  
+**Damping coefficient:** `d = 2 · ζ · √k` (derived analytically from `dampingRatio` and `stiffness`)  
+**Frame delta cap:** 48 ms - prevents large jumps after the screen turns off.
 
 ```kotlin
-object GlassMaterials {
-    fun applyWindowGlass(layout: PrismalFrameLayout) {
-        layout.apply {
-            setIOR(1.52f)
-            setThickness(20f)
-            setBlurRadius(1f)
-            setChromaticAberration(1.5f)
-        }
-    }
-    
-    fun applyFrostedGlass(layout: PrismalFrameLayout) {
-        layout.apply {
-            setIOR(1.5f)
-            setThickness(15f)
-            setBlurRadius(8f)
-            setChromaticAberration(0.5f)
-        }
-    }
-}
+// Example: critically damped spring (ζ = 1.0) with k = 1000
+val spring = SpringAnimator(dampingRatio = 1.0f, stiffness = 1000f)
+spring.onUpdate = { value -> myView.translationX = value }
+spring.animateTo(targetPx)   // smooth spring transition
+spring.snapTo(valuePx)       // instant jump, no animation
+spring.cancel()              // remove pending FrameCallback
 ```
 
-### Background Updates
+**Velocity squish:** During a drag gesture, the thumb deforms based on instantaneous normalised velocity:
 
 ```kotlin
-// Manual update
-glassLayout.updateBackground()
-
-// After layout changes
-glassLayout.viewTreeObserver.addOnGlobalLayoutListener {
-    glassLayout.updateBackground()
-}
-
-// Throttled updates for performance
-private var lastUpdate = 0L
-private val updateInterval = 50L
-
-fun updateIfNeeded() {
-    val now = System.currentTimeMillis()
-    if (now - lastUpdate > updateInterval) {
-        glassLayout.updateBackground()
-        lastUpdate = now
-    }
-}
-```
-
----
-
-## Performance Optimization
-
-### Texture Capture
-
-Minimize capture frequency:
-
-```kotlin
-// Good - manual control
-glassLayout.updateBackground()
-
-// Bad - unnecessary updates
-glassLayout.setOnClickListener {
-    glassLayout.updateBackground() // Content unchanged
-}
-```
-
-### Render Mode
-
-```kotlin
-// Continuous - animations
-glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
-
-// On-demand - static content
-glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
-glSurfaceView.requestRender()
-```
-
-### Device-Specific Tuning
-
-```kotlin
-data class GlassSettings(
-    val ior: Float,
-    val blur: Float,
-    val chromatic: Float
-) {
-    companion object {
-        val HIGH_QUALITY = GlassSettings(1.75f, 4f, 8f)
-        val BALANCED = GlassSettings(1.6f, 2f, 4f)
-        val LOW_QUALITY = GlassSettings(1.5f, 1f, 0f)
-    }
-}
+val sx = scaleXSpring.value / (1f - normVel * 0.75f)   // elongates along drag direction
+val sy = scaleYSpring.value * (1f - abs(normVel) * 0.25f)  // compresses perpendicular
 ```
 
 ---
 
 ## Design Guidelines
 
-### Recommended Parameter Ranges
+### Parameter Ranges
 
-| Effect | Subtle | Moderate | Dramatic |
-|--------|--------|----------|----------|
-| IOR | 1.3-1.4 | 1.5-1.6 | 1.7-2.0 |
-| Blur Radius | 0.5-1.5 | 2.0-4.0 | 5.0-10.0 |
-| Normal Strength | 0.5-2.0 | 3.0-8.0 | 10.0-20.0 |
-| Chromatic Aberration | 0.5-1.5 | 2.0-5.0 | 6.0-15.0 |
-| Brightness | 1.0-1.1 | 1.15-1.3 | 1.4-1.8 |
+| Parameter | Subtle | Calibrated | Dramatic |
+|-----------|--------|------------|----------|
+| IOR | 1.3 – 1.4 | 1.5 – 1.6 | 1.7 – 2.0 |
+| Blur radius | 1 – 2 dp | 2 – 4 dp | 5 – 10 dp |
+| Normal strength | 0.5 – 1.0 | 1.0 – 1.5 | 2.0 – 5.0 |
+| Chromatic aberration | 0 | 1 – 3 px | 5 – 10 px |
+| Brightness | 1.0 – 1.05 | 1.08 – 1.15 | 1.2 – 1.5 |
+| Rim strength | 0.5 – 1.0 | 1.2 – 1.8 | 2.0 – 3.0 |
+| Specular | 0.5 – 1.0 | 1.2 – 1.8 | 2.0 – 3.0 |
 
 ### Best Practices
 
-- Keep glass surfaces under 400×400dp for optimal performance
-- Use higher brightness (1.2-1.5) for content containers
-- Reduce blur for text readability
-- Match corner radius to app design language
-- Consider device capabilities for parameter selection
+- Use `PrismalLiquidGlass.applyBase()` as the starting point for any glass surface, then tune from there
+- For tappable cards, prefer `setOnClickWithAnimationListener` over wiring scale animation yourself
+- Apply `clipChildren = false` on the parent of any glass component with a press-scale animation so the scaled view is not clipped
+- Call `updateBackground()` after the content behind a glass component changes (scroll, layout change, content update)
+- Keep `thickness` well below 40% of the view's half-height or the shape will render as a border ring
+- Chromatic aberration at rest looks artificial; consider keeping it at 0 and animating it to 4 – 6 px on press only
+
+---
+
+## Sample app
+
+The `app` module demonstrates every component on a wallpaper background:
+
+| Screen | Purpose |
+|--------|---------|
+| `MainActivity` | Switch, sliders, icon buttons, notification-style glass rows; tap the center glass card to open the playground |
+| `GlassPlaygroundActivity` | Live sliders for every `PrismalFrameLayout` optical parameter; prefs sync back to home via `GlassPlaygroundPrefs` |
+| `DragShowActivity` | Draggable glass panel over a custom or picked background |
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+**Glass has no visible effect**
+- Ensure there is content behind the `PrismalFrameLayout` in the view hierarchy
+- Call `updateBackground()` after `onResume()` or after the first layout pass
+- Increase `normalStrength` or `displacementScale` to make the distortion more visible
 
-**Glass effect not visible**
-- Verify shaders in `assets/shaders/`
-- Ensure background content exists
-- Call `updateBackground()` after layout
-- Increase `normalStrength` or `displacementScale`
+**Shape looks like a glowing border ring instead of a glass panel**
+- `thickness` is too large for the view's size - reduce it; see the sizing rule above
+- For a 24 dp thumb, use `dp(4f)`; for a 56 dp button, use `dp(5f)`; for a large card, use `dp(18f)`
 
-**Distortion too strong**
-- Reduce `normalStrength` to 1.0-3.0
-- Lower `displacementScale` to 0.5-1.0
-- Decrease `glassThickness` to 10-15
+**Thumb clipped during press-scale animation**
+- The parent layout has `clipChildren = true` by default
+- Both `PrismalSlider` and `PrismalSwitch` set `parent.clipChildren = false` in `onAttachedToWindow()`, but if you embed them inside a custom container, ensure that container also has `clipChildren = false`
+- The same applies to `PrismalFrameLayout` cards using `setOnClickWithAnimationListener` - set `clipChildren="false"` on the parent `ViewGroup`
 
-**Performance problems**
-- Reduce `blurRadius` to 1-2
-- Decrease surface dimensions
-- Use `RENDERMODE_WHEN_DIRTY` for static content
-- Disable chromatic aberration on low-end devices
+**Refracted texture is stale during drag**
+- `thumb.updateBackground()` must be called on every `ACTION_MOVE` event
+- `PrismalSlider` does this internally; if you implement a custom draggable glass view, add the call in your move handler
 
-**Sharp/pixelated edges**
-- Increase `minSmoothing` to 2-5
-- Ensure appropriate `cornerRadius`
-- Verify EGL config includes anti-aliasing
+**Glass texture not updating after scroll**
+- Wire `updateBackground()` to the scroll listener of the parent `NestedScrollView` / `RecyclerView`
 
-### Debug Mode
-
+**Debug: surface looks wrong**
 ```kotlin
-glassLayout.setShowNormals(true)
+glassView.setShowNormals(true)   // visualize surface normals as RGB
 ```
-
-Displays surface normals as RGB colors for debugging surface calculations.
-
----
-
-## Sample Implementation
-
-```kotlin
-class MainActivity : AppCompatActivity() {
-    
-    private lateinit var glassContainer: PrismalFrameLayout
-    
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        
-        glassContainer = findViewById(R.id.glassContainer)
-        glassContainer.apply {
-            setIOR(1.5f)
-            setBlurRadius(3f)
-            setCornerRadius(20f)
-            setBrightness(1.2f)
-        }
-    }
-    
-    override fun onResume() {
-        super.onResume()
-        glassContainer.updateBackground()
-    }
-}
-```
-
-```xml
-<RelativeLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <com.matrix.prismal.PrismalFrameLayout
-        android:id="@+id/glassContainer"
-        android:layout_width="300dp"
-        android:layout_height="200dp"
-        android:layout_centerInParent="true"
-        app:ior="1.5"
-        app:blurRadius="3"
-        app:cornerRadius="20dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Glass Container"
-            android:textColor="@android:color/white"
-            android:layout_gravity="center" />
-
-    </com.matrix.prismal.PrismalFrameLayout>
-
-</RelativeLayout>
-```
+The rendered colours map to surface normal direction. Flat blue means the height field is not being computed - check that `thickness` is not zero and the view has non-zero size.
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please follow these guidelines:
-
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch from `master`
 3. Follow Kotlin coding conventions
-4. Add tests for new features
-5. Update documentation
-6. Submit pull request with clear description
+4. Update `CHANGELOG.md` and, if relevant, `TECHNICAL.md`
+5. Submit a pull request with a clear description of the change and its motivation
 
 ---
 
-## Support
+## Resources
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/prismal/issues)
-- **Documentation**: [Library Documentation](https://yourusername.github.io/prismal)
+- **Technical reference**: [TECHNICAL.md](TECHNICAL.md) - rendering math, SDF derivation, spring physics formulas, component architecture
 - **Changelog**: [CHANGELOG.md](CHANGELOG.md)
+- **Issues**: [github.com/styropyr0/Prismal/issues](https://github.com/styropyr0/Prismal/issues)
 
 ---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
