@@ -81,7 +81,8 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private var lastCaptureTime = 0L
     private val minCaptureInterval = 0L
     private var captureHost: ViewGroup? = null
-
+    private var captureBlurRadius = 3.85f
+    private var captureDownsampleMode: DownsampleMode? = null
     private var hasClickListenerCallback = false
     private var glowEnabled = false
     private val hasClickCallback get() =
@@ -230,6 +231,9 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                         1.2973684f
                     )
                 )
+                getInt(R.styleable.PrismalFrameLayout_pfl_captureDownsample, -1)
+                    .takeIf { it >= 0 }
+                    ?.let { captureDownsampleMode = DownsampleMode.entries[it.coerceIn(0, DownsampleMode.entries.lastIndex)] }
             } finally {
                 recycle()
             }
@@ -427,6 +431,9 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         captureHost = host
     }
 
+    private fun captureScale(): Float =
+        captureDownsampleMode?.scale ?: (3f / captureBlurRadius.coerceAtLeast(3f)).coerceIn(0.25f, 1f)
+
     internal fun captureAndSetBackground() {
         if (width <= 0 || height <= 0) return
 
@@ -471,9 +478,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         if (cropW <= 0 || cropH <= 0) return
 
-        val croppedBitmap = createBitmap(cropW, cropH)
+        val ds = captureScale()
+        val croppedBitmap = createBitmap((cropW * ds).toInt().coerceAtLeast(1), (cropH * ds).toInt().coerceAtLeast(1))
         val canvas = Canvas(croppedBitmap)
-
+        canvas.scale(ds, ds)
         canvas.translate(-cropX.toFloat(), -cropY.toFloat())
 
         val wasVisible = visibility
@@ -518,8 +526,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         if (cropW <= 0 || cropH <= 0) return
 
-        val croppedBitmap = createBitmap(cropW, cropH)
+        val ds = captureScale()
+        val croppedBitmap = createBitmap((cropW * ds).toInt().coerceAtLeast(1), (cropH * ds).toInt().coerceAtLeast(1))
         val canvas = Canvas(croppedBitmap)
+        canvas.scale(ds, ds)
         canvas.translate(-cropX.toFloat(), -cropY.toFloat())
 
         val wasVisible = visibility
@@ -628,7 +638,26 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      *
      * @param value The blur radius in pixels (default: 2.5f).
      */
-    fun setBlurRadius(value: Float) = glSurface.queueAndRender { renderer.setBlurRadius(value) }
+    fun setBlurRadius(value: Float) {
+        captureBlurRadius = value
+        glSurface.queueAndRender { renderer.setBlurRadius(value) }
+    }
+
+    /**
+     * Sets the downsampling level for the background capture bitmap.
+     *
+     * Lower resolution reduces GPU upload cost and memory; the blur pass masks the loss of
+     * sharpness. Use [DownsampleMode.OFF] for sharp, low-blur glass. Use
+     * [DownsampleMode.AGGRESSIVE] for large, heavily-blurred surfaces where quality is
+     * not critical.
+     *
+     * When not set (default), the scale is derived automatically from [setBlurRadius].
+     *
+     * @param mode The desired [DownsampleMode], or `null` to restore auto behaviour.
+     */
+    fun setCaptureDownsample(mode: DownsampleMode?) {
+        captureDownsampleMode = mode
+    }
 
     /**
      * Sets the width of highlight edges in the glass effect.

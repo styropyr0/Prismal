@@ -33,6 +33,13 @@
         <attr name="pfl_lensRefractionScale" format="float" />
         <!-- Shadow -->
         <attr name="pfl_shadowSoftness" format="float" />
+        <!-- Capture downsampling -->
+        <attr name="pfl_captureDownsample" format="enum">
+            <enum name="off" value="0" />
+            <enum name="subtle" value="1" />
+            <enum name="balanced" value="2" />
+            <enum name="aggressive" value="3" />
+        </attr>
         <!-- Debug -->
         <attr name="pfl_showNormals" format="boolean" />
     </declare-styleable>
