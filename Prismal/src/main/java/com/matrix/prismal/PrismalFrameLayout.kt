@@ -59,6 +59,8 @@ import androidx.core.graphics.withClip
  *
  * @see PrismalLiquidGlass.applyBase
  * @see updateBackground
+ *
+ * @author Saurav Sajeev
  */
 @SuppressLint("ClickableViewAccessibility")
 open class PrismalFrameLayout @JvmOverloads constructor(
