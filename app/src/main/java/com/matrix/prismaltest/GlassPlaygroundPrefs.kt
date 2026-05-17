@@ -3,6 +3,7 @@ package com.matrix.prismaltest
 import android.content.Context
 import android.graphics.Color
 import android.util.TypedValue
+import com.matrix.prismal.DownsampleMode
 import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalLiquidGlass
 import kotlin.math.roundToInt
@@ -150,7 +151,8 @@ data class GlassParams(
     val transmittance: Float,
     val shadowSoftness: Float,
     val shadowAlpha: Int,
-    val showNormals: Boolean
+    val showNormals: Boolean,
+    val downsampleMode: DownsampleMode
 ) {
     companion object {
         fun fromControls(
@@ -181,7 +183,8 @@ data class GlassParams(
             pTrans: Int,
             pShSoft: Int,
             pShAlpha: Int,
-            showNormals: Boolean
+            showNormals: Boolean,
+            downsampleMode: DownsampleMode = DownsampleMode.BALANCED
         ) = GlassParams(
             blurRadius = GlassPlaygroundMappings.blurFromProgress(pBlur),
             heightBlurFactor = GlassPlaygroundMappings.heightBlurFromProgress(pHeight),
@@ -210,7 +213,8 @@ data class GlassParams(
             transmittance = GlassPlaygroundMappings.transmittanceFromProgress(pTrans),
             shadowSoftness = GlassPlaygroundMappings.shadowSoftFromProgress(pShSoft),
             shadowAlpha = GlassPlaygroundMappings.shadowAlphaFromProgress(pShAlpha),
-            showNormals = showNormals
+            showNormals = showNormals,
+            downsampleMode = downsampleMode
         )
     }
 }
@@ -246,6 +250,7 @@ object GlassPlaygroundPrefs {
         )
         prefKeys().zip(f.toList()).forEach { (k, v) -> e.putFloat(k, v) }
         e.putInt("sh_alpha_i", params.shadowAlpha)
+        e.putInt("downsample_mode", params.downsampleMode.ordinal)
         e.apply()
     }
 
@@ -287,7 +292,10 @@ object GlassPlaygroundPrefs {
             transmittance = gf("trans", d.transmittance),
             shadowSoftness = gf("sh_soft", d.shadowSoftness),
             shadowAlpha = gi("sh_alpha_i", d.shadowAlpha),
-            showNormals = p.getBoolean(K_SHOW_NORMALS, d.showNormals)
+            showNormals = p.getBoolean(K_SHOW_NORMALS, d.showNormals),
+            downsampleMode = DownsampleMode.entries[
+                gi("downsample_mode", d.downsampleMode.ordinal).coerceIn(0, DownsampleMode.entries.lastIndex)
+            ]
         )
     }
 
@@ -320,7 +328,8 @@ object GlassPlaygroundPrefs {
         pTrans = GlassPlaygroundMappings.progressFromTransmittance(1f),
         pShSoft = GlassPlaygroundMappings.progressFromShadowSoft(10f),
         pShAlpha = GlassPlaygroundMappings.progressFromShadowAlpha(35),
-        showNormals = false
+        showNormals = false,
+        downsampleMode = DownsampleMode.BALANCED
     )
 
     fun seekProgressFromParams(params: GlassParams): IntArray = intArrayOf(
@@ -386,6 +395,7 @@ object GlassPlaygroundPrefs {
             f.setTransmittance(params.transmittance)
             f.setShadowProperties(shColor, params.shadowSoftness)
             f.setShowNormals(params.showNormals)
+            f.setCaptureDownsample(params.downsampleMode)
         }
     }
 }

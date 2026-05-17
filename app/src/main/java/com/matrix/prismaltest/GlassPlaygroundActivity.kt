@@ -9,6 +9,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.net.toUri
+import android.widget.RadioGroup
+import com.matrix.prismal.DownsampleMode
 import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalLiquidGlass
 
@@ -21,6 +23,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
     private lateinit var hero: PrismalFrameLayout
     private lateinit var bars: List<SeekBar>
     private lateinit var switchShowNormals: SwitchCompat
+    private lateinit var rgDownsample: RadioGroup
     private lateinit var updates: List<(Int) -> Unit>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,7 +39,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
                 android.graphics.drawable.Drawable.createFromStream(input, uriString)
             }
         } ?: run {
-            val bgResId = intent.getIntExtra("BACKGROUND_RES_ID", R.drawable.bg4)
+            val bgResId = intent.getIntExtra("BACKGROUND_RES_ID", R.drawable.bg2)
             if (bgResId != -1) root.setBackgroundResource(bgResId)
         }
 
@@ -193,18 +196,28 @@ class GlassPlaygroundActivity : AppCompatActivity() {
             persistFromUi()
         }
 
+        rgDownsample = findViewById(R.id.rgDownsample)
+        rgDownsample.check(R.id.rbDownsampleBalanced)
+        rgDownsample.setOnCheckedChangeListener { _, _ ->
+            hero.setCaptureDownsample(selectedDownsampleMode())
+            hero.updateBackground()
+            persistFromUi()
+        }
+
         GlassPlaygroundPrefs.load(this)?.let { saved ->
             val prog = GlassPlaygroundPrefs.seekProgressFromParams(saved)
             for (i in bars.indices) {
                 bars[i].progress = prog[i]
             }
             switchShowNormals.isChecked = saved.showNormals
+            applyDownsampleModeToRadioGroup(saved.downsampleMode)
         }
 
         for (i in bars.indices) {
             updates[i](bars[i].progress)
         }
         switchShowNormals.isChecked.let { hero.setShowNormals(it) }
+        hero.setCaptureDownsample(selectedDownsampleMode())
 
         hero.post { hero.updateBackground() }
         persistFromUi()
@@ -240,8 +253,26 @@ class GlassPlaygroundActivity : AppCompatActivity() {
             pTrans = a[24],
             pShSoft = a[25],
             pShAlpha = a[26],
-            showNormals = switchShowNormals.isChecked
+            showNormals = switchShowNormals.isChecked,
+            downsampleMode = selectedDownsampleMode()
         )
         GlassPlaygroundPrefs.save(this, p)
+    }
+
+    private fun selectedDownsampleMode(): DownsampleMode = when (rgDownsample.checkedRadioButtonId) {
+        R.id.rbDownsampleOff        -> DownsampleMode.OFF
+        R.id.rbDownsampleSubtle     -> DownsampleMode.SUBTLE
+        R.id.rbDownsampleAggressive -> DownsampleMode.AGGRESSIVE
+        else                        -> DownsampleMode.BALANCED
+    }
+
+    private fun applyDownsampleModeToRadioGroup(mode: DownsampleMode) {
+        val id = when (mode) {
+            DownsampleMode.OFF        -> R.id.rbDownsampleOff
+            DownsampleMode.SUBTLE     -> R.id.rbDownsampleSubtle
+            DownsampleMode.BALANCED   -> R.id.rbDownsampleBalanced
+            DownsampleMode.AGGRESSIVE -> R.id.rbDownsampleAggressive
+        }
+        rgDownsample.check(id)
     }
 }

@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="@drawable/bg4">
+    android:background="@drawable/bg2">
 
     <FrameLayout
         android:id="@+id/draggableContainer"
@@ -18,7 +18,7 @@
         <LinearLayout
             android:id="@+id/draggableLayout"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="250dp"
             android:layout_gravity="center"
             android:layout_marginHorizontal="66dp"
             android:gravity="center">
