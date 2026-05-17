@@ -44,6 +44,7 @@ import kotlin.math.max
 internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceView.Renderer {
     companion object {
         private const val TAG = "PrismalGlassRenderer"
+        private const val BLUR_FBO_SCALE = 0.5f
     }
 
     private var bgProgram = 0
@@ -269,7 +270,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
     override fun onDrawFrame(glUnused: GL10?) {
         if (blurFboReady && backgroundTexture != 0) {
-            val sigma = max(blurRadius, 0.5f)
+            val sigma = max(blurRadius * BLUR_FBO_SCALE, 0.5f)
             val texelW = 1f / blurFboWidth
             val texelH = 1f / blurFboHeight
 
@@ -407,8 +408,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private fun setupBlurFBOs(width: Int, height: Int) {
         deleteBlurFBOs()
 
-        blurFboWidth = max(width, 1)
-        blurFboHeight = max(height, 1)
+        blurFboWidth = max((width * BLUR_FBO_SCALE).toInt(), 1)
+        blurFboHeight = max((height * BLUR_FBO_SCALE).toInt(), 1)
 
         val textures = IntArray(2)
         GLES20.glGenTextures(2, textures, 0)

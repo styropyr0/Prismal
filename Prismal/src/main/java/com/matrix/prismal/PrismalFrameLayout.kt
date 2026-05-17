@@ -439,11 +439,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         try {
             val host = captureHost
-            if (host != null) {
-                captureFromHost(host)
-            } else {
-                captureFromRoot()
-            }
+            if (host != null) captureFromHost(host) else captureFromRoot()
         } catch (e: Exception) {
             e.printStackTrace()
         }
