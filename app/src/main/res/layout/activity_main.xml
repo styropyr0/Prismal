@@ -197,25 +197,32 @@
                     android:id="@+id/prismalIconButton"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-
+                    app:pib_displacementScale="3"
+                    app:pib_liquidDomeStrength="60"
+                    app:pib_fresnelReflectStrength="20"
                     android:layout_marginEnd="10dp"
+                    app:pib_lensRefractionScale="10"
                     app:pib_blurRadius="2.5"
                     app:pib_iconPadding="14dp"
                     app:pib_iconSrc="@drawable/icon"
                     app:pib_iconTint="#FFFFFF"
-                    app:pib_ior="1.8"
+                    app:pib_ior="1.4"
                     app:pib_pressScale="0.85" />
 
                 <com.matrix.prismal.PrismalIconButton
                     android:id="@+id/prismalIconButton3"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-
+                    app:pib_displacementScale="3"
+                    app:pib_liquidDomeStrength="60"
+                    app:pib_fresnelReflectStrength="20"
+                    android:layout_marginEnd="10dp"
+                    app:pib_lensRefractionScale="10"
                     app:pib_blurRadius="2.5"
-                    app:pib_iconPadding="12dp"
+                    app:pib_iconPadding="14dp"
                     app:pib_iconSrc="@drawable/ic_drag"
                     app:pib_iconTint="#FFFFFF"
-                    app:pib_ior="1.8"
+                    app:pib_ior="1.4"
                     app:pib_pressScale="0.85" />
 
             </LinearLayout>
