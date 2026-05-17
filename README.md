@@ -7,6 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![OpenGL ES](https://img.shields.io/badge/OpenGL%20ES-2.0-red.svg)](https://www.khronos.org/opengles/)
 [![Min SDK](https://img.shields.io/badge/Min%20SDK-25-orange.svg)](https://developer.android.com/about/versions/nougat)
+[![](https://jitpack.io/v/styropyr0/Prismal.svg)](https://jitpack.io/#styropyr0/Prismal)
 
 ---
 
