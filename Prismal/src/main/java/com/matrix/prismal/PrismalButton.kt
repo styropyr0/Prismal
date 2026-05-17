@@ -4,6 +4,7 @@ import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.MotionEvent
@@ -47,6 +48,7 @@ class PrismalButton @JvmOverloads constructor(
     private val prismalSurface = PrismalFrameLayout(context)
     private var pressScale = 0.92f
     private var animDuration = 200L
+    private var glassColor = Color.TRANSPARENT
 
     private var clickListener: (() -> Unit)? = null
 
@@ -89,6 +91,8 @@ class PrismalButton @JvmOverloads constructor(
                 prismalSurface.setBrightness(getFloat(R.styleable.PrismalButton_pbtn_brightness, 1.6f))
                 prismalSurface.setShowNormals(getBoolean(R.styleable.PrismalButton_pbtn_showNormals, false))
                 prismalSurface.setThickness(1f)
+                glassColor = getColor(R.styleable.PrismalButton_pbtn_glassColor, Color.TRANSPARENT)
+                prismalSurface.setGlassColor(glassColor)
             } finally {
                 recycle()
             }
@@ -242,5 +246,16 @@ class PrismalButton @JvmOverloads constructor(
      */
     override fun setOnClickListener(l: OnClickListener?) {
         clickListener = { l?.onClick(this) }
+    }
+
+    /**
+     * Sets the glass tint color of the button surface.
+     *
+     * @param color ARGB color — alpha controls tint strength (0 = clear, 255 = fully tinted).
+     */
+    fun setGlassColor(color: Int) {
+        glassColor = color
+        prismalSurface.setGlassColor(color)
+        prismalSurface.updateBackground()
     }
 }

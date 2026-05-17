@@ -74,6 +74,7 @@ class PrismalSlider @JvmOverloads constructor(
     private var thumbEdgeFalloff = -1f
     private var thumbParallaxScale = 0.4f
     private var thumbShowNormals = false
+    private var thumbGlassColor = Color.argb(28, 255, 255, 255)
     private val trackBgColor = Color.argb(51, 0x78, 0x78, 0x78)
     private val track = object : View(context) {
         private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = trackBgColor }
@@ -240,6 +241,7 @@ class PrismalSlider @JvmOverloads constructor(
             thumbEdgeFalloff = a.getFloat(R.styleable.PrismalSlider_psl_thumbEdgeRefractionFalloff, -1f)
             thumbParallaxScale = a.getFloat(R.styleable.PrismalSlider_psl_thumbParallaxScale, thumbParallaxScale)
             thumbShowNormals = a.getBoolean(R.styleable.PrismalSlider_psl_thumbShowNormals, false)
+            thumbGlassColor = a.getColor(R.styleable.PrismalSlider_psl_thumbColor, thumbGlassColor)
         }
 
         post { setupThumb(); applyPressState(0f) }
@@ -255,7 +257,7 @@ class PrismalSlider @JvmOverloads constructor(
         thumb.setThickness(if (thumbThicknessPx > 0f) thumbThicknessPx else dp(1f))
         thumb.setBlurRadius(restBlur)
         thumb.setBrightness(thumbBrightness)
-        thumb.setGlassColor(Color.argb(28, 255, 255, 255))
+        thumb.setGlassColor(thumbGlassColor)
         thumb.setLensRefractionScale(19f)
         thumb.setDisplacementScale(thumbDisplacementScale)
         thumb.setNormalStrength(thumbNormalStrength)
@@ -447,4 +449,14 @@ class PrismalSlider @JvmOverloads constructor(
      * @param dpValue Ignored.
      */
     fun setThumbWidthDp(@Suppress("UNUSED_PARAMETER") dpValue: Float) {}
+
+    /**
+     * Sets the glass tint color of the thumb.
+     *
+     * @param color ARGB color — alpha controls tint strength (0 = clear, 255 = fully tinted).
+     */
+    fun setThumbColor(color: Int) {
+        thumbGlassColor = color
+        thumb.run { setGlassColor(color); updateBackground() }
+    }
 }

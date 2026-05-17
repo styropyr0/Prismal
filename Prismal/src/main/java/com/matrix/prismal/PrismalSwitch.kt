@@ -76,6 +76,7 @@ class PrismalSwitch @JvmOverloads constructor(
     private var thumbRefractionInset = -1f
     private var thumbEdgeFalloff = -1f
     private var thumbShowNormals = false
+    private var thumbGlassColor = Color.argb(28, 255, 255, 255)
     private val trackView = object : View(context) {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         var frac = 0f
@@ -229,6 +230,7 @@ class PrismalSwitch @JvmOverloads constructor(
                 thumbRefractionInset = getFloat(R.styleable.PrismalSwitch_psw_thumbRefractionInset, -1f)
                 thumbEdgeFalloff = getFloat(R.styleable.PrismalSwitch_psw_thumbEdgeRefractionFalloff, -1f)
                 thumbShowNormals = getBoolean(R.styleable.PrismalSwitch_psw_thumbShowNormals, false)
+                thumbGlassColor = getColor(R.styleable.PrismalSwitch_psw_thumbColor, thumbGlassColor)
             } finally {
                 recycle()
             }
@@ -275,7 +277,7 @@ class PrismalSwitch @JvmOverloads constructor(
         thumb.setIOR(thumbIOR)
         thumb.setThickness(if (thumbThicknessPx > 0f) thumbThicknessPx else dp(1f))
         thumb.setBrightness(thumbBrightness)
-        thumb.setGlassColor(Color.argb(28, 255, 255, 255))
+        thumb.setGlassColor(thumbGlassColor)
         thumb.setLensRefractionScale(50f)
         thumb.setDisplacementScale(thumbDisplacementScale)
         thumb.setNormalStrength(thumbNormalStrength)
@@ -476,4 +478,14 @@ class PrismalSwitch @JvmOverloads constructor(
      */
     fun setThumbIORAndBrightness(ior: Float, b: Float) =
         thumb.run { setIOR(ior); setBrightness(b); updateBackground() }
+
+    /**
+     * Sets the glass tint color of the thumb.
+     *
+     * @param color ARGB color — alpha controls tint strength (0 = clear, 255 = fully tinted).
+     */
+    fun setThumbColor(color: Int) {
+        thumbGlassColor = color
+        thumb.run { setGlassColor(color); updateBackground() }
+    }
 }

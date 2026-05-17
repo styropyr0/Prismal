@@ -17,6 +17,7 @@
         <attr name="pfl_dispersionR" format="float" />
         <attr name="pfl_dispersionB" format="float" />
         <!-- Color & brightness -->
+        <attr name="pfl_glassColor" format="color" />
         <attr name="pfl_brightness" format="float" />
         <attr name="pfl_transmittance" format="float" />
         <!-- Lighting & specular -->
@@ -57,6 +58,7 @@
         <attr name="psw_thumbRefractionInset" format="float" />
         <attr name="psw_thumbEdgeRefractionFalloff" format="float" />
         <attr name="psw_thumbShowNormals" format="boolean" />
+        <attr name="psw_thumbColor" format="color" />
     </declare-styleable>
 
     <declare-styleable name="PrismalSlider">
@@ -79,6 +81,7 @@
         <attr name="psl_thumbEdgeRefractionFalloff" format="float" />
         <attr name="psl_thumbParallaxScale" format="float" />
         <attr name="psl_thumbShowNormals" format="boolean" />
+        <attr name="psl_thumbColor" format="color" />
     </declare-styleable>
 
     <declare-styleable name="PrismalButton">
@@ -91,6 +94,7 @@
         <attr name="pbtn_highlightWidth" format="float" />
         <attr name="pbtn_brightness" format="float" />
         <attr name="pbtn_showNormals" format="boolean" />
+        <attr name="pbtn_glassColor" format="color" />
     </declare-styleable>
 
     <declare-styleable name="PrismalIconButton">

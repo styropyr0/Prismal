@@ -191,7 +191,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                     "#23FFFFFF".toColorInt(),
                     getFloat(R.styleable.PrismalFrameLayout_pfl_shadowSoftness, 10f)
                 )
-                setGlassColor("#230000FF".toColorInt())
+                setGlassColor(getColor(R.styleable.PrismalFrameLayout_pfl_glassColor, Color.TRANSPARENT))
                 setLightDirection(
                     getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirX, 1.0f),
                     getFloat(R.styleable.PrismalFrameLayout_pfl_lightDirY, 1.0f)
