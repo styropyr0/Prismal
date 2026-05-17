@@ -47,6 +47,9 @@
 
 Prismal renders an iOS-style liquid glass material on Android. Each component captures the view hierarchy behind it into a GPU texture, then applies a physically derived rendering pipeline: signed-distance-field shape, circular-arc height profile, spherical meniscus normals, Snell's-law double refraction, two-pass Gaussian blur, dual Blinn-Phong specular, Fresnel rim highlights on both the lit and opposite borders, caustics, and a spring-physics animation system.
 
+### Thanks to
+[LearnOpenGL](https://learnopengl.com/). Please check out their webpage to learn about the techniques and principles used in OpenGL computing. All the principles used by this library is referenced from LearnOpenGL.
+
 ### Key Features
 
 - **Physically based rendering** - Snell's law double refraction, Schlick Fresnel, dual Blinn-Phong specular, spherical meniscus edge profile
