@@ -80,7 +80,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.styropyr0:Prismal:v1.0.0'
+    implementation 'com.github.styropyr0:Prismal:v1.0.1'
 }
 ```
 
@@ -175,7 +175,7 @@ PrismalScene.getOrCreate(root)
 
 - Does not apply when [setCaptureHost] is set (switch/slider thumbs keep local capture).
 - Each member still renders in its own `GLSurfaceView` so children stay **above** the glass (correct z-order).
-- Call `updateBackground()` on any member — or scroll/layout — to refresh the shared backdrop for all members.
+- Call `updateBackground()` on any member - or scroll/layout - to refresh the shared backdrop for all members.
 
 #### Interactive click
 
@@ -228,6 +228,8 @@ glassCard.setOnClickWithAnimationListener(OnClickListener { v -> /* … */ })
 | `pfl_lightDirY` | float | Light direction Y component |
 | `pfl_shadowSoftness` | float | Drop shadow blur extent (0 – 1) |
 | `pfl_transmittance` | float | Glass transmittance (opacity of refracted background) |
+| `pfl_glassColor` | color | Tint color blended over the glass surface (alpha controls strength; default transparent) |
+| `pfl_captureDownsample` | enum | Background capture downsampling: `off` \| `subtle` \| `balanced` \| `aggressive` (default: auto from blur radius) |
 | `pfl_showNormals` | boolean | Debug: visualize surface normals as RGB |
 | `pfl_sharedHierarchicalCapture` | boolean | Opt into [PrismalScene] shared root capture (default `false`) |
 
@@ -263,7 +265,7 @@ setCausticIntensity(value: Float)
 
 // Color
 setBrightness(value: Float)
-setGlassColor(color: Int)
+setGlassColor(color: Int)               // ARGB tint; alpha controls blend strength
 setTransmittance(value: Float)
 
 // Shadow
@@ -273,8 +275,9 @@ setShadowProperties(color: Int, softness: Float)
 setShowNormals(show: Boolean)
 setEdgeRefractionFalloff(value: Float)
 
-// Capture (advanced - used by switch/slider thumbs for aligned backdrop)
-setCaptureHost(host: ViewGroup?)
+// Capture
+setCaptureHost(host: ViewGroup?)        // advanced: aligned backdrop for switch/slider thumbs
+setCaptureDownsample(mode: DownsampleMode?)  // null = auto-derive from blur radius
 
 // Click
 setOnClickWithAnimationListener(listener: (() -> Unit)?)
@@ -429,6 +432,7 @@ Thumb travel is exactly `trackWidth − thumbWidth − 2 × padding` = **20 dp**
 | `psw_thumbRefractionInset` | float | calibrated | Refraction inset |
 | `psw_thumbEdgeRefractionFalloff` | float | calibrated | Edge refraction falloff |
 | `psw_thumbShadowColor` / `psw_thumbShadowSoftness` | color / float | - | Thumb shadow |
+| `psw_thumbColor` | color | `#1AFFFFFF` | Thumb glass tint color (alpha controls blend strength) |
 | `psw_thumbShowNormals` | boolean | false | Debug normals on thumb |
 
 #### API
@@ -454,6 +458,7 @@ setThumbShadow(color: Int, radius: Float)
 setThumbHeightBlurFactor(value: Float)
 setThumbRefractionInset(value: Float)
 setThumbEdgeRefractionFalloff(value: Float)
+setThumbColor(color: Int)               // ARGB tint over thumb glass surface
 ```
 
 ---
@@ -494,6 +499,7 @@ Horizontal slider: 6 dp capsule track with an accent-coloured fill, and a 40 × 
 | `psl_thumbEdgeRefractionFalloff` | float | calibrated | Edge refraction falloff |
 | `psl_thumbParallaxScale` | float | calibrated | Backdrop parallax under thumb |
 | `psl_thumbShadowColor` / `psl_thumbShadowSoftness` | color / float | - | Thumb shadow |
+| `psl_thumbColor` | color | `#1AFFFFFF` | Thumb glass tint color (alpha controls blend strength) |
 | `psl_thumbShowNormals` | boolean | false | Debug normals on thumb |
 
 #### API
@@ -518,6 +524,7 @@ setThumbCornerRadius(value: Float)
 setThumbShadow(color: Int, radius: Float)
 setThumbHeightBlurFactor(value: Float)
 setThumbRefractionInset(value: Float)
+setThumbColor(color: Int)               // ARGB tint over thumb glass surface
 ```
 
 ---
@@ -556,7 +563,25 @@ General-purpose pressable glass container. Renders the glass material over any c
 | `pbtn_cornerRadius` | dimension | Corner radius |
 | `pbtn_highlightWidth` | float | Top-surface highlight band |
 | `pbtn_brightness` | float | Brightness multiplier |
+| `pbtn_glassColor` | color | Glass tint color (alpha controls blend strength; default transparent) |
 | `pbtn_showNormals` | boolean | Debug: show surface normals |
+
+#### API
+
+```kotlin
+setIOR(value: Float)
+setNormalStrength(value: Float)
+setDisplacementScale(value: Float)
+setBlurRadius(value: Float)
+setChromaticAberration(value: Float)
+setCornerRadius(value: Float)
+setBrightness(value: Float)
+setHighlightWidth(value: Float)
+setGlassColor(color: Int)               // ARGB tint over glass surface
+setShowNormals(enabled: Boolean)
+setOnClickListener(l: OnClickListener?)
+updateBackground()
+```
 
 ---
 
@@ -584,6 +609,34 @@ updateBackground()
            → shadow
            → composite
 ```
+
+### Capture Downsampling
+
+Before uploading the captured background bitmap to the GPU, Prismal can scale it down to reduce memory bandwidth and upload cost. The blur pass hides any loss of sharpness.
+
+```kotlin
+// XML
+app:pfl_captureDownsample="balanced"
+
+// Kotlin
+glassCard.setCaptureDownsample(DownsampleMode.BALANCED)
+
+// Revert to auto (scale derived from blur radius - legacy default)
+glassCard.setCaptureDownsample(null)
+```
+
+| Mode | Scale | Use case |
+|------|-------|----------|
+| `OFF` | 100% | Maximum quality; small views with low blur |
+| `SUBTLE` | 75% | Slight saving, nearly imperceptible |
+| `BALANCED` | 50% | Recommended default; 4× fewer pixels in blur passes |
+| `AGGRESSIVE` | 25% | Large, heavily-blurred panels; maximum performance |
+
+When no mode is set, the scale is derived automatically from the blur radius (`3 / max(blurRadius, 3)`, clamped to 0.25 – 1.0).
+
+The blur pass FBO also runs at 50% of the view's resolution by default, independent of capture downsampling. The Gaussian sigma is corrected proportionally so the screen-space blur spread remains the same regardless of FBO resolution.
+
+---
 
 ### Height Field - Circular Arc
 

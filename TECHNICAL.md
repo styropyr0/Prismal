@@ -644,5 +644,3 @@ u_heightTransitionWidth  ≤  0.35 × (min(width, height) / 2)
 `PrismalLiquidGlass.applyBase()` uses 18dp - correct for large cards, but it must be overridden for any view smaller than ~100dp.
 
 ---
-
-*Document generated from the Prismal source - Saurav Sajeev, 2026.*
