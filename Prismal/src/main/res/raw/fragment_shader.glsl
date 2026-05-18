@@ -1,11 +1,11 @@
-precision highp float;
-
 // ═══════════════════════════════════════════════════════════════════════════
-// Prismal — liquid glass
+// Prismal - Liquid Glass Fragment Shader
 // lens + droplet height + dual-specular + Fresnel transmission/reflection
 //
 // Author: Saurav Sajeev
 // ═══════════════════════════════════════════════════════════════════════════
+
+precision highp float;
 
 uniform sampler2D u_backgroundTexture;
 uniform sampler2D u_blurredTexture;
