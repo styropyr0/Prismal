@@ -47,8 +47,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val notifFrameIds = listOf(
-        R.id.notif1, R.id.notif2, R.id.notif3, R.id.notif4,
-        R.id.notif5, R.id.notif6, R.id.notif7, R.id.notif8
+        R.id.notif1, R.id.notif2, R.id.notif3, R.id.notif4, R.id.notif5
     )
     private val notifFrames = mutableListOf<PrismalFrameLayout>()
 

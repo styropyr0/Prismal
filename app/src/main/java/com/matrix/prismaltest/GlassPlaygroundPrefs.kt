@@ -9,54 +9,58 @@ import com.matrix.prismal.PrismalLiquidGlass
 import kotlin.math.roundToInt
 
 /**
- * Maps SeekBar progress to [PrismalFrameLayout] values. Height slider uses 0–200 range; others 0–100.
+ * Maps slider progress to [PrismalFrameLayout] values. Height slider uses 0–400; others 0–100.
  */
 object GlassPlaygroundMappings {
 
-    fun blurFromProgress(p: Int) = 0.45f + p * 0.6f
+    const val HEIGHT_PROGRESS_MAX = 400
+
+    fun blurFromProgress(p: Int) = 0.45f + (p / 100f) * 120f
     fun progressFromBlur(blur: Float) =
-        ((blur - 0.45f) / 0.6f).roundToInt().coerceIn(0, 100)
+        (((blur - 0.45f) / 120f) * 100f).roundToInt().coerceIn(0, 100)
 
-    /** [p] is 0–200 (wide refraction band control). */
-    fun heightBlurFromProgress(p: Int) = 2f + (p.coerceIn(0, 200) / 200f) * 44f
+    /** [p] is 0–[HEIGHT_PROGRESS_MAX] (refraction band / height blur). */
+    fun heightBlurFromProgress(p: Int) =
+        2f + (p.coerceIn(0, HEIGHT_PROGRESS_MAX) / HEIGHT_PROGRESS_MAX.toFloat()) * 148f
     fun progressFromHeightBlur(h: Float) =
-        (((h - 2f) / 44f) * 200f).roundToInt().coerceIn(0, 200)
+        (((h - 2f) / 148f) * HEIGHT_PROGRESS_MAX).roundToInt()
+            .coerceIn(0, HEIGHT_PROGRESS_MAX)
 
-    fun lensScaleFromProgress(p: Int) = 0.35f + p / 95f
+    fun lensScaleFromProgress(p: Int) = 0.2f + (p / 100f) * 9.8f
     fun progressFromLensScale(s: Float) =
-        ((s - 0.35f) * 95f).roundToInt().coerceIn(0, 100)
+        (((s - 0.2f) / 9.8f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun chromaFromProgress(p: Int) = p * 0.2f
+    fun chromaFromProgress(p: Int) = p * 0.55f
     fun progressFromChroma(c: Float) =
-        (c / 0.2f).roundToInt().coerceIn(0, 100)
+        (c / 0.55f).roundToInt().coerceIn(0, 100)
 
     fun cornerDpFromProgress(p: Int) = 8f + 52f * (p / 100f)
     fun progressFromCornerDp(dp: Float) =
         (((dp - 8f) / 52f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun domeFromProgress(p: Int) = p / 100f
+    fun domeFromProgress(p: Int) = (p / 100f) * 8f
     fun progressFromDome(d: Float) =
-        (d * 100f).roundToInt().coerceIn(0, 100)
+        ((d / 8f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun fresnelFromProgress(p: Int) = (p / 100f) * 2.0f
+    fun fresnelFromProgress(p: Int) = (p / 100f) * 12f
     fun progressFromFresnel(f: Float) =
-        ((f / 2.0f) * 100f).roundToInt().coerceIn(0, 100)
+        ((f / 12f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun iorFromProgress(p: Int) = 1.22f + (p / 100f) * 0.78f
+    fun iorFromProgress(p: Int) = 1.0f + (p / 100f) * 2.5f
     fun progressFromIor(ior: Float) =
-        (((ior - 1.22f) / 0.78f) * 100f).roundToInt().coerceIn(0, 100)
+        (((ior - 1.0f) / 2.5f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun thicknessDpFromProgress(p: Int) = 6f + (p / 100f) * 26f
+    fun thicknessDpFromProgress(p: Int) = 4f + (p / 100f) * 96f
     fun progressFromThicknessDp(dp: Float) =
-        (((dp - 6f) / 26f) * 100f).roundToInt().coerceIn(0, 100)
+        (((dp - 4f) / 96f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun normalStrengthFromProgress(p: Int) = 0.35f + (p / 100f) * 4.65f
+    fun normalStrengthFromProgress(p: Int) = 0.2f + (p / 100f) * 24.8f
     fun progressFromNormalStrength(v: Float) =
-        (((v - 0.35f) / 4.65f) * 100f).roundToInt().coerceIn(0, 100)
+        (((v - 0.2f) / 24.8f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun displacementFromProgress(p: Int) = 0.3f + (p / 100f) * 4.2f
+    fun displacementFromProgress(p: Int) = 0.15f + (p / 100f) * 19.85f
     fun progressFromDisplacement(v: Float) =
-        (((v - 0.3f) / 4.2f) * 100f).roundToInt().coerceIn(0, 100)
+        (((v - 0.15f) / 19.85f) * 100f).roundToInt().coerceIn(0, 100)
 
     fun minSmoothingFromProgress(p: Int) = 0.5f + (p / 100f) * 3.5f
     fun progressFromMinSmoothing(v: Float) =
@@ -70,13 +74,13 @@ object GlassPlaygroundMappings {
     fun progressFromBrightness(v: Float) =
         (((v - 0.86f) / 0.58f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun refractionInsetDpFromProgress(p: Int) = 4f + (p / 100f) * 44f
+    fun refractionInsetDpFromProgress(p: Int) = 2f + (p / 100f) * 158f
     fun progressFromRefractionInsetDp(dp: Float) =
-        (((dp - 4f) / 44f) * 100f).roundToInt().coerceIn(0, 100)
+        (((dp - 2f) / 158f) * 100f).roundToInt().coerceIn(0, 100)
 
-    fun edgeFalloffFromProgress(p: Int) = 1f + (p / 100f) * 11f
+    fun edgeFalloffFromProgress(p: Int) = 0.5f + (p / 100f) * 39.5f
     fun progressFromEdgeFalloff(v: Float) =
-        (((v - 1f) / 11f) * 100f).roundToInt().coerceIn(0, 100)
+        (((v - 0.5f) / 39.5f) * 100f).roundToInt().coerceIn(0, 100)
 
     fun lightXFromProgress(p: Int) = -1f + (p / 100f) * 2f
     fun progressFromLightX(v: Float) =
@@ -395,7 +399,7 @@ object GlassPlaygroundPrefs {
             f.setTransmittance(params.transmittance)
             f.setShadowProperties(shColor, params.shadowSoftness)
             f.setShowNormals(params.showNormals)
-            f.setCaptureDownsample(params.downsampleMode)
+            f.setCaptureDownsample(if (params.downsampleMode == DownsampleMode.OFF) null else params.downsampleMode)
         }
     }
 }

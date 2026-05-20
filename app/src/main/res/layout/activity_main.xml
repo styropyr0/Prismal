@@ -35,9 +35,10 @@
                 android:fontFamily="@font/dm_sans_medium"
                 android:gravity="center"
                 android:letterSpacing="-0.03"
+                android:maxLines="1"
                 android:text="9:41"
                 android:textColor="#FFFFFFFF"
-                android:textSize="72sp"
+                android:textSize="150sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -48,8 +49,8 @@
                 android:fontFamily="@font/dm_sans_medium"
                 android:gravity="center"
                 android:text="Saturday, 17 May"
-                android:textColor="#FFFFFF"
-                android:textSize="17sp" />
+                android:textColor="#FFF5E2"
+                android:textSize="27sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -75,7 +76,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
                     android:layout_weight="1"
-                    android:fontFamily="@font/dm_sans_medium"
+                    android:fontFamily="@font/plus_jakarta_sans"
                     android:text="Background"
                     android:textAlignment="center"
                     android:textColor="#E8FFFFFF"
@@ -100,6 +101,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="10dp"
+                android:layout_marginBottom="50dp"
                 android:clipChildren="false"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -156,10 +158,10 @@
                 <com.matrix.prismal.PrismalFrameLayout
                     android:id="@+id/prismalFrame2"
                     android:layout_width="match_parent"
-                    android:layout_height="80dp"
-                    app:pfl_cornerRadius="30dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginEnd="20dp"
-                    android:layout_weight="1">
+                    android:layout_weight="1"
+                    app:pfl_cornerRadius="30dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -172,7 +174,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:fontFamily="@font/dm_sans_medium"
+                            android:fontFamily="@font/plus_jakarta_sans_bold"
                             android:text="Playground"
                             android:textAlignment="center"
                             android:textColor="#FFFFFF"
@@ -182,13 +184,12 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="@font/dm_sans_medium"
                             android:alpha="0.9"
+                            android:fontFamily="@font/plus_jakarta_sans"
                             android:text="Customize the properties"
                             android:textAlignment="center"
                             android:textColor="#E6FFFFFF"
-                            android:textSize="14sp" />
+                            android:textSize="13sp" />
                     </LinearLayout>
 
                 </com.matrix.prismal.PrismalFrameLayout>
@@ -197,32 +198,34 @@
                     android:id="@+id/prismalIconButton"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    app:pib_displacementScale="3"
-                    app:pib_liquidDomeStrength="60"
-                    app:pib_fresnelReflectStrength="20"
                     android:layout_marginEnd="10dp"
-                    app:pib_lensRefractionScale="10"
-                    app:pib_blurRadius="2.5"
+                    app:pib_blurRadius="2"
+                    app:pib_displacementScale="5"
+                    app:pib_fresnelReflectStrength="20"
                     app:pib_iconPadding="14dp"
                     app:pib_iconSrc="@drawable/icon"
                     app:pib_iconTint="#FFFFFF"
                     app:pib_ior="1.4"
+                    app:pib_lensRefractionScale="10"
+                    app:pib_liquidDomeStrength="20"
+                    app:pib_normalStrength="1"
                     app:pib_pressScale="0.85" />
 
                 <com.matrix.prismal.PrismalIconButton
                     android:id="@+id/prismalIconButton3"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    app:pib_displacementScale="3"
-                    app:pib_liquidDomeStrength="60"
-                    app:pib_fresnelReflectStrength="20"
                     android:layout_marginEnd="10dp"
-                    app:pib_lensRefractionScale="10"
-                    app:pib_blurRadius="2.5"
+                    app:pib_blurRadius="2"
+                    app:pib_displacementScale="5"
+                    app:pib_fresnelReflectStrength="20"
                     app:pib_iconPadding="14dp"
                     app:pib_iconSrc="@drawable/ic_drag"
                     app:pib_iconTint="#FFFFFF"
                     app:pib_ior="1.4"
+                    app:pib_lensRefractionScale="10"
+                    app:pib_liquidDomeStrength="20"
+                    app:pib_normalStrength="1"
                     app:pib_pressScale="0.85" />
 
             </LinearLayout>
@@ -242,22 +245,21 @@
                 android:id="@+id/notif1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="14dp">
 
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="💬"
-                        android:textSize="22sp" />
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:padding="5dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_notif_messages" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -275,7 +277,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
+                                android:fontFamily="@font/plus_jakarta_sans_bold"
                                 android:text="Messages"
                                 android:textColor="#FFFFFF"
                                 android:textSize="14sp"
@@ -285,8 +287,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
+                                android:fontFamily="@font/plus_jakarta_sans"
                                 android:text="now"
-                                android:fontFamily="@font/dm_sans_medium"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -295,9 +297,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
-                            android:fontFamily="@font/dm_sans_medium"
                             android:alpha="0.85"
                             android:ellipsize="end"
+                            android:fontFamily="@font/plus_jakarta_sans"
                             android:maxLines="2"
                             android:text="Alex: Hey, are you coming tonight?"
                             android:textColor="#E6FFFFFF"
@@ -313,22 +315,21 @@
                 android:id="@+id/notif2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="14dp">
 
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="✉️"
-                        android:textSize="22sp" />
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:padding="5dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_notif_mail" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -346,8 +347,8 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
                                 android:text="Mail"
+                                android:fontFamily="@font/plus_jakarta_sans_bold"
                                 android:textColor="#FFFFFF"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -356,7 +357,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
-                                android:fontFamily="@font/dm_sans_medium"
+                                android:fontFamily="@font/plus_jakarta_sans"
                                 android:text="2m ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
@@ -368,7 +369,7 @@
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
                             android:ellipsize="end"
-                            android:fontFamily="@font/dm_sans_medium"
+                            android:fontFamily="@font/plus_jakarta_sans"
                             android:maxLines="2"
                             android:text="Your invoice #4821 is ready to view."
                             android:textColor="#E6FFFFFF"
@@ -384,22 +385,21 @@
                 android:id="@+id/notif3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="14dp">
 
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="📅"
-                        android:textSize="22sp" />
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:padding="5dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_notif_calendar" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -417,7 +417,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
+                                android:fontFamily="@font/plus_jakarta_sans_bold"
                                 android:text="Calendar"
                                 android:textColor="#FFFFFF"
                                 android:textSize="14sp"
@@ -427,7 +427,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
-                                android:fontFamily="@font/dm_sans_medium"
+                                android:fontFamily="@font/plus_jakarta_sans"
                                 android:text="10m ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
@@ -438,8 +438,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
-                            android:fontFamily="@font/dm_sans_medium"
                             android:ellipsize="end"
+                            android:fontFamily="@font/plus_jakarta_sans"
                             android:maxLines="2"
                             android:text="Team standup starts in 15 minutes."
                             android:textColor="#E6FFFFFF"
@@ -455,22 +455,21 @@
                 android:id="@+id/notif4"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="14dp">
 
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="🖼️"
-                        android:textSize="22sp" />
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:padding="5dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_notif_photos" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -488,7 +487,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
+                                android:fontFamily="@font/plus_jakarta_sans_bold"
                                 android:text="Photos"
                                 android:textColor="#FFFFFF"
                                 android:textSize="14sp"
@@ -498,8 +497,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
+                                android:fontFamily="@font/plus_jakarta_sans"
                                 android:text="1h ago"
-                                android:fontFamily="@font/dm_sans_medium"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -509,10 +508,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
-                            android:fontFamily="@font/dm_sans_medium"
                             android:ellipsize="end"
+                            android:fontFamily="@font/plus_jakarta_sans"
                             android:maxLines="2"
-                            android:text="New memory: Last Summer — 24 photos."
+                            android:text="New memory: Last Summer - 24 photos."
                             android:textColor="#E6FFFFFF"
                             android:textSize="13sp" />
 
@@ -526,22 +525,21 @@
                 android:id="@+id/notif5"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="14dp">
 
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="🗺️"
-                        android:textSize="22sp" />
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:padding="5dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_safari" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -559,8 +557,8 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:text="Maps"
+                                android:fontFamily="@font/plus_jakarta_sans_bold"
+                                android:text="Safari"
                                 android:textColor="#FFFFFF"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -569,8 +567,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:alpha="0.65"
-                                android:text="2h ago"
-                                android:fontFamily="@font/dm_sans_medium"
+                                android:fontFamily="@font/plus_jakarta_sans"
+                                android:text="1h ago"
                                 android:textColor="#FFFFFF"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -581,222 +579,9 @@
                             android:layout_marginTop="3dp"
                             android:alpha="0.85"
                             android:ellipsize="end"
+                            android:fontFamily="@font/plus_jakarta_sans"
                             android:maxLines="2"
-                            android:fontFamily="@font/dm_sans_medium"
-                            android:text="Traffic on your usual route. Leave 10 min early."
-                            android:textColor="#E6FFFFFF"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.matrix.prismal.PrismalFrameLayout>
-
-            <com.matrix.prismal.PrismalFrameLayout
-                android:id="@+id/notif6"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
-
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="🏃"
-                        android:textSize="22sp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:text="Fitness"
-                                android:textColor="#FFFFFF"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:alpha="0.65"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:text="3h ago"
-                                android:textColor="#FFFFFF"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/dm_sans_medium"
-                            android:layout_marginTop="3dp"
-                            android:alpha="0.85"
-                            android:ellipsize="end"
-                            android:maxLines="2"
-                            android:text="You've hit your move goal! 🎉 Great work today."
-                            android:textColor="#E6FFFFFF"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.matrix.prismal.PrismalFrameLayout>
-
-            <com.matrix.prismal.PrismalFrameLayout
-                android:id="@+id/notif7"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
-
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="📰"
-                        android:textSize="22sp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:text="News"
-                                android:textColor="#FFFFFF"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:alpha="0.65"
-                                android:text="5h ago"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:textColor="#FFFFFF"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:fontFamily="@font/dm_sans_medium"
-                            android:alpha="0.85"
-                            android:ellipsize="end"
-                            android:maxLines="2"
-                            android:text="Breaking: Major tech announcement reshapes the industry landscape."
-                            android:textColor="#E6FFFFFF"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.matrix.prismal.PrismalFrameLayout>
-
-            <com.matrix.prismal.PrismalFrameLayout
-                android:id="@+id/notif8"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
-
-                    <TextView
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:gravity="center"
-                        android:text="⏰"
-                        android:textSize="22sp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:text="Reminders"
-                                android:textColor="#FFFFFF"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:alpha="0.65"
-                                android:fontFamily="@font/dm_sans_medium"
-                                android:text="6h ago"
-                                android:textColor="#FFFFFF"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:alpha="0.85"
-                            android:ellipsize="end"
-                            android:fontFamily="@font/dm_sans_medium"
-                            android:maxLines="2"
-                            android:text="Don't forget: pick up groceries on the way home."
+                            android:text="Enable notifications access to receive notifications from subscribed websites."
                             android:textColor="#E6FFFFFF"
                             android:textSize="13sp" />
 
@@ -809,6 +594,11 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="32dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="270
+                dp" />
 
         </LinearLayout>
 

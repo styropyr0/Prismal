@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/glassPlayRoot"
     android:layout_width="match_parent"
+    android:background="@color/black"
     android:layout_height="match_parent">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginHorizontal="10dp"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingTop="300dp"
@@ -20,17 +24,18 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="40dp"
                 android:text="Blur radius"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/dm_sans_medium"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekBlur"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="40" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -38,14 +43,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Refraction band (height)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekRefractionHeight"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="200"
-                android:progress="60" />
+                android:clipChildren="false"
+                app:psl_maxValue="400" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -53,14 +59,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Refraction strength (lens scale)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekRefractionAmount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="50" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -68,14 +75,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Chromatic aberration"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekChromatic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="40" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -83,14 +91,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Corner radius"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekCorner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="45" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -98,14 +107,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Droplet / liquid dome depth"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekLiquidDome"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="78" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -113,14 +123,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Fresnel edge reflection"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekFresnel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="52" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -128,14 +139,15 @@
                 android:layout_marginTop="8dp"
                 android:text="IOR"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekIor"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="42" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -143,14 +155,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Glass thickness (dp)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekThickness"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="46" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -158,14 +171,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Normal strength"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekNormalStrength"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="17" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -173,14 +187,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Displacement scale"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekDisplacement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="20" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -188,14 +203,15 @@
                 android:layout_marginTop="8dp"
                 android:text="SDF min smoothing"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekMinSmooth"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="37" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -203,14 +219,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Highlight width"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekHighlightWidth"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="9" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -218,14 +235,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Brightness"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekBrightness"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="38" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -233,14 +251,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Refraction inset (dp)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekRefractionInset"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="36" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -248,14 +267,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Edge refraction falloff"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekEdgeFalloff"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="27" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -263,14 +283,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Light direction X (−1…1)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekLightX"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="25" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -278,14 +299,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Light direction Y (−1…1)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekLightY"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="10" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -293,14 +315,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Specular intensity"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekSpecular"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="41" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -308,14 +331,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Shininess"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekShininess"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="35" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -323,14 +347,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Rim / liquid highlight strength"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekRim"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="45" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -338,14 +363,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Dispersion R scale"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekDispersionR"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="47" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -353,14 +379,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Dispersion B scale"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekDispersionB"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="47" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -368,14 +395,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Caustic intensity"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekCaustic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="33" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -383,14 +411,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Transmittance (opacity)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekTransmittance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="100" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -398,14 +427,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Inner shadow softness"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekShadowSoft"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="50" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -413,14 +443,15 @@
                 android:layout_marginTop="8dp"
                 android:text="Inner shadow alpha (white)"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
-            <SeekBar
+            <com.matrix.prismal.PrismalSlider
                 android:id="@+id/seekShadowAlpha"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="14" />
+                android:clipChildren="false"
+                app:psl_maxValue="100" />
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/switchShowNormals"
@@ -428,7 +459,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="Show normals (debug)"
-                android:textColor="#FFFFFF" />
+                android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -436,6 +468,7 @@
                 android:layout_marginTop="16dp"
                 android:text="Capture downsampling"
                 android:textColor="#FFFFFF"
+                android:fontFamily="@font/plus_jakarta_sans_bold"
                 android:textSize="14sp" />
 
             <RadioGroup
@@ -487,7 +520,8 @@
         android:id="@+id/playgroundHeroGlass"
         android:layout_width="match_parent"
         android:layout_height="280dp"
-        android:layout_marginTop="8dp">
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginTop="40dp">
 
         <TextView
             android:layout_width="match_parent"

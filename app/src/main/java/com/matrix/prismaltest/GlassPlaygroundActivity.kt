@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.graphics.Color
 import android.util.TypedValue
 import android.widget.FrameLayout
-import android.widget.SeekBar
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
@@ -13,6 +12,7 @@ import android.widget.RadioGroup
 import com.matrix.prismal.DownsampleMode
 import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalLiquidGlass
+import com.matrix.prismal.PrismalSlider
 
 /**
  * Full glass playground: every tunable [PrismalFrameLayout] / renderer parameter with live sliders.
@@ -21,7 +21,7 @@ import com.matrix.prismal.PrismalLiquidGlass
 class GlassPlaygroundActivity : AppCompatActivity() {
 
     private lateinit var hero: PrismalFrameLayout
-    private lateinit var bars: List<SeekBar>
+    private lateinit var bars: List<PrismalSlider>
     private lateinit var switchShowNormals: SwitchCompat
     private lateinit var rgDownsample: RadioGroup
     private lateinit var updates: List<(Int) -> Unit>
@@ -53,55 +53,79 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         )
 
         val tmp = mutableListOf<(Int) -> Unit>()
-        fun wireSeek(bar: SeekBar, on: (Int) -> Unit) {
+        fun wireSeek(slider: PrismalSlider, max: Int = 100, on: (Int) -> Unit) {
+            slider.setMaxValue(max.toFloat())
             tmp.add(on)
-            bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    on(progress)
-                    hero.updateBackground()
-                    persistFromUi()
-                }
-
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
-                override fun onStopTrackingTouch(sb: SeekBar?) {}
-            })
+            slider.setOnValueChangedListener { value ->
+                on(value.toInt())
+                hero.updateBackground()
+                persistFromUi()
+            }
         }
 
-        val seekBlur = findViewById<SeekBar>(R.id.seekBlur)
-        val seekHeight = findViewById<SeekBar>(R.id.seekRefractionHeight).apply { max = 200 }
-        val seekLens = findViewById<SeekBar>(R.id.seekRefractionAmount)
-        val seekChroma = findViewById<SeekBar>(R.id.seekChromatic)
-        val seekCorner = findViewById<SeekBar>(R.id.seekCorner)
-        val seekDome = findViewById<SeekBar>(R.id.seekLiquidDome)
-        val seekFresnel = findViewById<SeekBar>(R.id.seekFresnel)
-        val seekIor = findViewById<SeekBar>(R.id.seekIor)
-        val seekThickness = findViewById<SeekBar>(R.id.seekThickness)
-        val seekNormal = findViewById<SeekBar>(R.id.seekNormalStrength)
-        val seekDisp = findViewById<SeekBar>(R.id.seekDisplacement)
-        val seekSmooth = findViewById<SeekBar>(R.id.seekMinSmooth)
-        val seekHi = findViewById<SeekBar>(R.id.seekHighlightWidth)
-        val seekBright = findViewById<SeekBar>(R.id.seekBrightness)
-        val seekInset = findViewById<SeekBar>(R.id.seekRefractionInset)
-        val seekEdge = findViewById<SeekBar>(R.id.seekEdgeFalloff)
-        val seekLx = findViewById<SeekBar>(R.id.seekLightX)
-        val seekLy = findViewById<SeekBar>(R.id.seekLightY)
-        val seekSpec = findViewById<SeekBar>(R.id.seekSpecular)
-        val seekShine = findViewById<SeekBar>(R.id.seekShininess)
-        val seekRim = findViewById<SeekBar>(R.id.seekRim)
-        val seekDr = findViewById<SeekBar>(R.id.seekDispersionR)
-        val seekDb = findViewById<SeekBar>(R.id.seekDispersionB)
-        val seekCaustic = findViewById<SeekBar>(R.id.seekCaustic)
-        val seekTrans = findViewById<SeekBar>(R.id.seekTransmittance)
-        val seekShSoft = findViewById<SeekBar>(R.id.seekShadowSoft)
-        val seekShAlpha = findViewById<SeekBar>(R.id.seekShadowAlpha)
+        val seekBlur = findViewById<PrismalSlider>(R.id.seekBlur)
+        val seekHeight = findViewById<PrismalSlider>(R.id.seekRefractionHeight)
+        val seekLens = findViewById<PrismalSlider>(R.id.seekRefractionAmount)
+        val seekChroma = findViewById<PrismalSlider>(R.id.seekChromatic)
+        val seekCorner = findViewById<PrismalSlider>(R.id.seekCorner)
+        val seekDome = findViewById<PrismalSlider>(R.id.seekLiquidDome)
+        val seekFresnel = findViewById<PrismalSlider>(R.id.seekFresnel)
+        val seekIor = findViewById<PrismalSlider>(R.id.seekIor)
+        val seekThickness = findViewById<PrismalSlider>(R.id.seekThickness)
+        val seekNormal = findViewById<PrismalSlider>(R.id.seekNormalStrength)
+        val seekDisp = findViewById<PrismalSlider>(R.id.seekDisplacement)
+        val seekSmooth = findViewById<PrismalSlider>(R.id.seekMinSmooth)
+        val seekHi = findViewById<PrismalSlider>(R.id.seekHighlightWidth)
+        val seekBright = findViewById<PrismalSlider>(R.id.seekBrightness)
+        val seekInset = findViewById<PrismalSlider>(R.id.seekRefractionInset)
+        val seekEdge = findViewById<PrismalSlider>(R.id.seekEdgeFalloff)
+        val seekLx = findViewById<PrismalSlider>(R.id.seekLightX)
+        val seekLy = findViewById<PrismalSlider>(R.id.seekLightY)
+        val seekSpec = findViewById<PrismalSlider>(R.id.seekSpecular)
+        val seekShine = findViewById<PrismalSlider>(R.id.seekShininess)
+        val seekRim = findViewById<PrismalSlider>(R.id.seekRim)
+        val seekDr = findViewById<PrismalSlider>(R.id.seekDispersionR)
+        val seekDb = findViewById<PrismalSlider>(R.id.seekDispersionB)
+        val seekCaustic = findViewById<PrismalSlider>(R.id.seekCaustic)
+        val seekTrans = findViewById<PrismalSlider>(R.id.seekTransmittance)
+        val seekShSoft = findViewById<PrismalSlider>(R.id.seekShadowSoft)
+        val seekShAlpha = findViewById<PrismalSlider>(R.id.seekShadowAlpha)
 
         wireSeek(seekBlur) { hero.setBlurRadius(GlassPlaygroundMappings.blurFromProgress(it)) }
-        wireSeek(seekHeight) { hero.setHeightBlurFactor(GlassPlaygroundMappings.heightBlurFromProgress(it)) }
-        wireSeek(seekLens) { hero.setLensRefractionScale(GlassPlaygroundMappings.lensScaleFromProgress(it)) }
-        wireSeek(seekChroma) { hero.setChromaticAberration(GlassPlaygroundMappings.chromaFromProgress(it)) }
-        wireSeek(seekCorner) { hero.setCornerRadius(dp(GlassPlaygroundMappings.cornerDpFromProgress(it))) }
+        wireSeek(seekHeight, max = GlassPlaygroundMappings.HEIGHT_PROGRESS_MAX) {
+            hero.setHeightBlurFactor(GlassPlaygroundMappings.heightBlurFromProgress(it))
+        }
+        wireSeek(seekLens) {
+            hero.setLensRefractionScale(
+                GlassPlaygroundMappings.lensScaleFromProgress(
+                    it
+                )
+            )
+        }
+        wireSeek(seekChroma) {
+            hero.setChromaticAberration(
+                GlassPlaygroundMappings.chromaFromProgress(
+                    it
+                )
+            )
+        }
+        wireSeek(seekCorner) {
+            hero.setCornerRadius(
+                dp(
+                    GlassPlaygroundMappings.cornerDpFromProgress(
+                        it
+                    )
+                )
+            )
+        }
         wireSeek(seekDome) { hero.setLiquidDomeStrength(GlassPlaygroundMappings.domeFromProgress(it)) }
-        wireSeek(seekFresnel) { hero.setFresnelReflectStrength(GlassPlaygroundMappings.fresnelFromProgress(it)) }
+        wireSeek(seekFresnel) {
+            hero.setFresnelReflectStrength(
+                GlassPlaygroundMappings.fresnelFromProgress(
+                    it
+                )
+            )
+        }
         wireSeek(seekIor) { hero.setIOR(GlassPlaygroundMappings.iorFromProgress(it)) }
         wireSeek(seekThickness) {
             hero.setThickness(
@@ -112,34 +136,64 @@ class GlassPlaygroundActivity : AppCompatActivity() {
                 )
             )
         }
-        wireSeek(seekNormal) { hero.setNormalStrength(GlassPlaygroundMappings.normalStrengthFromProgress(it)) }
-        wireSeek(seekDisp) { hero.setDisplacementScale(GlassPlaygroundMappings.displacementFromProgress(it)) }
-        wireSeek(seekSmooth) { hero.setMinSmoothing(GlassPlaygroundMappings.minSmoothingFromProgress(it)) }
-        wireSeek(seekHi) { hero.setHighlightWidth(GlassPlaygroundMappings.highlightWidthFromProgress(it)) }
+        wireSeek(seekNormal) {
+            hero.setNormalStrength(
+                GlassPlaygroundMappings.normalStrengthFromProgress(
+                    it
+                )
+            )
+        }
+        wireSeek(seekDisp) {
+            hero.setDisplacementScale(
+                GlassPlaygroundMappings.displacementFromProgress(
+                    it
+                )
+            )
+        }
+        wireSeek(seekSmooth) {
+            hero.setMinSmoothing(
+                GlassPlaygroundMappings.minSmoothingFromProgress(
+                    it
+                )
+            )
+        }
+        wireSeek(seekHi) {
+            hero.setHighlightWidth(
+                GlassPlaygroundMappings.highlightWidthFromProgress(
+                    it
+                )
+            )
+        }
         wireSeek(seekBright) { hero.setBrightness(GlassPlaygroundMappings.brightnessFromProgress(it)) }
         wireSeek(seekInset) {
             hero.setRefractionInset(
                 dp(GlassPlaygroundMappings.refractionInsetDpFromProgress(it))
             )
         }
-        wireSeek(seekEdge) { hero.setEdgeRefractionFalloff(GlassPlaygroundMappings.edgeFalloffFromProgress(it)) }
+        wireSeek(seekEdge) {
+            hero.setEdgeRefractionFalloff(
+                GlassPlaygroundMappings.edgeFalloffFromProgress(
+                    it
+                )
+            )
+        }
         wireSeek(seekLx) { lx ->
-            val ly = GlassPlaygroundMappings.lightYFromProgress(seekLy.progress)
+            val ly = GlassPlaygroundMappings.lightYFromProgress(seekLy.getValue().toInt())
             hero.setLightDirection(GlassPlaygroundMappings.lightXFromProgress(lx), ly)
         }
         wireSeek(seekLy) { ly ->
-            val lx = GlassPlaygroundMappings.lightXFromProgress(seekLx.progress)
+            val lx = GlassPlaygroundMappings.lightXFromProgress(seekLx.getValue().toInt())
             hero.setLightDirection(lx, GlassPlaygroundMappings.lightYFromProgress(ly))
         }
         wireSeek(seekSpec) {
             hero.setSpecular(
                 GlassPlaygroundMappings.specularFromProgress(it),
-                GlassPlaygroundMappings.shininessFromProgress(seekShine.progress)
+                GlassPlaygroundMappings.shininessFromProgress(seekShine.getValue().toInt())
             )
         }
         wireSeek(seekShine) {
             hero.setSpecular(
-                GlassPlaygroundMappings.specularFromProgress(seekSpec.progress),
+                GlassPlaygroundMappings.specularFromProgress(seekSpec.getValue().toInt()),
                 GlassPlaygroundMappings.shininessFromProgress(it)
             )
         }
@@ -147,21 +201,33 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         wireSeek(seekDr) {
             hero.setDispersion(
                 GlassPlaygroundMappings.dispersionChannelFromProgress(it),
-                GlassPlaygroundMappings.dispersionChannelFromProgress(seekDb.progress)
+                GlassPlaygroundMappings.dispersionChannelFromProgress(seekDb.getValue().toInt())
             )
         }
         wireSeek(seekDb) {
             hero.setDispersion(
-                GlassPlaygroundMappings.dispersionChannelFromProgress(seekDr.progress),
+                GlassPlaygroundMappings.dispersionChannelFromProgress(seekDr.getValue().toInt()),
                 GlassPlaygroundMappings.dispersionChannelFromProgress(it)
             )
         }
-        wireSeek(seekCaustic) { hero.setCausticIntensity(GlassPlaygroundMappings.causticFromProgress(it)) }
-        wireSeek(seekTrans) { hero.setTransmittance(GlassPlaygroundMappings.transmittanceFromProgress(it)) }
+        wireSeek(seekCaustic) {
+            hero.setCausticIntensity(
+                GlassPlaygroundMappings.causticFromProgress(
+                    it
+                )
+            )
+        }
+        wireSeek(seekTrans) {
+            hero.setTransmittance(
+                GlassPlaygroundMappings.transmittanceFromProgress(
+                    it
+                )
+            )
+        }
         wireSeek(seekShSoft) {
             hero.setShadowProperties(
                 Color.argb(
-                    GlassPlaygroundMappings.shadowAlphaFromProgress(seekShAlpha.progress),
+                    GlassPlaygroundMappings.shadowAlphaFromProgress(seekShAlpha.getValue().toInt()),
                     255,
                     255,
                     255
@@ -177,7 +243,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
                     255,
                     255
                 ),
-                GlassPlaygroundMappings.shadowSoftFromProgress(seekShSoft.progress)
+                GlassPlaygroundMappings.shadowSoftFromProgress(seekShSoft.getValue().toInt())
             )
         }
 
@@ -207,14 +273,14 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         GlassPlaygroundPrefs.load(this)?.let { saved ->
             val prog = GlassPlaygroundPrefs.seekProgressFromParams(saved)
             for (i in bars.indices) {
-                bars[i].progress = prog[i]
+                bars[i].setValue(prog[i].toFloat())
             }
             switchShowNormals.isChecked = saved.showNormals
             applyDownsampleModeToRadioGroup(saved.downsampleMode)
         }
 
         for (i in bars.indices) {
-            updates[i](bars[i].progress)
+            updates[i](bars[i].getValue().toInt())
         }
         switchShowNormals.isChecked.let { hero.setShowNormals(it) }
         hero.setCaptureDownsample(selectedDownsampleMode())
@@ -224,7 +290,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
     }
 
     private fun persistFromUi() {
-        val a = IntArray(bars.size) { bars[it].progress }
+        val a = IntArray(bars.size) { bars[it].getValue().toInt() }
         val p = GlassParams.fromControls(
             pBlur = a[0],
             pHeight = a[1],
@@ -259,18 +325,19 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         GlassPlaygroundPrefs.save(this, p)
     }
 
-    private fun selectedDownsampleMode(): DownsampleMode = when (rgDownsample.checkedRadioButtonId) {
-        R.id.rbDownsampleOff        -> DownsampleMode.OFF
-        R.id.rbDownsampleSubtle     -> DownsampleMode.SUBTLE
-        R.id.rbDownsampleAggressive -> DownsampleMode.AGGRESSIVE
-        else                        -> DownsampleMode.BALANCED
-    }
+    private fun selectedDownsampleMode(): DownsampleMode =
+        when (rgDownsample.checkedRadioButtonId) {
+            R.id.rbDownsampleOff -> DownsampleMode.OFF
+            R.id.rbDownsampleSubtle -> DownsampleMode.SUBTLE
+            R.id.rbDownsampleAggressive -> DownsampleMode.AGGRESSIVE
+            else -> DownsampleMode.BALANCED
+        }
 
     private fun applyDownsampleModeToRadioGroup(mode: DownsampleMode) {
         val id = when (mode) {
-            DownsampleMode.OFF        -> R.id.rbDownsampleOff
-            DownsampleMode.SUBTLE     -> R.id.rbDownsampleSubtle
-            DownsampleMode.BALANCED   -> R.id.rbDownsampleBalanced
+            DownsampleMode.OFF -> R.id.rbDownsampleOff
+            DownsampleMode.SUBTLE -> R.id.rbDownsampleSubtle
+            DownsampleMode.BALANCED -> R.id.rbDownsampleBalanced
             DownsampleMode.AGGRESSIVE -> R.id.rbDownsampleAggressive
         }
         rgDownsample.check(id)
