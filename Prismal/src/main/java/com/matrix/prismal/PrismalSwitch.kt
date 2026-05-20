@@ -264,7 +264,7 @@ class PrismalSwitch @JvmOverloads constructor(
 
     private fun setupThumb() {
         if (thumbW <= 0f || thumbH <= 0f) return
-        val density = resources.displayMetrics.density
+        thumb.setBackdropHandledByChild(true)
         (thumb.layoutParams as? LayoutParams)?.apply {
             width = thumbW.toInt()
             height = thumbH.toInt()
@@ -296,7 +296,6 @@ class PrismalSwitch @JvmOverloads constructor(
 
         applyFraction(fraction)
         applyPressState(0f)
-        thumb.updateBackground()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldW: Int, oldH: Int) {

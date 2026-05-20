@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
+import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
@@ -107,6 +108,16 @@ class PrismalSlider @JvmOverloads constructor(
     private var lastRawX = 0f
     private var velTracker: VelocityTracker? = null
     private var normVel = 0f
+    private var thumbBackdropReady = false
+    private var thumbCapturePending = false
+    private var thumbCaptureInFlight = false
+    private var lastThumbCaptureAt = 0L
+    private var lastCapturedThumbX = Float.NaN
+
+    private companion object {
+        const val THUMB_CAPTURE_MIN_MS = 48L
+        const val THUMB_CAPTURE_MOVE_PX = 6f
+    }
     private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t.coerceIn(0f, 1f)
     private fun dp(v: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
@@ -115,6 +126,33 @@ class PrismalSlider @JvmOverloads constructor(
     )
 
     private fun maxTravel() = (width - thumbW).coerceAtLeast(0f)
+
+    private fun isThumbInGlassState(): Boolean =
+        dragging || pressSpring.target > 0f || pressSpring.value > 0.02f
+
+    private fun scheduleThumbBackdropCapture(force: Boolean = false) {
+        if (!isThumbInGlassState()) return
+        if (thumbCaptureInFlight && !force) return
+        val now = SystemClock.uptimeMillis()
+        val moved = lastCapturedThumbX.isNaN() ||
+            abs(thumb.translationX - lastCapturedThumbX) >= THUMB_CAPTURE_MOVE_PX
+        if (!force && !moved && now - lastThumbCaptureAt < THUMB_CAPTURE_MIN_MS) {
+            if (!thumbCapturePending) {
+                thumbCapturePending = true
+                val delay = THUMB_CAPTURE_MIN_MS - (now - lastThumbCaptureAt)
+                postDelayed(thumbCaptureRunnable, delay.coerceAtLeast(1L))
+            }
+            return
+        }
+        thumbCapturePending = false
+        removeCallbacks(thumbCaptureRunnable)
+        thumbCaptureInFlight = true
+        lastThumbCaptureAt = now
+        lastCapturedThumbX = thumb.translationX
+        thumb.updateBackground()
+    }
+
+    private fun updateThumbBackdrop() = scheduleThumbBackdropCapture(force = true)
 
     private fun applyPressState(t: Float) {
         val density = resources.displayMetrics.density
@@ -126,8 +164,14 @@ class PrismalSlider @JvmOverloads constructor(
         thumb.setLensRefractionScale(lerp(0.6f, 1.8f, pressT))
         thumb.setHeightBlurFactor(lerp(restHBF, restHBF * 2.75f, pressT))
 
-        overlay.alpha = lerp(1f, 0f, pressT)
-        thumb.updateBackground()
+        overlay.alpha = if (isThumbInGlassState() && !thumbBackdropReady) {
+            1f
+        } else {
+            lerp(1f, 0f, pressT)
+        }
+        if (isThumbInGlassState() && !thumbBackdropReady && !thumbCaptureInFlight && !thumbCapturePending) {
+            scheduleThumbBackdropCapture(force = true)
+        }
     }
 
     private fun applySquish() {
@@ -140,7 +184,7 @@ class PrismalSlider @JvmOverloads constructor(
             scaleX = sx
             scaleY = sy
         }
-        thumb.updateBackground()
+        if (isThumbInGlassState()) thumb.updateBackdropScale()
     }
 
     private fun updateProgress(rawX: Float) {
@@ -160,10 +204,16 @@ class PrismalSlider @JvmOverloads constructor(
                 velTracker?.recycle()
                 velTracker = VelocityTracker.obtain().also { it.addMovement(e) }
                 dragging = true
+                thumbBackdropReady = false
+                thumbCaptureInFlight = false
+                lastCapturedThumbX = Float.NaN
+                removeCallbacks(thumbCaptureRunnable)
+                thumbCapturePending = false
                 lastRawX = e.rawX
                 scaleXSpring.animateTo(1.5f)
                 scaleYSpring.animateTo(1.5f)
                 pressSpring.animateTo(1f)
+                scheduleThumbBackdropCapture(force = true)
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
 
@@ -176,12 +226,17 @@ class PrismalSlider @JvmOverloads constructor(
                 val dx = e.rawX - lastRawX
                 lastRawX = e.rawX
                 updateProgress(thumb.translationX + dx)
-                thumb.updateBackground()
+                scheduleThumbBackdropCapture()
                 applySquish()
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 dragging = false
+                thumbBackdropReady = false
+                thumbCaptureInFlight = false
+                lastCapturedThumbX = Float.NaN
+                removeCallbacks(thumbCaptureRunnable)
+                thumbCapturePending = false
                 normVel = 0f
                 velTracker?.recycle(); velTracker = null
                 scaleXSpring.animateTo(1f)
@@ -247,9 +302,16 @@ class PrismalSlider @JvmOverloads constructor(
         post { setupThumb(); applyPressState(0f) }
     }
 
-    private fun setupThumb() {
-        val density = resources.displayMetrics.density
+    private val thumbCaptureRunnable = Runnable { scheduleThumbBackdropCapture(force = true) }
 
+    private fun setupThumb() {
+
+        thumb.setBackdropHandledByChild(true)
+        thumb.setOnBackdropCapturedListener {
+            thumbCaptureInFlight = false
+            thumbBackdropReady = true
+            applyPressState(pressSpring.value)
+        }
         PrismalLiquidGlass.applyBase(thumb)
 
         thumb.setCornerRadius(if (thumbCornerRadiusPx > 0f) thumbCornerRadiusPx else thumbR)
@@ -274,8 +336,6 @@ class PrismalSlider @JvmOverloads constructor(
         if (thumbEdgeFalloff > 0f) thumb.setEdgeRefractionFalloff(thumbEdgeFalloff)
         thumb.setShowNormals(thumbShowNormals)
         thumb.setParallaxScale(thumbParallaxScale)
-
-        thumb.updateBackground()
     }
 
     override fun onAttachedToWindow() {
@@ -288,6 +348,9 @@ class PrismalSlider @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        removeCallbacks(thumbCaptureRunnable)
+        thumbCapturePending = false
+        thumbCaptureInFlight = false
         pressSpring.cancel(); scaleXSpring.cancel(); scaleYSpring.cancel()
         velTracker?.recycle(); velTracker = null
     }
@@ -304,7 +367,7 @@ class PrismalSlider @JvmOverloads constructor(
         post {
             thumb.translationX = p * maxTravel()
             track.progress = p
-            thumb.updateBackground()
+            updateThumbBackdrop()
         }
     }
 
@@ -333,7 +396,7 @@ class PrismalSlider @JvmOverloads constructor(
      * Triggers an update to the thumb's background texture.
      * Call when content beneath the slider changes (e.g. after scrolling).
      */
-    fun updateBackground() = thumb.updateBackground()
+    fun updateBackground() = updateThumbBackdrop()
 
     /**
      * Returns the underlying [PrismalFrameLayout] used as the draggable thumb.
@@ -346,14 +409,14 @@ class PrismalSlider @JvmOverloads constructor(
      *
      * @param v IOR value, typically between `1.0f` and `2.0f`.
      */
-    fun setThumbIOR(v: Float) = thumb.run { setIOR(v); updateBackground() }
+    fun setThumbIOR(v: Float) = thumb.run { setIOR(v); updateThumbBackdrop() }
 
     /**
      * Sets the normal-mapping strength on the thumb glass surface.
      *
      * @param v Strength multiplier.
      */
-    fun setThumbNormalStrength(v: Float) = thumb.run { setNormalStrength(v); updateBackground() }
+    fun setThumbNormalStrength(v: Float) = thumb.run { setNormalStrength(v); updateThumbBackdrop() }
 
     /**
      * Sets the displacement scale for the thumb glass surface.
@@ -361,7 +424,7 @@ class PrismalSlider @JvmOverloads constructor(
      * @param v Distortion strength multiplier.
      */
     fun setThumbDisplacementScale(v: Float) =
-        thumb.run { setDisplacementScale(v); updateBackground() }
+        thumb.run { setDisplacementScale(v); updateThumbBackdrop() }
 
     /**
      * Sets the resting blur radius for the thumb. On press, blur animates toward zero.
@@ -378,28 +441,28 @@ class PrismalSlider @JvmOverloads constructor(
      * @param v Aberration intensity, typically `0f`–`10f`.
      */
     fun setThumbChromaticAberration(v: Float) =
-        thumb.run { setChromaticAberration(v); updateBackground() }
+        thumb.run { setChromaticAberration(v); updateThumbBackdrop() }
 
     /**
      * Sets the corner radius of the thumb capsule.
      *
      * @param v Radius in pixels.
      */
-    fun setThumbCornerRadius(v: Float) = thumb.run { setCornerRadius(v); updateBackground() }
+    fun setThumbCornerRadius(v: Float) = thumb.run { setCornerRadius(v); updateThumbBackdrop() }
 
     /**
      * Sets the brightness multiplier for the thumb glass effect.
      *
      * @param v Brightness factor (default around `1.08f`).
      */
-    fun setThumbBrightness(v: Float) = thumb.run { setBrightness(v); updateBackground() }
+    fun setThumbBrightness(v: Float) = thumb.run { setBrightness(v); updateThumbBackdrop() }
 
     /**
      * Toggles display of surface normals on the thumb (debug visualization).
      *
      * @param on `true` to show normals.
      */
-    fun setThumbShowNormals(on: Boolean) = thumb.run { setShowNormals(on); updateBackground() }
+    fun setThumbShowNormals(on: Boolean) = thumb.run { setShowNormals(on); updateThumbBackdrop() }
 
     /**
      * Sets shadow color and softness for the thumb.
@@ -408,7 +471,7 @@ class PrismalSlider @JvmOverloads constructor(
      * @param r Shadow softness / radius factor.
      */
     fun setThumbShadow(c: Int, r: Float) =
-        thumb.run { setShadowProperties(c, r); updateBackground() }
+        thumb.run { setShadowProperties(c, r); updateThumbBackdrop() }
 
     /**
      * Sets the height-to-blur scaling factor on the thumb.
@@ -416,21 +479,21 @@ class PrismalSlider @JvmOverloads constructor(
      * @param v Blur factor applied based on simulated glass height.
      */
     fun setThumbHeightBlurFactor(v: Float) =
-        thumb.run { setHeightBlurFactor(v); updateBackground() }
+        thumb.run { setHeightBlurFactor(v); updateThumbBackdrop() }
 
     /**
      * Sets the simulated glass thickness on the thumb.
      *
      * @param v Thickness in pixels.
      */
-    fun setThumbThickness(v: Float) = thumb.run { setThickness(v); updateBackground() }
+    fun setThumbThickness(v: Float) = thumb.run { setThickness(v); updateThumbBackdrop() }
 
     /**
      * Sets the refraction inset on the thumb - distance from the edge where refraction applies.
      *
      * @param v Inset value in pixels.
      */
-    fun setThumbRefractionInset(v: Float) = thumb.run { setRefractionInset(v); updateBackground() }
+    fun setThumbRefractionInset(v: Float) = thumb.run { setRefractionInset(v); updateThumbBackdrop() }
 
     /**
      * Sets the parallax scale for the thumb glass surface.
@@ -441,7 +504,7 @@ class PrismalSlider @JvmOverloads constructor(
      *
      * @param v Scale multiplier in `[0, 2]`. Default is `1f`.
      */
-    fun setThumbParallaxScale(v: Float) = thumb.run { setParallaxScale(v); updateBackground() }
+    fun setThumbParallaxScale(v: Float) = thumb.run { setParallaxScale(v); updateThumbBackdrop() }
 
     /**
      * No-op - thumb dimensions are fixed at 40 × 24 dp. Retained for API compatibility with XML.
@@ -457,6 +520,6 @@ class PrismalSlider @JvmOverloads constructor(
      */
     fun setThumbColor(color: Int) {
         thumbGlassColor = color
-        thumb.run { setGlassColor(color); updateBackground() }
+        thumb.run { setGlassColor(color); updateThumbBackdrop() }
     }
 }

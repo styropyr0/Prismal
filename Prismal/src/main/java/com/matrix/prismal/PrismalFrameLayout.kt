@@ -85,10 +85,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private var captureHost: ViewGroup? = null
     private var captureBlurRadius = 3.85f
     private var captureDownsampleMode: DownsampleMode? = null
+
+    private var backdropHandledByChild = false
+    private var onBackdropCaptured: (() -> Unit)? = null
     private var hasClickListenerCallback = false
     private var glowEnabled = false
-    private val hasClickCallback get() =
-        hasClickListenerCallback || glowEnabled || clickWithAnimListener != null
+    private val hasClickCallback
+        get() = hasClickListenerCallback || glowEnabled || clickWithAnimListener != null
 
     private var clickWithAnimListener: (() -> Unit)? = null
     private var clickAnimPressScale = 0.96f
@@ -402,7 +405,26 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         ch.postFrameCallback(glowCallback)
     }
 
+    /**
+     * Marks that a parent view (e.g. [PrismalSlider]) owns backdrop updates.
+     * While `true`, scroll and layout listeners will not schedule captures; call
+     * [updateBackground] from the parent when the glass content should refresh.
+     */
+    fun setBackdropHandledByChild(handled: Boolean) {
+        backdropHandledByChild = handled
+    }
+
+    /** Invoked on the main thread after a backdrop bitmap is uploaded to the GPU. */
+    fun setOnBackdropCapturedListener(listener: (() -> Unit)?) {
+        onBackdropCaptured = listener
+    }
+
+    private fun notifyBackdropCaptured() {
+        post { onBackdropCaptured?.invoke() }
+    }
+
     private fun scheduleCaptureBackground() {
+        if (backdropHandledByChild) return
         if (!captureScheduled) {
             val now = System.currentTimeMillis()
             val elapsed = now - lastCaptureTime
@@ -482,14 +504,15 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         canvas.scale(ds, ds)
         canvas.translate(-cropX.toFloat(), -cropY.toFloat())
 
-        val wasVisible = visibility
-        visibility = INVISIBLE
+        alpha = 0f
+        canvas.drawColor(Color.WHITE)
         host.draw(canvas)
-        visibility = wasVisible
+        alpha = 1f
 
         glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(1f, 1f)
+            renderer.setBackdropSampleScale(scaleX.coerceAtLeast(1f), scaleY.coerceAtLeast(1f))
             renderer.setBackgroundTexture(croppedBitmap)
+            notifyBackdropCaptured()
         }
     }
 
@@ -530,23 +553,29 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         canvas.scale(ds, ds)
         canvas.translate(-cropX.toFloat(), -cropY.toFloat())
 
-        val wasVisible = visibility
-        visibility = INVISIBLE
+        alpha = 0f
         canvas.drawColor(Color.WHITE)
         root.draw(canvas)
-        visibility = wasVisible
+        alpha = 1f
 
         glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(1f, 1f)
+            renderer.setBackdropSampleScale(scaleX.coerceAtLeast(1f), scaleY.coerceAtLeast(1f))
             renderer.setBackgroundTexture(croppedBitmap)
+            notifyBackdropCaptured()
         }
     }
 
     /**
-     * Triggers an update to the background texture by scheduling a capture of the underlying view hierarchy.
-     * This is useful for refreshing the glass effect when the content beneath changes (e.g., after scrolling or layout updates).
+     * Captures the backdrop and uploads it to the GPU. Always runs when called explicitly,
+     * including when [setBackdropHandledByChild] is `true`.
      */
-    fun updateBackground() = scheduleCaptureBackground()
+    fun updateBackground() {
+        if (width <= 0 || height <= 0) return
+        post {
+            captureAndSetBackground()
+            lastCaptureTime = System.currentTimeMillis()
+        }
+    }
 
     /**
      * Pushes the current [scaleX]/[scaleY] to the backdrop sample scale uniform without
@@ -554,7 +583,9 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      * glass correctly "zooms out" to cover the expanded visual area even between captures.
      */
     fun updateBackdropScale() {
-        glSurface.queueAndRender { renderer.setBackdropSampleScale(1f, 1f) }
+        val sx = scaleX.coerceAtLeast(1f)
+        val sy = scaleY.coerceAtLeast(1f)
+        glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
     }
 
     /**
