@@ -597,8 +597,7 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="270
-                dp" />
+                android:layout_height="270dp" />
 
         </LinearLayout>
 
