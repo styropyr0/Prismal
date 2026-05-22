@@ -56,7 +56,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.styropyr0"
                 artifactId = "prismal"
-                version = "1.0.2"
+                version = "1.0.3"
             }
         }
     }
