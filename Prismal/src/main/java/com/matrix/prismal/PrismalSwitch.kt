@@ -487,4 +487,24 @@ class PrismalSwitch @JvmOverloads constructor(
         thumbGlassColor = color
         thumb.run { setGlassColor(color); updateBackground() }
     }
+
+    /**
+     * Sets the track color when the switch is in the on position.
+     *
+     * @param color ARGB color int.
+     */
+    fun setOnColor(color: Int) {
+        onColor = color
+        trackView.invalidate()
+    }
+
+    /**
+     * Sets the track color when the switch is in the off position.
+     *
+     * @param color ARGB color int.
+     */
+    fun setOffColor(color: Int) {
+        offColor = color
+        trackView.invalidate()
+    }
 }

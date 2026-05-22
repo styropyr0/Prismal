@@ -522,4 +522,14 @@ class PrismalSlider @JvmOverloads constructor(
         thumbGlassColor = color
         thumb.run { setGlassColor(color); updateThumbBackdrop() }
     }
+
+    /**
+     * Sets the accent color for the track fill.
+     *
+     * @param color ARGB color int.
+     */
+    fun setAccentColor(color: Int) {
+        accentColor = color
+        track.setFillColor(color)
+    }
 }
