@@ -15,7 +15,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.matrix.prismal.PrismalButton
 
 /**
- * A Jetpack Compose wrapper around [PrismalButton] — an interactive glass-material button with
+ * A Jetpack Compose wrapper around [PrismalButton] - an interactive glass-material button with
  * a spring press-scale animation and refractive "glass pulse" feedback.
  *
  * Compose content (labels, icons, etc.) is placed inside the glass surface via [content].
@@ -42,7 +42,7 @@ import com.matrix.prismal.PrismalButton
  * @param brightness Brightness multiplier (default 1.6).
  * @param chromaticAberration Colour-fringe strength (default 8).
  * @param glassColor Additive tint (alpha controls strength; default transparent).
- * @param update Called after every parameter update — use for advanced setters.
+ * @param update Called after every parameter update - use for advanced setters.
  * @param content Compose content rendered on top of the glass surface.
  */
 @Composable
@@ -69,7 +69,6 @@ fun GlassButton(
         modifier = modifier,
         factory = { ctx ->
             PrismalButton(ctx).also { button ->
-                // Content sits on top of the glass surface; pass touches through
                 val cv = ComposeView(ctx).apply {
                     isClickable = false
                     isFocusable = false
@@ -85,7 +84,6 @@ fun GlassButton(
                         FrameLayout.LayoutParams.MATCH_PARENT
                     )
                 )
-                // Capture onClickState lazily so the latest lambda is always called
                 button.setOnClickListener { onClickState.value() }
             }
         },

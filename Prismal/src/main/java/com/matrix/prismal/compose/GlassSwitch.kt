@@ -9,7 +9,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.matrix.prismal.PrismalSwitch
 
 /**
- * A Jetpack Compose wrapper around [PrismalSwitch] — an iOS-style liquid-glass toggle with tap
+ * A Jetpack Compose wrapper around [PrismalSwitch] - an iOS-style liquid-glass toggle with tap
  * and drag support.
  *
  * This is a *controlled* component: [checked] drives the switch position and [onCheckedChange]
@@ -33,7 +33,7 @@ import com.matrix.prismal.PrismalSwitch
  * @param thumbIOR Index of refraction for the thumb glass (default 1.3).
  * @param thumbBrightness Thumb brightness multiplier (default 1.12).
  * @param thumbBlurRadius Resting blur radius for the thumb (default 3).
- * @param update Called after every parameter update — use for advanced thumb setters.
+ * @param update Called after every parameter update - use for advanced thumb setters.
  */
 @Composable
 fun GlassSwitch(
@@ -63,7 +63,6 @@ fun GlassSwitch(
             switch.setThumbIOR(thumbIOR)
             switch.setThumbBrightness(thumbBrightness)
             switch.setThumbBlurRadius(thumbBlurRadius)
-            // Snap to Compose state without animation; user-driven animation runs internally
             switch.setOn(checked, animate = false)
             updateRef.value(switch)
         }

@@ -10,7 +10,7 @@ import com.matrix.prismal.PrismalSlider
 import kotlin.math.abs
 
 /**
- * A Jetpack Compose wrapper around [PrismalSlider] — an iOS-style liquid-glass slider with a
+ * A Jetpack Compose wrapper around [PrismalSlider] - an iOS-style liquid-glass slider with a
  * draggable frosted thumb that reveals live glass on press.
  *
  * This is a *controlled* component: [value] drives the thumb position and [onValueChange] is
@@ -35,7 +35,7 @@ import kotlin.math.abs
  * @param thumbIOR Index of refraction for the thumb glass (default 1.3).
  * @param thumbBrightness Thumb brightness multiplier (default 1.12).
  * @param thumbBlurRadius Resting blur radius for the thumb (default 3).
- * @param update Called after every parameter update — use for advanced thumb setters.
+ * @param update Called after every parameter update - use for advanced thumb setters.
  */
 @Composable
 fun GlassSlider(
@@ -65,7 +65,6 @@ fun GlassSlider(
             slider.setThumbIOR(thumbIOR)
             slider.setThumbBrightness(thumbBrightness)
             slider.setThumbBlurRadius(thumbBlurRadius)
-            // Only push an external value change; skip when the drag loop already reflects it
             if (abs(slider.getValue() - value) > 0.001f) {
                 slider.setValue(value)
             }
