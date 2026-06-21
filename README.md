@@ -589,6 +589,96 @@ updateBackground()
 
 ---
 
+# Parameter Reference
+
+All parameters are set via methods on `PrismalFrameLayout` (or via `PrismalFilter`).  
+Ranges marked **clamped** are enforced in Kotlin; **shader cap** means the shader imposes an additional limit.
+
+---
+
+## Optics & Refraction
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `ior` | `setIOR(v)` | `1.5` | `1.0 – ~2.5` | Index of refraction. 1.5 = crown glass, 1.75 = crystal, 1.9 = dense flint. No hard clamp; values outside 1.0–2.5 look unphysical. |
+| `thickness` | `setThickness(v)` | `15 px` | `1 – ~minDim×0.4` | SDF edge-ramp width in pixels. Keep below ~40 % of `min(w,h)/2` or the flat interior disappears. |
+| `normalStrength` | `setNormalStrength(v)` | `1.2` | `0.0 – ~3.0` | Scales the XY surface-normal magnitude; amplifies refraction and specular sharpness. |
+| `displacementScale` | `setDisplacementScale(v)` | `1.0` | `0.0 – ~3.0` | Multiplier on the final pixel-space lens displacement vector. |
+| `heightBlurFactor` | `setHeightBlurFactor(v)` | `8 px` | `1 – minDim×0.88` | Depth-of-field ramp width in pixels. **Shader cap:** `minDim × 0.88`. |
+| `lensRefractionScale` | `setLensRefractionScale(v)` | `1.0` | `≥ 0.25` | Overall lens distortion scale. **Kotlin min:** `0.25`. **Size cap:** `minGlassDim × 0.65–0.75`. |
+| `edgeRefractionFalloff` | `setEdgeRefractionFalloff(v)` | `4.0` | `0.5 – 8.0` | Steepness of the lens distortion falloff toward the silhouette edge. |
+| `refractionInset` | `setRefractionInset(v)` | `20 px` | `≥ 0` | Distance in px from the silhouette at which refraction begins to fade to zero. Shader enforces minimum of `2.0`. |
+
+---
+
+## Shape
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `cornerRadius` | `setCornerRadius(v)` | `30 px` | `0 – min(w,h)/2` | Uniform corner radius in pixels applied to all four corners. |
+| `cornerRadii` | `setCornerRadii(tl, tr, br, bl)` | `30 px` each | `0 – min(w,h)/2` | Per-corner radii (top-left, top-right, bottom-right, bottom-left). |
+| `sminSmoothing` | `setMinSmoothing(v)` | `1.0` | `0.0 – ~10.0` | Smooth-min blending radius for the SDF corner join. Higher = softer corner transitions. |
+
+---
+
+## Volume & Dome
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `liquidDome` | `setLiquidDomeStrength(v)` | `0.78` | `0.0 – 2.0` **clamped** | `0` = flat sigmoid slab, `1` = spherical-cap droplet, `2` = exaggerated dome. |
+| `fresnelReflect` | `setFresnelReflectStrength(v)` | `1.0` | `0.0 – 5.0` **clamped** | Multiplier for grazing-angle sky reflection and Fresnel edge shimmer. Sky/reflection layers have internal `min()` guards against blow-out. |
+| `parallaxScale` | `setParallaxScale(v)` | `1.0` | `0.0 – 2.0` **clamped** | Scales the parallax UV shift; reduce on small views to keep the backdrop centred. |
+| `backdropSampleScale` | `setBackdropSampleScale(sx, sy)` | `1.0, 1.0` | `≥ 0.01` each | Scales backdrop UVs from centre — values below 1 magnify (flat lens). |
+
+---
+
+## Blur
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `blurRadius` | `setBlurRadius(v)` | `2.5 px` | `0.0 – ~15.0` | Gaussian blur sigma (in pixels) for the frosted background pass. |
+
+---
+
+## Lighting
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `lightDir` | `setLightDirection(x, y)` | `(-0.5, -0.8)` | `XY vector, any` | Dominant light direction (not normalised — length influences intensity). |
+| `specular` | `setSpecular(intensity, shine)` | `0.8, 48` | `intensity ≥ 0`, `shine ≥ 1` | Blinn-Phong specular intensity and glossiness exponent. |
+| `rimStrength` | `setRimStrength(v)` | `0.6` | `0.0 – ~3.0` | Fresnel-based rim/edge glow strength. Higher = brighter edge ring. |
+| `causticIntensity` | `setCausticIntensity(v)` | `0.15` | `0.0 – ~1.0` | Intensity of the caustic inner-light effect (light focusing through glass). |
+
+---
+
+## Colour & Tint
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `brightness` | `setBrightness(v)` | `1.15` | `0.0 – ~2.0` | Overall output brightness multiplier applied after all lighting passes. |
+| `glassColor` | `setGlassColor(argb)` | `transparent` | Any ARGB | Tints the glass interior. Alpha `0` = clear; subtle blue e.g. `#0A0000FF` mimics real soda-lime glass. |
+| `transmittance` | `setTransmittance(v)` | `1.0` | `0.0 – 1.0` | Overall glass opacity/transparency. `0` = invisible, `1` = fully opaque glass. |
+| `chromaticAberration` | `setChromaticAberration(v)` | `0` | `0.0 – ~150` | Lateral RGB channel split in pixels. Values `≤ 0.01` are treated as `0` (disabled). |
+| `dispersionR` | `setDispersion(r, b)` | `1.0, 1.0` | `0.0 – ~4.0` | Per-channel chromatic dispersion multipliers: R pushes outward, B pushes inward. |
+
+---
+
+## Highlight & Shadow
+
+| Parameter | Setter | Default | Range | Notes |
+|---|---|---|---|---|
+| `highlightWidth` | `setHighlightWidth(v)` | `4.0` | `0.0 – ~12.0` | Width (in shader units) of the plain Fresnel highlight band at the silhouette. |
+| `shadowColor` | `setShadowProperties(color, softness)` | `rgba(0,0,0,76)` | Any ARGB | Drop-shadow colour. Alpha controls opacity. |
+| `shadowSoftness` | `setShadowProperties(color, softness)` | `0.2` | `0.0 – 20.0+` | `≤ 1` = hard shadow; `> 1` = softness (divided by 20 in shader for smooth spread). |
+
+---
+
+## Debug
+
+| Parameter | Setter | Default | Notes |
+|---|---|---|---|
+| `showNormals` | `setShowNormals(v)` | `false` | Renders only the surface normal map instead of the glass effect. Useful for tuning `normalStrength` and `heightBlurFactor`. |
+
 ## Rendering Architecture
 
 ### Pipeline
