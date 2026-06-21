@@ -47,6 +47,7 @@ class PrismalIconButton @JvmOverloads constructor(
     private val iconView = AppCompatImageView(context)
     private var pressScale = 0.82f
     private var restBlur = 2f
+    private var restLensScale = 0.85f
     private var clickListener: (() -> Unit)? = null
     private var defaultSizePx = 0
     private var lastGlassSizePx = 0
@@ -62,7 +63,7 @@ class PrismalIconButton @JvmOverloads constructor(
     private fun applyPressState(t: Float) {
         prismalSurface.setBlurRadius(lerp(restBlur, 0f, t))
         prismalSurface.setChromaticAberration(lerp(0f, 3.5f, t))
-        prismalSurface.setLensRefractionScale(lerp(0.55f, 1.3f, t))
+        prismalSurface.setLensRefractionScale(lerp(restLensScale, restLensScale + 0.65f, t))
     }
 
     private fun applyScale(t: Float) {
@@ -104,29 +105,29 @@ class PrismalIconButton @JvmOverloads constructor(
             try {
                 PrismalLiquidGlass.applyBase(prismalSurface)
                 with(prismalSurface) {
-                    setLiquidDomeStrength(getFloat(R.styleable.PrismalIconButton_pib_liquidDomeStrength, 0.72f))
-                    setFresnelReflectStrength(getFloat(R.styleable.PrismalIconButton_pib_fresnelReflectStrength, 1.3f))
-                    setLensRefractionScale(getFloat(R.styleable.PrismalIconButton_pib_lensRefractionScale, 0.55f))
+                    setLiquidDomeStrength(getFloat(R.styleable.PrismalIconButton_pib_liquidDomeStrength, 0.92f))
+                    setFresnelReflectStrength(getFloat(R.styleable.PrismalIconButton_pib_fresnelReflectStrength, 1.8f))
                     setShadowProperties(
                         getColor(R.styleable.PrismalIconButton_pib_shadowColor, "#22000000".toColorInt()),
                         getFloat(R.styleable.PrismalIconButton_pib_shadowSoftness, 0.18f)
                     )
                     setIOR(getFloat(R.styleable.PrismalIconButton_pib_ior, 1.55f))
-                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 1.0f))
-                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 0.9f))
+                    setNormalStrength(getFloat(R.styleable.PrismalIconButton_pib_normalStrength, 1.6f))
+                    setDisplacementScale(getFloat(R.styleable.PrismalIconButton_pib_displacementScale, 1.15f))
                     setChromaticAberration(getFloat(R.styleable.PrismalIconButton_pib_chromaticAberration, 0f))
                     setBrightness(getFloat(R.styleable.PrismalIconButton_pib_brightness, 1.12f))
                     setHighlightWidth(getFloat(R.styleable.PrismalIconButton_pib_highlightWidth, 1.2f))
+                    setRimStrength(1.4f)
                     setShowNormals(getBoolean(R.styleable.PrismalIconButton_pib_showNormals, false))
                 }
 
                 restBlur = getFloat(R.styleable.PrismalIconButton_pib_blurRadius, 2f)
+                restLensScale = getFloat(R.styleable.PrismalIconButton_pib_lensRefractionScale, 0.85f)
                 prismalSurface.setBlurRadius(restBlur)
+                prismalSurface.setLensRefractionScale(restLensScale)
 
-                defaultSizePx =
-                    getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f)).toInt()
-                val iconPadding =
-                    getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
+                defaultSizePx = getDimension(R.styleable.PrismalIconButton_pib_buttonSize, dp(56f)).toInt()
+                val iconPadding = getDimension(R.styleable.PrismalIconButton_pib_iconPadding, dp(8f)).toInt()
                 val iconRes = getResourceId(R.styleable.PrismalIconButton_pib_iconSrc, 0)
                 val iconTint = getColor(R.styleable.PrismalIconButton_pib_iconTint, Color.BLACK)
                 pressScale = getFloat(R.styleable.PrismalIconButton_pib_pressScale, 0.82f)
@@ -222,9 +223,9 @@ class PrismalIconButton @JvmOverloads constructor(
         lastGlassSizePx = sidePx
         val density = resources.displayMetrics.density
         val sideDp = sidePx / density
-        prismalSurface.setThickness((sideDp * 0.095f).coerceIn(3f, 6f) * density)
-        prismalSurface.setHeightBlurFactor((sideDp * 0.07f).coerceIn(2.5f, 5f) * density)
-        prismalSurface.setRefractionInset((sidePx * 0.35f).coerceIn(4f * density, 20f * density))
+        prismalSurface.setThickness((sideDp * 0.20f).coerceIn(6f, 18f) * density)
+        prismalSurface.setHeightBlurFactor((sideDp * 0.32f).coerceIn(12f, 30f) * density)
+        prismalSurface.setRefractionInset((sidePx * 0.04f).coerceIn(2f * density, 5f * density))
     }
 
     /** Refreshes the glass background texture. Call after the content behind this button changes. */

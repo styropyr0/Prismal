@@ -373,14 +373,9 @@ object GlassPlaygroundPrefs {
         for (b in buttons) {
             val s = b.glassSurface
             b.setBlurRadius(params.blurRadius)
-            s.setLiquidDomeStrength(params.liquidDome)
-            s.setFresnelReflectStrength(params.fresnelReflect)
             s.setIOR(params.ior)
-            s.setNormalStrength(params.normalStrength)
-            s.setDisplacementScale(params.displacementScale)
             s.setHighlightWidth(params.highlightWidth)
             s.setBrightness(params.brightness)
-            s.setEdgeRefractionFalloff(params.edgeRefractionFalloff)
             s.setLightDirection(params.lightDirX, params.lightDirY)
             s.setSpecular(params.specular, params.shininess)
             s.setRimStrength(params.rimStrength)
