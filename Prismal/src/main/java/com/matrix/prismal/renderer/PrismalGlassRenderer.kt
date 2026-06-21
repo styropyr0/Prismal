@@ -362,7 +362,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
         val bigGlassT = ((minGlassDim - 88f) / (228f - 88f)).coerceIn(0f, 1f)
         val bigGlassK = bigGlassT * bigGlassT * (3f - 2f * bigGlassT)
-        val lensCapFrac = 0.34f + 0.17f * bigGlassK
+        val lensCapFrac = 0.65f + 0.10f * bigGlassK
         GLES20.glUniform1f(uLensRefractionPx, lensPx.coerceIn(3.2f, minGlassDim * lensCapFrac))
         GLES20.glUniform1f(
             uLensDepthEffect,
@@ -706,14 +706,14 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         parallaxScale = v.coerceIn(0f, 2f)
     }
 
-    /** 0 = flat sigmoid slab, 1 = strong spherical-cap “droplet” volume */
+    /** 0 = flat sigmoid slab, 1 = strong spherical-cap “droplet” volume, up to 2 = exaggerated dome */
     fun setLiquidDomeStrength(v: Float) {
-        liquidDome = v.coerceIn(0f, 1f)
+        liquidDome = v.coerceIn(0f, 2f)
     }
 
-    /** Multiplier for grazing-angle sky reflection / liquid Fresnel (0–2). */
+    /** Multiplier for grazing-angle sky reflection / liquid Fresnel (0–5). */
     fun setFresnelReflectStrength(v: Float) {
-        fresnelReflect = v.coerceIn(0f, 2f)
+        fresnelReflect = v.coerceIn(0f, 5f)
     }
 
     /** Sets Blinn-Phong specular highlight strength and glossiness. */

@@ -168,10 +168,10 @@ void main() {
     opacity = mix(opacity, 1.0, smoothstep(0.0, 1.5, edgeDist));
     if (opacity < 0.001) discard;
 
-    float dome = clamp(u_liquidDome, 0.0, 1.0);
+    float dome = clamp(u_liquidDome, 0.0, 2.0);
     float tw = max(u_heightTransitionWidth * (1.0 + 0.38 * dome) + minDim * 0.085, 1.0);
 
-    tw = min(tw, minDim * 0.72);
+    tw = min(tw, minDim * 0.88);
     float hSig = getHeightFromDist(distMask, tw);
     vec2 gradHSig = computeGradientHeight(pPx, halfSz, crMask, u_sminSmoothing, tw);
 
@@ -227,7 +227,7 @@ void main() {
     float grazingW = clamp(edgeSil * 0.94 + tiltW * 0.55, 0.0, 1.0);
     float cosVNeff = mix(cosVN, max(0.04, cosVN * 0.22 + 0.07 * tiltW), grazingW);
     float F = r0 + (1.0 - r0) * pow(1.0 - cosVNeff, 5.0);
-    float fresCtl = clamp(u_fresnelReflect, 0.0, 2.0);
+    float fresCtl = clamp(u_fresnelReflect, 0.0, 5.0);
     float Fr = fresCtl;
     float cosVNrim = cosVNeff;
 
