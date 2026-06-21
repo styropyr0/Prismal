@@ -262,6 +262,9 @@ class PrismalIconButton @JvmOverloads constructor(
         prismalSurface.updateBackground()
     }
 
+    /** Exposes the inner glass surface for applying bulk params (e.g. playground presets). */
+    val glassSurface: PrismalFrameLayout get() = prismalSurface
+
     override fun setOnClickListener(l: OnClickListener?) {
         clickListener = { l?.onClick(this) }
         prismalSurface.setGlowEnabled(l != null)

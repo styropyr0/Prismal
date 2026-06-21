@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.util.TypedValue
 import com.matrix.prismal.DownsampleMode
 import com.matrix.prismal.PrismalFrameLayout
+import com.matrix.prismal.PrismalIconButton
 import com.matrix.prismal.PrismalLiquidGlass
 import kotlin.math.roundToInt
 
@@ -365,6 +366,33 @@ object GlassPlaygroundPrefs {
         GlassPlaygroundMappings.progressFromShadowSoft(params.shadowSoftness),
         GlassPlaygroundMappings.progressFromShadowAlpha(params.shadowAlpha)
     )
+
+    fun applyToIconButtons(context: Context, vararg buttons: PrismalIconButton) {
+        val params = load(context) ?: defaultParams()
+        val shColor = Color.argb(params.shadowAlpha, 255, 255, 255)
+        for (b in buttons) {
+            val s = b.glassSurface
+            b.setBlurRadius(params.blurRadius)
+            s.setLiquidDomeStrength(params.liquidDome)
+            s.setFresnelReflectStrength(params.fresnelReflect)
+            s.setIOR(params.ior)
+            s.setNormalStrength(params.normalStrength)
+            s.setDisplacementScale(params.displacementScale)
+            s.setHighlightWidth(params.highlightWidth)
+            s.setBrightness(params.brightness)
+            s.setEdgeRefractionFalloff(params.edgeRefractionFalloff)
+            s.setLightDirection(params.lightDirX, params.lightDirY)
+            s.setSpecular(params.specular, params.shininess)
+            s.setRimStrength(params.rimStrength)
+            s.setDispersion(params.dispersionR, params.dispersionB)
+            s.setCausticIntensity(params.causticIntensity)
+            s.setTransmittance(params.transmittance)
+            s.setShadowProperties(shColor, params.shadowSoftness)
+            s.setMinSmoothing(params.minSmoothing)
+            s.setShowNormals(params.showNormals)
+            s.updateBackground()
+        }
+    }
 
     fun applyTo(context: Context, vararg frames: PrismalFrameLayout) {
         val params = load(context) ?: defaultParams()

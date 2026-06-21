@@ -369,8 +369,8 @@ void main() {
     vec2 gN = normalize(gradLens + vec2(1e-4));
     vec2 tB = vec2(-gN.y, gN.x);
     float wrapAlong = pow(clamp(abs(dot(normalize(tB + vec2(1e-5)), Lxy)), 0.0, 1.0), 2.8);
-    float borderAlign = pow(abs(dot(gN, Lxy)), 1.0);
-    float litAlign    = pow(max(0.0, dot(gN, Lxy)), 1.3);
+    float litAlign = pow(max(0.0, dot(gN, Lxy)), 1.3);
+    float borderAlign = litAlign + pow(max(0.0, -dot(gN, Lxy)), 1.0) * 0.15;
 
     float tl = max(0.0, min(-cn.x, -cn.y));
     float trc = max(0.0, min(cn.x, -cn.y));
@@ -396,7 +396,7 @@ void main() {
     color += hiSoft * rimCorner * edgePunch;
 
     float rimBothBorders = borderAlign * shellRim * u_rimStrength * 0.26 * (0.55 + 0.45 * height) * depthFade;
-    float rimLitSide     = litAlign    * shellRim * u_rimStrength * 0.32 * (0.60 + 0.40 * height) * depthFade;
+    float rimLitSide = litAlign    * shellRim * u_rimStrength * 0.58 * (0.60 + 0.40 * height) * depthFade;
     color += hiSoft * rimBothBorders * edgePunch;
     color += hiSoft * rimLitSide * edgePunch;
 
@@ -404,7 +404,7 @@ void main() {
         * smoothstep(-0.08, 0.74, dot(N.xy, -Lxy)) * Fnv * schlickW * u_rimStrength * 0.038;
     color += hiSoft * faceSheenSoft * (0.52 + 0.48 * height) * edgePunch;
 
-    float plusHL = smoothstep(3.5 * pxNorm, 0.0, edgeDist) * u_plainHighlight * pow(1.0 - cosVNrim, 2.5) * (1.0 - 0.45 * centerQuiet);
+    float plusHL = smoothstep(3.5 * pxNorm, 0.0, edgeDist) * u_plainHighlight * u_rimStrength * pow(1.0 - cosVNrim, 2.5) * (1.0 - 0.45 * centerQuiet);
     color += plusHL * vec3(0.99, 0.995, 1.0);
 
     if (u_causticIntensity > 0.001) {

@@ -118,6 +118,7 @@ class MainActivity : AppCompatActivity() {
         notifFrames.forEach { frame ->
             GlassPlaygroundPrefs.applyTo(this, frame)
         }
+        GlassPlaygroundPrefs.applyToIconButtons(this, prismalIconButton2, prismalIconButton3)
     }
 
     private fun goToPlayground() {
