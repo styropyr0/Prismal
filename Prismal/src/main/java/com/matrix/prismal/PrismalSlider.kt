@@ -64,7 +64,7 @@ class PrismalSlider @JvmOverloads constructor(
     private var thumbBrightness = 1.12f
     private var thumbNormalStrength = 0.2f
     private var thumbDisplacementScale = 2.8f
-    private var thumbShadowColor = Color.argb(65, 0, 0, 20)
+    private var thumbShadowColor = Color.argb(0, 0, 0, 0)
     private var thumbShadowSoftness = 0.25f
     private var thumbThicknessPx = -1f
     private var thumbHighlightWidth = -1f
