@@ -282,12 +282,9 @@ void main() {
         float chromaFar = avgDim * 0.5;
         float edgeFac = pow(smoothstep(chromaFar, 0.0, edgeDist), 1.8);
         float chromaBase = caAmt * 0.0018 * edgeFac;
-        float realChroma = caAmt * 0.0025
-            * ((cKy.x * cKy.y) / max(halfSz.x * halfSz.y, 1.0)) * edgeFac;
 
-        vec2 dispDir = length(gradLens) > 1e-4 ? normalize(gradLens)
-            : (length(pPx) > 1e-3 ? normalize(pPx) : vec2(0.0, 1.0));
-        vec2 chromaPush = dispDir * (chromaBase + realChroma) * pxNorm;
+        vec2 dispDir = length(pPx) > 1e-3 ? normalize(pPx) : vec2(0.0, 1.0);
+        vec2 chromaPush = dispDir * chromaBase * pxNorm;
         vec2 uvR = backdropUv(v_screenTexCoord, baseOffset + chromaPush * u_dispersionR);
         vec2 uvG = uvCenter;
         vec2 uvB = backdropUv(v_screenTexCoord, baseOffset - chromaPush * u_dispersionB);
