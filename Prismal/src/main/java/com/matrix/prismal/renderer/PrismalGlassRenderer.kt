@@ -757,6 +757,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         setDisplacementScale(filter.displacementScale)
         setHeightBlurFactor(filter.heightBlurFactor)
         setSminSmoothing(filter.minSmoothing)
+        setLiquidDomeStrength(filter.liquidDomeStrength)
+        setFresnelReflectStrength(filter.fresnelReflectionStrength)
         setBlurRadius(filter.blurRadius)
         setHighlightWidth(filter.highlightWidth)
         setChromaticAberration(filter.chromaticAberration)
