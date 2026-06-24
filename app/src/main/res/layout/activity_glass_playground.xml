@@ -22,6 +22,7 @@
             android:paddingBottom="32dp">
 
             <TextView
+                android:id="@+id/lblBlur"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="40dp"
@@ -38,6 +39,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblHeight"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -54,6 +56,7 @@
                 app:psl_maxValue="400" />
 
             <TextView
+                android:id="@+id/lblLens"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -70,6 +73,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblChroma"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -86,6 +90,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblCorner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -102,6 +107,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblDome"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -118,6 +124,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblFresnel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -134,6 +141,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblIor"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -150,6 +158,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblThick"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -166,6 +175,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblNormal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -182,6 +192,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblDisp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -198,6 +209,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblSmooth"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -214,6 +226,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblHi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -230,6 +243,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblBright"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -246,6 +260,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblInset"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -262,6 +277,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblEdge"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -278,6 +294,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblLx"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -294,6 +311,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblLy"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -310,6 +328,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblSpec"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -326,6 +345,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblShine"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -342,6 +362,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblRim"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -358,6 +379,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblDr"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -374,6 +396,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblDb"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -390,6 +413,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblCaustic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -406,6 +430,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblTrans"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -422,6 +447,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblShSoft"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -438,6 +464,7 @@
                 app:psl_maxValue="100" />
 
             <TextView
+                android:id="@+id/lblShAlpha"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
