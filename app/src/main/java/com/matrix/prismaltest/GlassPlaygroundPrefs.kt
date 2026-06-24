@@ -8,19 +8,19 @@ import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalIconButton
 import com.matrix.prismal.PrismalLiquidGlass
 import kotlin.math.roundToInt
+import androidx.core.content.edit
 
 /**
  * Maps slider progress to [PrismalFrameLayout] values. Height slider uses 0–400; others 0–100.
  */
 object GlassPlaygroundMappings {
 
-    const val HEIGHT_PROGRESS_MAX = 400
+    const val HEIGHT_PROGRESS_MAX = 800
 
     fun blurFromProgress(p: Int) = 0.45f + (p / 100f) * 120f
     fun progressFromBlur(blur: Float) =
         (((blur - 0.45f) / 120f) * 100f).roundToInt().coerceIn(0, 100)
 
-    /** [p] is 0–[HEIGHT_PROGRESS_MAX] (refraction band / height blur). */
     fun heightBlurFromProgress(p: Int) =
         2f + (p.coerceIn(0, HEIGHT_PROGRESS_MAX) / HEIGHT_PROGRESS_MAX.toFloat()) * 148f
     fun progressFromHeightBlur(h: Float) =
@@ -240,23 +240,41 @@ object GlassPlaygroundPrefs {
     )
 
     fun save(context: Context, params: GlassParams) {
-        val e = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_SAVED, true)
-            .putBoolean(K_SHOW_NORMALS, params.showNormals)
-        val f = floatArrayOf(
-            params.blurRadius, params.heightBlurFactor, params.lensRefractionScale,
-            params.chromaticAberration, params.cornerDp, params.liquidDome, params.fresnelReflect,
-            params.ior, params.thicknessDp, params.normalStrength, params.displacementScale,
-            params.minSmoothing, params.highlightWidth, params.brightness,
-            params.refractionInsetDp, params.edgeRefractionFalloff,
-            params.lightDirX, params.lightDirY, params.specular, params.shininess,
-            params.rimStrength, params.dispersionR, params.dispersionB,
-            params.causticIntensity, params.transmittance, params.shadowSoftness
-        )
-        prefKeys().zip(f.toList()).forEach { (k, v) -> e.putFloat(k, v) }
-        e.putInt("sh_alpha_i", params.shadowAlpha)
-        e.putInt("downsample_mode", params.downsampleMode.ordinal)
-        e.apply()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            putBoolean(KEY_SAVED, true)
+            putBoolean(K_SHOW_NORMALS, params.showNormals)
+            val f = floatArrayOf(
+                params.blurRadius,
+                params.heightBlurFactor,
+                params.lensRefractionScale,
+                params.chromaticAberration,
+                params.cornerDp,
+                params.liquidDome,
+                params.fresnelReflect,
+                params.ior,
+                params.thicknessDp,
+                params.normalStrength,
+                params.displacementScale,
+                params.minSmoothing,
+                params.highlightWidth,
+                params.brightness,
+                params.refractionInsetDp,
+                params.edgeRefractionFalloff,
+                params.lightDirX,
+                params.lightDirY,
+                params.specular,
+                params.shininess,
+                params.rimStrength,
+                params.dispersionR,
+                params.dispersionB,
+                params.causticIntensity,
+                params.transmittance,
+                params.shadowSoftness
+            )
+            prefKeys().zip(f.toList()).forEach { (k, v) -> putFloat(k, v) }
+            putInt("sh_alpha_i", params.shadowAlpha)
+            putInt("downsample_mode", params.downsampleMode.ordinal)
+        }
     }
 
     fun load(context: Context): GlassParams? {
