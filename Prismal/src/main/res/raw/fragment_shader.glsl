@@ -183,9 +183,9 @@ void main() {
     float tDeep = clamp(edgeDist / max(innerReach, 2.0), 0.0, 1.0);
     float tShell = 1.0 - tDeep;
 
-    float meniscusBand = smoothstep(0.08, 0.97, tShell);
-    float hCap = pow(max(0.0, tShell), 0.88);
-    float edgeBulge = 0.24 * pow(tShell, 2.45);
+    float meniscusBand = smoothstep(0.04, 1.0, tShell);
+    float hCap = pow(smoothstep(0.0, 1.0, tShell), 1.4);
+    float edgeBulge = 0.10 * pow(tShell, 2.8);
     float hDome = (hCap + edgeBulge) * meniscusBand;
 
     float coreBlend = smoothstep(0.0, 0.38, tDeep);
@@ -197,7 +197,7 @@ void main() {
     height = clamp(height * (0.84 + 0.16 * meniscusBand + 0.08 * edgeRound), 0.0, 1.0);
 
     vec2 outward = (length(gradLens) > 1e-4) ? normalize(gradLens) : vec2(0.0, 1.0);
-    float shellCurv = pow(max(0.0, tShell), 1.05);
+    float shellCurv = smoothstep(0.0, 1.0, tShell);
     vec2 gCap = outward * (-shellCurv * (0.38 / max(minDim, 8.0)));
     gCap *= meniscusBand * edgeRound;
     vec2 gradH = mix(gradHSig, gCap, domeW);
@@ -396,6 +396,10 @@ void main() {
     float rimLitSide = litAlign    * shellRim * u_rimStrength * 0.58 * (0.60 + 0.40 * height) * depthFade;
     color += hiSoft * rimBothBorders * edgePunch;
     color += hiSoft * rimLitSide * edgePunch;
+
+    float rimOppAlign = pow(max(0.0, -dot(gN, Lxy)), 1.4);
+    float rimOpposite = rimOppAlign * shellRim * u_rimStrength * 0.24 * (0.48 + 0.52 * height) * depthFade;
+    color += hiVeil * rimOpposite * edgePunch;
 
     float faceSheenSoft = smoothstep(bandR * 2.55, 0.0, edgeDist) * smoothstep(-2.8, 0.0, distMask)
         * smoothstep(-0.08, 0.74, dot(N.xy, -Lxy)) * Fnv * schlickW * u_rimStrength * 0.038;
