@@ -53,7 +53,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
             slider: PrismalSlider,
             label: TextView? = null,
             fmt: ((Int) -> String)? = null,
-            max: Int = 100,
+            max: Int = GlassPlaygroundMappings.STEPS,
             on: (Int) -> Unit
         ) {
             val baseText = label?.text?.toString().orEmpty()
@@ -128,10 +128,10 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         val seekShSoft    = findViewById<PrismalSlider>(R.id.seekShadowSoft)
         val seekShAlpha   = findViewById<PrismalSlider>(R.id.seekShadowAlpha)
 
-        wireSeek(seekBlur, lblBlur, { "%.1f".format(M.blurFromProgress(it)) }) {
+        wireSeek(seekBlur, lblBlur, { "%.2f".format(M.blurFromProgress(it)) }) {
             hero.setBlurRadius(M.blurFromProgress(it))
         }
-        wireSeek(seekHeight, lblHeight, { "%.1fdp".format(M.heightBlurDpFromProgress(it)) }, max = M.HEIGHT_PROGRESS_MAX) {
+        wireSeek(seekHeight, lblHeight, { "%.1fdp".format(M.heightBlurDpFromProgress(it)) }) {
             hero.setHeightBlurFactor(dp(M.heightBlurDpFromProgress(it)))
         }
         wireSeek(seekLens, lblLens, { "%.2f".format(M.lensScaleFromProgress(it)) }) {
@@ -140,7 +140,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         wireSeek(seekChroma, lblChroma, { "%.2f".format(M.chromaFromProgress(it)) }) {
             hero.setChromaticAberration(M.chromaFromProgress(it))
         }
-        wireSeek(seekCorner, lblCorner, { "%.0fdp".format(M.cornerDpFromProgress(it)) }) {
+        wireSeek(seekCorner, lblCorner, { "%.1fdp".format(M.cornerDpFromProgress(it)) }) {
             hero.setCornerRadius(dp(M.cornerDpFromProgress(it)))
         }
         wireSeek(seekDome, lblDome, { "%.2f".format(M.domeFromProgress(it)) }) {
@@ -149,10 +149,10 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         wireSeek(seekFresnel, lblFresnel, { "%.2f".format(M.fresnelFromProgress(it)) }) {
             hero.setFresnelReflectStrength(M.fresnelFromProgress(it))
         }
-        wireSeek(seekIor, lblIor, { "%.2f".format(M.iorFromProgress(it)) }) {
+        wireSeek(seekIor, lblIor, { "%.3f".format(M.iorFromProgress(it)) }) {
             hero.setIOR(M.iorFromProgress(it))
         }
-        wireSeek(seekThickness, lblThick, { "%.0fdp".format(M.thicknessDpFromProgress(it)) }) {
+        wireSeek(seekThickness, lblThick, { "%.1fdp".format(M.thicknessDpFromProgress(it)) }) {
             hero.setThickness(
                 TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, M.thicknessDpFromProgress(it), resources.displayMetrics)
             )
@@ -172,7 +172,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         wireSeek(seekBright, lblBright, { "%.2f".format(M.brightnessFromProgress(it)) }) {
             hero.setBrightness(M.brightnessFromProgress(it))
         }
-        wireSeek(seekInset, lblInset, { "%.0fdp".format(M.refractionInsetDpFromProgress(it)) }) {
+        wireSeek(seekInset, lblInset, { "%.1fdp".format(M.refractionInsetDpFromProgress(it)) }) {
             hero.setRefractionInset(dp(M.refractionInsetDpFromProgress(it)))
         }
         wireSeek(seekEdge, lblEdge, { "%.1f".format(M.edgeFalloffFromProgress(it)) }) {
@@ -189,7 +189,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         wireSeek(seekSpec, lblSpec, { "%.2f".format(M.specularFromProgress(it)) }) {
             hero.setSpecular(M.specularFromProgress(it), M.shininessFromProgress(seekShine.getValue().toInt()))
         }
-        wireSeek(seekShine, lblShine, { "%.0f".format(M.shininessFromProgress(it)) }) {
+        wireSeek(seekShine, lblShine, { "%.1f".format(M.shininessFromProgress(it)) }) {
             hero.setSpecular(M.specularFromProgress(seekSpec.getValue().toInt()), M.shininessFromProgress(it))
         }
         wireSeek(seekRim, lblRim, { "%.2f".format(M.rimFromProgress(it)) }) {
