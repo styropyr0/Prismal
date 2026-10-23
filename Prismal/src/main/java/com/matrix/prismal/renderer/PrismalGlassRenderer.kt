@@ -13,8 +13,11 @@ import com.matrix.prismal.utils.ShaderUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.math.ceil
 import kotlin.math.max
 
 /**
@@ -25,6 +28,9 @@ import kotlin.math.max
  *   fullscreen quad so the glass appears to sit on top of real content.
  * - **blurH / blurV** (`prismal_blur_h` / `prismal_blur_v`): separable Gaussian blur run into two
  *   FBOs; the final blurred texture feeds the frosted-glass refraction path.
+ * - **compose** (`vertex_shader` / `glass_compose`): cheap pass used while the glass is static. It
+ *   reads the geometry layers the glass shader bakes once (`u_bakeMode` 1..4) and only resamples
+ *   the backdrop, so scrolling content under the glass does not re-run the full shader.
  * - **glass** (`vertex_shader` / `fragment_shader`): the main SDF-based liquid glass shader.
  *   Computes a rounded-rect signed distance field, derives a height field and surface normals,
  *   then applies IOR-driven Snell refraction, chromatic dispersion, Blinn-Phong specular,
@@ -45,6 +51,9 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     companion object {
         private const val TAG = "PrismalGlassRenderer"
         private const val BLUR_FBO_SCALE = 0.5f
+        private const val CACHE_LAYERS = 4
+        private const val STATE_SIZE = 64
+        private const val VIBRANCY = 1.28f
     }
 
     private var bgProgram = 0
@@ -55,16 +64,45 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     // Bg program attributes
     private var bgPosAttrib = -1
     private var bgTextureUniform = -1
+    private val bgUvOffsetLocs = IntArray(4)
+    private val bgUvScaleLocs = IntArray(4)
 
     // Blur program attributes / uniforms
     private var blurHPosAttrib = -1
     private var blurHTexUniform = -1
     private var blurHSigmaUniform = -1
     private var blurHTexelUniform = -1
+    private var blurHRadiusUniform = -1
+    private var composeProgram = 0
+    private var composePosAttrib = -1
+    private var cResolution = -1
+    private var cMousePos = -1
+    private var cGlassSize = -1
+    private var cBackground = -1
+    private var cBlurred = -1
+    private var cUseBlurred = -1
+    private var cCacheOffset = -1
+    private var cCacheWeights = -1
+    private var cCacheLight = -1
+    private var cCacheRefl = -1
+    private val cCacheSamplers = IntArray(CACHE_LAYERS)
+    private var cSampleScale = -1
+    private var cChromatic = -1
+    private var cChromaMax = -1
+    private var cDispersionR = -1
+    private var cDispersionB = -1
+    private var cVibrancy = -1
+    private var cFresnelReflect = -1
+    private var cBrightness = -1
+    private var cGlassColor = -1
+    private var cShadowColor = -1
+    private var cTransmittance = -1
+
     private var blurVPosAttrib = -1
     private var blurVTexUniform = -1
     private var blurVSigmaUniform = -1
     private var blurVTexelUniform = -1
+    private var blurVRadiusUniform = -1
 
     // Glass program attributes
     private var positionAttrib = -1
@@ -112,6 +150,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var uBackdropPinch = -1
     private var uGlowCenter = -1
     private var uGlowStrength = -1
+    private var uBakeMode = -1
+    private var uChromaMax = -1
 
     // Geometry buffers
     private lateinit var quadBuffer: FloatBuffer
@@ -119,6 +159,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
     // Textures & FBOs
     private var backgroundTexture = 0
+    private var backgroundTexWidth = 0
+    private var backgroundTexHeight = 0
     private var blurTex1 = 0
     private var blurTex2 = 0
     private var blurFbo1 = 0
@@ -126,6 +168,22 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var blurFboReady = false
     private var blurFboWidth = 0
     private var blurFboHeight = 0
+    private var blurDirty = true
+
+    private val cacheTextures = IntArray(CACHE_LAYERS)
+    private val cacheFbos = IntArray(CACHE_LAYERS)
+    private var cacheWidth = 0
+    private var cacheHeight = 0
+    private var cacheValid = false
+    private val glassState = FloatArray(STATE_SIZE)
+    private val lastGlassState = FloatArray(STATE_SIZE)
+
+    var onCacheStale: (() -> Unit)? = null
+
+    private val pendingOps = ConcurrentLinkedQueue<() -> Unit>()
+    private val renderRequested = AtomicBoolean(false)
+
+    var onSurfaceReady: (() -> Unit)? = null
 
     // Screen /view state
     private var screenWidth = 1f
@@ -168,6 +226,10 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var lensRefractionUserScale = 1.0f
     private var backdropSampleScaleX = 1f
     private var backdropSampleScaleY = 1f
+    private var bgUvOffsetX = 0f
+    private var bgUvOffsetY = 0f
+    private var bgUvScaleX = 1f
+    private var bgUvScaleY = 1f
     private var parallaxScale = 1f
     private var pressProgress = 0f
     private var backdropPinch = 1f
@@ -183,6 +245,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         val bgFragCode = ShaderUtils.loadShaderSource(context, R.raw.background_frag)
         val blurHFragCode = ShaderUtils.loadShaderSource(context, R.raw.prismal_blur_h)
         val blurVFragCode = ShaderUtils.loadShaderSource(context, R.raw.prismal_blur_v)
+        val composeFragCode = ShaderUtils.loadShaderSource(context, R.raw.glass_compose)
 
         val quad = floatArrayOf(
             -0.5f, -0.5f, 0.5f, -0.5f, -0.5f, 0.5f,
@@ -203,6 +266,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         glassProgram = linkProgram(vertexCode, fragmentCode)
         blurHProgram = linkProgram(bgVertCode, blurHFragCode)
         blurVProgram = linkProgram(bgVertCode, blurVFragCode)
+        composeProgram = linkProgram(vertexCode, composeFragCode)
+        if (composeProgram == 0) Log.w(TAG, "Compose program failed to link, using direct rendering")
 
         if (bgProgram == 0 || glassProgram == 0 || blurHProgram == 0 || blurVProgram == 0) {
             Log.e(TAG, "One or more shader programs failed to link")
@@ -215,11 +280,13 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         blurHTexUniform = GLES20.glGetUniformLocation(blurHProgram, "u_texture")
         blurHSigmaUniform = GLES20.glGetUniformLocation(blurHProgram, "u_sigma")
         blurHTexelUniform = GLES20.glGetUniformLocation(blurHProgram, "u_texelSize")
+        blurHRadiusUniform = GLES20.glGetUniformLocation(blurHProgram, "u_radius")
 
         blurVPosAttrib = GLES20.glGetAttribLocation(blurVProgram, "a_position")
         blurVTexUniform = GLES20.glGetUniformLocation(blurVProgram, "u_texture")
         blurVSigmaUniform = GLES20.glGetUniformLocation(blurVProgram, "u_sigma")
         blurVTexelUniform = GLES20.glGetUniformLocation(blurVProgram, "u_texelSize")
+        blurVRadiusUniform = GLES20.glGetUniformLocation(blurVProgram, "u_radius")
 
         positionAttrib = GLES20.glGetAttribLocation(glassProgram, "a_position")
         uResolution = GLES20.glGetUniformLocation(glassProgram, "u_resolution")
@@ -264,12 +331,58 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         uBackdropPinch = GLES20.glGetUniformLocation(glassProgram, "u_backdropPinch")
         uGlowCenter = GLES20.glGetUniformLocation(glassProgram, "u_glowCenter")
         uGlowStrength = GLES20.glGetUniformLocation(glassProgram, "u_glowStrength")
+        uBakeMode = GLES20.glGetUniformLocation(glassProgram, "u_bakeMode")
+        uChromaMax = GLES20.glGetUniformLocation(glassProgram, "u_chromaMax")
+
+        if (composeProgram != 0) {
+            val cp = composeProgram
+            composePosAttrib = GLES20.glGetAttribLocation(cp, "a_position")
+            cResolution = GLES20.glGetUniformLocation(cp, "u_resolution")
+            cMousePos = GLES20.glGetUniformLocation(cp, "u_mousePos")
+            cGlassSize = GLES20.glGetUniformLocation(cp, "u_glassSize")
+            cBackground = GLES20.glGetUniformLocation(cp, "u_backgroundTexture")
+            cBlurred = GLES20.glGetUniformLocation(cp, "u_blurredTexture")
+            cUseBlurred = GLES20.glGetUniformLocation(cp, "u_useBlurredTexture")
+            cCacheOffset = GLES20.glGetUniformLocation(cp, "u_cacheOffset")
+            cCacheWeights = GLES20.glGetUniformLocation(cp, "u_cacheWeights")
+            cCacheLight = GLES20.glGetUniformLocation(cp, "u_cacheLight")
+            cCacheRefl = GLES20.glGetUniformLocation(cp, "u_cacheRefl")
+            cCacheSamplers[0] = cCacheOffset
+            cCacheSamplers[1] = cCacheWeights
+            cCacheSamplers[2] = cCacheLight
+            cCacheSamplers[3] = cCacheRefl
+            cSampleScale = GLES20.glGetUniformLocation(cp, "u_backdropSampleScale")
+            cChromatic = GLES20.glGetUniformLocation(cp, "u_chromaticAberration")
+            cChromaMax = GLES20.glGetUniformLocation(cp, "u_chromaMax")
+            cDispersionR = GLES20.glGetUniformLocation(cp, "u_dispersionR")
+            cDispersionB = GLES20.glGetUniformLocation(cp, "u_dispersionB")
+            cVibrancy = GLES20.glGetUniformLocation(cp, "u_vibrancy")
+            cFresnelReflect = GLES20.glGetUniformLocation(cp, "u_fresnelReflect")
+            cBrightness = GLES20.glGetUniformLocation(cp, "u_brightness")
+            cGlassColor = GLES20.glGetUniformLocation(cp, "u_glassColor")
+            cShadowColor = GLES20.glGetUniformLocation(cp, "u_shadowColor")
+            cTransmittance = GLES20.glGetUniformLocation(cp, "u_transmittance")
+        }
+
+        listOf(bgProgram, blurHProgram, glassProgram, composeProgram).forEachIndexed { i, prog ->
+            bgUvOffsetLocs[i] = if (prog != 0) GLES20.glGetUniformLocation(prog, "u_bgUvOffset") else -1
+            bgUvScaleLocs[i] = if (prog != 0) GLES20.glGetUniformLocation(prog, "u_bgUvScale") else -1
+        }
 
         GLES20.glClearColor(0f, 0f, 0f, 0f)
         GLES20.glEnable(GLES20.GL_BLEND)
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
         backgroundTexture = createPlaceholderTexture()
+        backgroundTexWidth = 1
+        backgroundTexHeight = 1
+        blurDirty = true
+        cacheTextures.fill(0)
+        cacheFbos.fill(0)
+        cacheWidth = 0
+        cacheHeight = 0
+        cacheValid = false
+        onSurfaceReady?.invoke()
     }
 
     override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
@@ -279,11 +392,26 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         mouseX = screenWidth * 0.5f
         mouseY = screenHeight * 0.5f
         setupBlurFBOs(width, height)
+        deleteCache()
     }
 
+    fun post(op: () -> Unit) {
+        pendingOps.add(op)
+    }
+
+    fun markRenderRequested(): Boolean = renderRequested.compareAndSet(false, true)
+
     override fun onDrawFrame(glUnused: GL10?) {
-        if (blurFboReady && backgroundTexture != 0) {
+        renderRequested.set(false)
+        while (true) {
+            val op = pendingOps.poll() ?: break
+            op()
+        }
+
+        if (blurDirty && blurFboReady && backgroundTexture != 0) {
+            blurDirty = false
             val sigma = max(blurRadius * BLUR_FBO_SCALE, 0.5f)
+            val tapRadius = ceil(3f * sigma).coerceIn(1f, 15f)
             val texelW = 1f / blurFboWidth
             val texelH = 1f / blurFboHeight
 
@@ -299,6 +427,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
             GLES20.glUniform1i(blurHTexUniform, 0)
             GLES20.glUniform1f(blurHSigmaUniform, sigma)
             GLES20.glUniform2f(blurHTexelUniform, texelW, texelH)
+            GLES20.glUniform1f(blurHRadiusUniform, tapRadius)
+            setBgUvUniforms(1)
             GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
             GLES20.glDisableVertexAttribArray(blurHPosAttrib)
 
@@ -313,6 +443,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
             GLES20.glUniform1i(blurVTexUniform, 0)
             GLES20.glUniform1f(blurVSigmaUniform, sigma)
             GLES20.glUniform2f(blurVTexelUniform, texelW, texelH)
+            GLES20.glUniform1f(blurVRadiusUniform, tapRadius)
             GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
             GLES20.glDisableVertexAttribArray(blurVPosAttrib)
 
@@ -320,7 +451,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
             GLES20.glViewport(0, 0, screenWidth.toInt(), screenHeight.toInt())
         }
 
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
         GLES20.glUseProgram(bgProgram)
         bgQuadBuffer.position(0)
@@ -329,9 +460,29 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
         GLES20.glUniform1i(bgTextureUniform, 0)
+        setBgUvUniforms(0)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
         GLES20.glDisableVertexAttribArray(bgPosAttrib)
 
+        val chromaMax = max(chromaticAberration, 0f) * 0.0018f * 1.45f + 1e-6f
+        captureGlassState(glassState)
+        val changed = !glassState.contentEquals(lastGlassState)
+        if (changed) {
+            glassState.copyInto(lastGlassState)
+            cacheValid = false
+        }
+        val cacheable = composeProgram != 0 && pressProgress == 0f && !showNormals
+        if (cacheable && !changed && !cacheValid) bakeCache(chromaMax)
+
+        if (cacheable && cacheValid) {
+            drawCompose(chromaMax)
+        } else {
+            drawGlass(0, chromaMax)
+            if (cacheable) onCacheStale?.invoke()
+        }
+    }
+
+    private fun drawGlass(bakeMode: Int, chromaMax: Float) {
         GLES20.glUseProgram(glassProgram)
         quadBuffer.position(0)
         GLES20.glEnableVertexAttribArray(positionAttrib)
@@ -378,7 +529,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
             uLensDepthEffect,
             kotlin.math.min(1f, max(0f, normalStrength * 0.9f))
         )
-        GLES20.glUniform1f(uVibrancy, 1.28f)
+        GLES20.glUniform1f(uVibrancy, VIBRANCY)
         GLES20.glUniform1f(uPlainHighlight, 0.08f)
         GLES20.glUniform1f(uLiquidDome, liquidDome)
         GLES20.glUniform1f(uFresnelReflect, fresnelReflect)
@@ -423,8 +574,146 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
             GLES20.glUniform1i(uUseBlurredTexture, 0)
         }
 
+        GLES20.glUniform1i(uBakeMode, bakeMode)
+        setBgUvUniforms(2)
+        GLES20.glUniform1f(uChromaMax, chromaMax)
+
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
         GLES20.glDisableVertexAttribArray(positionAttrib)
+    }
+
+    private fun drawCompose(chromaMax: Float) {
+        val cp = composeProgram
+        GLES20.glUseProgram(cp)
+        quadBuffer.position(0)
+        GLES20.glEnableVertexAttribArray(composePosAttrib)
+        GLES20.glVertexAttribPointer(composePosAttrib, 2, GLES20.GL_FLOAT, false, 0, quadBuffer)
+
+        GLES20.glUniform2f(cResolution, screenWidth, screenHeight)
+        GLES20.glUniform2f(cMousePos, mouseX, screenHeight - mouseY)
+        GLES20.glUniform2f(cGlassSize, glassWidth, glassHeight)
+        GLES20.glUniform2f(cSampleScale, backdropSampleScaleX, backdropSampleScaleY)
+        GLES20.glUniform1f(cChromatic, chromaticAberration)
+        GLES20.glUniform1f(cChromaMax, chromaMax)
+        GLES20.glUniform1f(cDispersionR, dispersionR)
+        GLES20.glUniform1f(cDispersionB, dispersionB)
+        GLES20.glUniform1f(cVibrancy, VIBRANCY)
+        GLES20.glUniform1f(cFresnelReflect, fresnelReflect)
+        GLES20.glUniform1f(cBrightness, brightness)
+        GLES20.glUniform4f(cGlassColor, glassColor[0], glassColor[1], glassColor[2], glassColor[3])
+        GLES20.glUniform4f(cShadowColor, shadowColor[0], shadowColor[1], shadowColor[2], shadowColor[3])
+        GLES20.glUniform1f(cTransmittance, transmittance)
+        setBgUvUniforms(3)
+
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
+        GLES20.glUniform1i(cBackground, 0)
+        if (blurFboReady && blurTex2 != 0) {
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, blurTex2)
+            GLES20.glUniform1i(cBlurred, 1)
+            GLES20.glUniform1i(cUseBlurred, 1)
+        } else {
+            GLES20.glUniform1i(cUseBlurred, 0)
+        }
+        for (i in 0 until CACHE_LAYERS) {
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE2 + i)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, cacheTextures[i])
+            GLES20.glUniform1i(cCacheSamplers[i], 2 + i)
+        }
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
+        GLES20.glDisableVertexAttribArray(composePosAttrib)
+    }
+
+    private fun setBgUvUniforms(program: Int) {
+        GLES20.glUniform2f(bgUvOffsetLocs[program], bgUvOffsetX, bgUvOffsetY)
+        GLES20.glUniform2f(bgUvScaleLocs[program], bgUvScaleX, bgUvScaleY)
+    }
+
+    private fun bakeCache(chromaMax: Float) {
+        val w = screenWidth.toInt()
+        val h = screenHeight.toInt()
+        if (!ensureCacheTargets(w, h)) return
+        GLES20.glDisable(GLES20.GL_BLEND)
+        for (i in 0 until CACHE_LAYERS) {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, cacheFbos[i])
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+            drawGlass(i + 1, chromaMax)
+        }
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
+        GLES20.glEnable(GLES20.GL_BLEND)
+        cacheValid = true
+    }
+
+    private fun ensureCacheTargets(w: Int, h: Int): Boolean {
+        if (cacheTextures[0] != 0 && cacheWidth == w && cacheHeight == h) return true
+        deleteCache()
+        GLES20.glGenTextures(CACHE_LAYERS, cacheTextures, 0)
+        GLES20.glGenFramebuffers(CACHE_LAYERS, cacheFbos, 0)
+        var complete = true
+        for (i in 0 until CACHE_LAYERS) {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, cacheTextures[i])
+            GLES20.glTexImage2D(
+                GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, w, h, 0,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null
+            )
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST)
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, cacheFbos[i])
+            GLES20.glFramebufferTexture2D(
+                GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                GLES20.GL_TEXTURE_2D, cacheTextures[i], 0
+            )
+            if (GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER) != GLES20.GL_FRAMEBUFFER_COMPLETE) {
+                complete = false
+            }
+        }
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        if (!complete) {
+            Log.w(TAG, "Glass cache FBO incomplete, using direct rendering")
+            deleteCache()
+            composeProgram = 0
+            return false
+        }
+        cacheWidth = w
+        cacheHeight = h
+        return true
+    }
+
+    private fun deleteCache() {
+        if (cacheFbos[0] != 0) GLES20.glDeleteFramebuffers(CACHE_LAYERS, cacheFbos, 0)
+        if (cacheTextures[0] != 0) GLES20.glDeleteTextures(CACHE_LAYERS, cacheTextures, 0)
+        cacheFbos.fill(0)
+        cacheTextures.fill(0)
+        cacheWidth = 0
+        cacheHeight = 0
+        cacheValid = false
+    }
+
+    private fun captureGlassState(out: FloatArray) {
+        var i = 0
+        fun put(v: Float) { out[i++] = v }
+        put(screenWidth); put(screenHeight); put(mouseX); put(mouseY)
+        put(glassWidth); put(glassHeight)
+        cornerRadiiVec.forEach { put(it) }
+        put(ior); put(glassThickness); put(normalStrength); put(displacementScale)
+        put(heightBlurFactor); put(sminSmoothing); put(highlightWidth); put(chromaticAberration)
+        put(brightness); put(refractionInset); put(edgeRefractionFalloff)
+        shadowColor.forEach { put(it) }
+        put(shadowSoftness)
+        glassColor.forEach { put(it) }
+        put(liquidDome); put(fresnelReflect); put(lensRefractionUserScale)
+        put(lightDirX); put(lightDirY); put(specular); put(shininess); put(rimStrength)
+        put(dispersionR); put(dispersionB); put(causticIntensity); put(transmittance)
+        put(backdropSampleScaleX); put(backdropSampleScaleY); put(parallaxScale)
+        put(pressProgress); put(backdropPinch); put(glowCenterX); put(glowCenterY); put(glowStrength)
+        put(if (showNormals) 1f else 0f)
+        put(if (blurFboReady) 1f else 0f)
     }
 
     private fun setupBlurFBOs(width: Int, height: Int) {
@@ -491,6 +780,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
         blurFboReady = (status1 == GLES20.GL_FRAMEBUFFER_COMPLETE &&
                 status2 == GLES20.GL_FRAMEBUFFER_COMPLETE)
+        blurDirty = true
 
         if (!blurFboReady) Log.w(TAG, "Blur FBO incomplete: status1=$status1 status2=$status2")
     }
@@ -511,14 +801,33 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
      * Uploads [bitmap] as the background texture that the glass refracts.
      *
      * Must be called on the GL thread (e.g. from a [GLSurfaceView.queueEvent] block).
-     * The bitmap is recycled immediately after upload to free native memory.
      *
      * @param bitmap ARGB_8888 screenshot of the view hierarchy beneath the glass.
      */
+    /** Maps view UVs into the backdrop bitmap (captures are aligned to the window pixel grid). */
+    fun setBackdropUvTransform(offsetX: Float, offsetY: Float, scaleX: Float, scaleY: Float) {
+        bgUvOffsetX = offsetX
+        bgUvOffsetY = offsetY
+        bgUvScaleX = scaleX
+        bgUvScaleY = scaleY
+        blurDirty = true
+    }
+
     fun setBackgroundTexture(bitmap: Bitmap) {
-        if (backgroundTexture != 0) GLES20.glDeleteTextures(1, intArrayOf(backgroundTexture), 0)
-        backgroundTexture = loadTextureFromBitmap(bitmap)
-        bitmap.recycle()
+        if (bitmap.isRecycled) return
+        if (backgroundTexture == 0) {
+            backgroundTexture = loadTextureFromBitmap(bitmap)
+        } else {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
+            if (bitmap.width == backgroundTexWidth && bitmap.height == backgroundTexHeight) {
+                GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bitmap)
+            } else {
+                GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+            }
+        }
+        backgroundTexWidth = bitmap.width
+        backgroundTexHeight = bitmap.height
+        blurDirty = true
     }
 
     private fun createPlaceholderTexture(): Int {
@@ -529,6 +838,8 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bmp, 0)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
         bmp.recycle()
         return tex[0]
     }
@@ -643,7 +954,9 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
     /** Gaussian blur sigma (in pixels) for the frosted background pass. */
     fun setBlurRadius(v: Float) {
+        if (v == blurRadius) return
         blurRadius = v
+        blurDirty = true
     }
 
     /** Width (in shader units) of the Fresnel plain highlight band at the glass silhouette. */

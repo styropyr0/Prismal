@@ -2,20 +2,23 @@ precision highp float;
 uniform sampler2D u_texture;
 uniform vec2 u_texelSize;
 uniform float u_sigma;
+uniform float u_radius;
 varying vec2 v_texCoord;
 
 void main() {
     float s = max(u_sigma, 0.5);
     float s2 = s * s * 2.0;
-    float norm = 0.0;
-    vec3 col = vec3(0.0);
+    vec3 col = texture2D(u_texture, clamp(v_texCoord, 0.0, 1.0)).rgb;
+    float norm = 1.0;
 
-    // 31-tap Gaussian kernel, handles sigma up to ~5 cleanly
-    for (float i = -15.0; i <= 15.0; i += 1.0) {
+    // Gaussian kernel, up to 31 taps
+    for (float i = 1.0; i <= 15.0; i += 1.0) {
+        if (i > u_radius) break;
         float w = exp(-i * i / s2);
-        vec2 uv = clamp(v_texCoord + vec2(0.0, i * u_texelSize.y), 0.0, 1.0);
-        col += texture2D(u_texture, uv).rgb * w;
-        norm += w;
+        vec2 off = vec2(0.0, i * u_texelSize.y);
+        col += texture2D(u_texture, clamp(v_texCoord + off, 0.0, 1.0)).rgb * w;
+        col += texture2D(u_texture, clamp(v_texCoord - off, 0.0, 1.0)).rgb * w;
+        norm += 2.0 * w;
     }
 
     gl_FragColor = vec4(col / norm, 1.0);

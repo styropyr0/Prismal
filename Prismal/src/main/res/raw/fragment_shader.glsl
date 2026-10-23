@@ -8,6 +8,8 @@
 precision highp float;
 
 uniform sampler2D u_backgroundTexture;
+uniform vec2      u_bgUvOffset;
+uniform vec2      u_bgUvScale;
 uniform sampler2D u_blurredTexture;
 uniform int       u_useBlurredTexture;
 
@@ -61,6 +63,10 @@ uniform vec2  u_glowCenter;
 uniform float u_glowStrength;
 
 uniform int   u_showNormals;
+
+// 0 = final colour, 1..4 = write one of the glass cache layers (see glass_compose.glsl)
+uniform int   u_bakeMode;
+uniform float u_chromaMax;
 
 varying vec2 v_screenTexCoord;
 varying vec2 v_shapeCoord;
@@ -144,6 +150,16 @@ vec3 applyVibrancy(vec3 rgb, float sat) {
     return clamp(mix(vec3(L), rgb, sat), 0.0, 1.0);
 }
 
+vec4 sampleBg(vec2 uv) {
+    return texture2D(u_backgroundTexture, u_bgUvOffset + uv * u_bgUvScale);
+}
+
+vec2 pack16(float v) {
+    float x = floor(clamp(v, 0.0, 1.0) * 65535.0 + 0.5);
+    float hi = floor(x / 256.0);
+    return vec2(hi, x - hi * 256.0) / 255.0;
+}
+
 vec2 backdropUv(vec2 screenUv, vec2 offset, float pinchMix) {
     float press = clamp(u_pressProgress, 0.0, 1.0);
     float pinch = mix(1.0, max(u_backdropPinch, 0.01), press * pinchMix);
@@ -187,7 +203,10 @@ void main() {
     float tw = max(u_heightTransitionWidth * (1.0 + 0.38 * dome), 1.0);
     tw = min(tw, minDim * 0.98);
     float hSig = getHeightFromDist(distMask, tw);
-    vec2 gradHSig = computeGradientHeight(pPx, halfSz, crMask, u_sminSmoothing, tw);
+    vec2 gradHSig = vec2(0.0);
+    if (distMask > -(tw + 2.5)) {
+        gradHSig = computeGradientHeight(pPx, halfSz, crMask, u_sminSmoothing, tw);
+    }
 
     float gradRadius = min(radCorner * 1.5, min(halfSz.x, halfSz.y));
     vec2 gradLens = gradSdRoundedRectRealistic(cKy, halfSz, gradRadius);
@@ -285,18 +304,20 @@ void main() {
     float avgDim = (u_glassSize.x + u_glassSize.y) * 0.5;
 
     float caAmt = max(u_chromaticAberration, 0.0);
+    float chromaMag = 0.0;
     vec3 color;
 
     if (caAmt < 0.02) {
         if (u_useBlurredTexture == 1) {
             color = texture2D(u_blurredTexture, uvCenter).rgb;
         } else {
-            color = texture2D(u_backgroundTexture, uvCenter).rgb;
+            color = sampleBg(uvCenter).rgb;
         }
     } else {
         float chromaFar = avgDim * 0.5;
         float edgeFac = pow(smoothstep(chromaFar, 0.0, edgeDist), 1.8);
         float chromaBase = caAmt * 0.0018 * edgeFac;
+        chromaMag = chromaBase * pxNorm;
 
         vec2 dispDir = length(pPx) > 1e-3 ? normalize(pPx) : vec2(0.0, 1.0);
         vec2 chromaPush = dispDir * chromaBase * pxNorm;
@@ -310,9 +331,9 @@ void main() {
             float b = texture2D(u_blurredTexture, uvB).b;
             color = vec3(r, g, b);
         } else {
-            float r = texture2D(u_backgroundTexture, uvR).r;
-            float g = texture2D(u_backgroundTexture, uvG).g;
-            float b = texture2D(u_backgroundTexture, uvB).b;
+            float r = sampleBg(uvR).r;
+            float g = sampleBg(uvG).g;
+            float b = sampleBg(uvB).b;
             color = vec3(r, g, b);
         }
     }
@@ -323,17 +344,13 @@ void main() {
     float edgeG = reflShell * pow(1.0 - cosVNrim, 1.35) * mix(0.07, 0.62, F);
     edgeG *= mix(0.72, 0.38, smallGlass);
     float reflW = min(0.9, edgeG * (0.1 + fresCtl * 0.46) * (0.28 + 0.72 * height));
-    vec2 reflUv = clamp(
-        v_screenTexCoord + baseOffset
-            + gDir * (4.0 + 38.0 * pow(1.0 - cosVNrim, 1.25) + length(N.xy) * 14.0) / u_resolution * pxNorm,
-        vec2(0.0),
-        vec2(1.0)
-    );
+    vec2 reflDelta = gDir * (4.0 + 38.0 * pow(1.0 - cosVNrim, 1.25) + length(N.xy) * 14.0) / u_resolution * pxNorm;
+    vec2 reflUv = clamp(v_screenTexCoord + baseOffset + reflDelta, vec2(0.0), vec2(1.0));
     vec3 reflSample;
     if (u_useBlurredTexture == 1) {
         reflSample = texture2D(u_blurredTexture, reflUv).rgb;
     } else {
-        reflSample = texture2D(u_backgroundTexture, reflUv).rgb;
+        reflSample = sampleBg(reflUv).rgb;
     }
     color = mix(color, reflSample, reflW);
 
@@ -358,6 +375,8 @@ void main() {
     innerShadow = pow(innerShadow, 2.35) * 0.62 * (0.22 + height * 0.68);
     innerShadow *= 1.0 - smoothstep(0.0, clamp(minDim * 0.05, 0.6, 3.5), edgeDist) * 0.55;
     color = mix(color, u_shadowColor.rgb * 0.25, innerShadow * u_shadowColor.a);
+    vec3 shaded = color;
+    color = vec3(0.0);
 
     float sh = max(u_shininess, 1.0);
     float sp = u_specular * 1.05;
@@ -433,5 +452,16 @@ void main() {
         color += vec3(1.0) * pressGlow * (0.08 + spot * 0.15);
     }
 
-    gl_FragColor = vec4(color, opacity * u_transmittance);
+    if (u_bakeMode == 0) {
+        gl_FragColor = vec4(shaded + color, opacity * u_transmittance);
+    } else if (u_bakeMode == 1) {
+        gl_FragColor = vec4(pack16(baseOffset.x * 0.125 + 0.5), pack16(baseOffset.y * 0.125 + 0.5));
+    } else if (u_bakeMode == 2) {
+        gl_FragColor = vec4(reflW, skyW, innerShadow * u_shadowColor.a, opacity);
+    } else if (u_bakeMode == 3) {
+        gl_FragColor = vec4(clamp(color, 0.0, 1.0), clamp(chromaMag / u_chromaMax, 0.0, 1.0));
+    } else {
+        vec2 reflPx = reflDelta * u_resolution / 1024.0 + 0.5;
+        gl_FragColor = vec4(pack16(reflPx.x), pack16(reflPx.y));
+    }
 }
