@@ -18,6 +18,9 @@ import com.matrix.prismal.renderer.PrismalGlassRenderer
 import com.matrix.prismal.utils.LiquidGlassInteraction
 import com.matrix.prismal.utils.SpringAnimator
 import androidx.core.graphics.withClip
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * A `FrameLayout` subclass that renders an iOS-style liquid glass material over its children
@@ -70,7 +73,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
     private val glSurface: GLSurfaceView = GLSurfaceView(context).apply {
         setEGLContextClientVersion(2)
-        setEGLConfigChooser(8, 8, 8, 8, 16, 0)
+        setEGLConfigChooser(8, 8, 8, 8, 0, 0)
         holder.setFormat(PixelFormat.TRANSLUCENT)
         setZOrderOnTop(false)
         setZOrderMediaOverlay(false)
@@ -78,11 +81,27 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private val renderer: PrismalGlassRenderer = PrismalGlassRenderer(context)
     private var lastWidth = 0
     private var lastHeight = 0
-    private var captureScheduled = false
     private var debug = false
-    private var lastCaptureTime = 0L
-    private val minCaptureInterval = 0L
     private var captureHost: ViewGroup? = null
+
+    private var capturePending = false
+    private val bakeRender = Runnable { if (renderer.markRenderRequested()) glSurface.requestRender() }
+    private val captureRunnable = Runnable {
+        capturePending = false
+        captureAndSetBackground()
+    }
+    internal var isCapturing = false
+    private var backdropStale = false
+    private val visibleRect = Rect()
+    private val captureCanvas = Canvas()
+    private val bitmapPool = ArrayList<Bitmap>(MAX_POOLED_BITMAPS)
+    private val sourceLoc = IntArray(2)
+    private val viewLoc = IntArray(2)
+
+    private var lastCapTranslationX = Float.NaN
+    private var lastCapTranslationY = Float.NaN
+    private var lastCapScaleX = Float.NaN
+    private var lastCapScaleY = Float.NaN
     private var captureBlurRadius = 3.85f
     private var captureDownsampleMode: DownsampleMode? = null
 
@@ -113,6 +132,11 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     private var glowIn = false
     private var glowLastNanos = 0L
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val glowFillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val glowShader = RadialGradient(
+        0f, 0f, 1f, Color.WHITE, Color.TRANSPARENT, Shader.TileMode.CLAMP
+    )
+    private val glowMatrix = Matrix()
 
     private val glowCallback: Choreographer.FrameCallback = Choreographer.FrameCallback { nanos ->
         val dt = if (glowLastNanos == 0L) 0.016f
@@ -126,7 +150,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     }
 
     private val scrollListener = ViewTreeObserver.OnScrollChangedListener {
-        scheduleCaptureBackground()
+        scheduleCaptureBackground(requireOnScreen = true)
     }
 
     private val clipPath = Path()
@@ -140,10 +164,20 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                 renderer.setGlassSize(width.toFloat(), height.toFloat())
             }
             scheduleCaptureBackground()
+        } else if (backdropStale) {
+            scheduleCaptureBackground(requireOnScreen = true)
         }
     }
 
     init {
+        glowPaint.shader = glowShader
+        renderer.onSurfaceReady = {
+            post { if (!backdropHandledByChild) updateBackground() }
+        }
+        renderer.onCacheStale = {
+            removeCallbacks(bakeRender)
+            postDelayed(bakeRender, CACHE_BAKE_DELAY_MS)
+        }
         glSurface.setRenderer(renderer)
         glSurface.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         glSurface.setOnTouchListener(this)
@@ -257,9 +291,6 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         isChildrenDrawingOrderEnabled = true
 
-        viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
-        viewTreeObserver.addOnScrollChangedListener(scrollListener)
-
         bindInteractionSprings()
     }
 
@@ -268,6 +299,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
             applyInteractionVisuals()
         }
         pressSpring.onUpdate = { onFrame() }
+        pressSpring.onSettled = { updateBackgroundIfMoved() }
         dragSpringX.onUpdate = { if (!dragging) onFrame() }
         dragSpringY.onUpdate = { if (!dragging) onFrame() }
         pressSpring.snapTo(0f)
@@ -303,7 +335,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         pushPressInteraction(progress, highlightX, highlightY)
 
         if (progress > 0.02f || transform.scaleX > 1.02f || transform.scaleY > 1.02f) {
-            updateBackground()
+            updateBackgroundIfMoved()
         }
         invalidate()
     }
@@ -337,7 +369,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         clipPath.addRoundRect(clipRect, clipRadius, clipRadius, Path.Direction.CW)
     }
 
+    override fun draw(canvas: Canvas) {
+        if (isCapturing) return
+        super.draw(canvas)
+    }
+
     override fun dispatchDraw(canvas: Canvas) {
+        if (isCapturing) return
         canvas.withClip(clipPath) {
             super.dispatchDraw(canvas)
             val progress = when {
@@ -345,22 +383,16 @@ open class PrismalFrameLayout @JvmOverloads constructor(
                 else -> glowAlpha
             }
             if (hasClickCallback && progress > 0.001f) {
-                glowPaint.shader = null
-                glowPaint.color = Color.argb((progress * 20f).toInt().coerceIn(0, 255), 255, 255, 255)
-                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), glowPaint)
+                glowFillPaint.color = Color.argb((progress * 20f).toInt().coerceIn(0, 255), 255, 255, 255)
+                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), glowFillPaint)
 
                 val cx = if (interactiveEffects) touchOriginX + if (dragging) dragOffsetX else dragSpringX.value else glowX
                 val cy = if (interactiveEffects) touchOriginY + if (dragging) dragOffsetY else dragSpringY.value else glowY
                 val glowR = minOf(width, height) * 1.5f
-                glowPaint.shader = RadialGradient(
-                    cx, cy, glowR,
-                    intArrayOf(
-                        Color.argb((progress * 38f).toInt().coerceIn(0, 255), 255, 255, 255),
-                        Color.TRANSPARENT
-                    ),
-                    floatArrayOf(0f, 1f),
-                    Shader.TileMode.CLAMP
-                )
+                glowMatrix.setScale(glowR, glowR)
+                glowMatrix.postTranslate(cx, cy)
+                glowShader.setLocalMatrix(glowMatrix)
+                glowPaint.alpha = (progress * 38f).toInt().coerceIn(0, 255)
                 canvas.drawCircle(cx, cy, glowR, glowPaint)
             }
         }
@@ -376,6 +408,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         super.onDetachedFromWindow()
         viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
         viewTreeObserver.removeOnScrollChangedListener(scrollListener)
+        removeCallbacks(captureRunnable)
+        removeCallbacks(bakeRender)
+        capturePending = false
+        clearBitmapPool()
         Choreographer.getInstance().removeFrameCallback(glowCallback)
         pressSpring.cancel()
         dragSpringX.cancel()
@@ -535,27 +571,20 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         post { onBackdropCaptured?.invoke() }
     }
 
-    private fun scheduleCaptureBackground() {
-        if (backdropHandledByChild) return
-        if (!captureScheduled) {
-            val now = System.currentTimeMillis()
-            val elapsed = now - lastCaptureTime
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (backdropStale && visibility == VISIBLE) scheduleCaptureBackground(requireOnScreen = true)
+    }
 
-            if (elapsed < minCaptureInterval) {
-                postDelayed({
-                    captureScheduled = false
-                    scheduleCaptureBackground()
-                }, minCaptureInterval - elapsed)
-                captureScheduled = true
-            } else {
-                captureScheduled = true
-                post {
-                    captureScheduled = false
-                    captureAndSetBackground()
-                    lastCaptureTime = System.currentTimeMillis()
-                }
-            }
+    private fun isOnScreen(): Boolean = isShown && getGlobalVisibleRect(visibleRect)
+
+    private fun scheduleCaptureBackground(requireOnScreen: Boolean = false) {
+        if (backdropHandledByChild) return
+        if (requireOnScreen && !isOnScreen()) {
+            backdropStale = true
+            return
         }
+        updateBackground()
     }
 
     /**
@@ -575,28 +604,55 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         try {
             val host = captureHost
-            if (host != null) captureFromHost(host) else captureFromRoot()
+            if (host != null) {
+                captureRegion(host, inWindow = true)
+            } else {
+                val root = rootView as? ViewGroup ?: return
+                BackdropCaptureBatch.enqueue(root, this)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun captureFromHost(host: ViewGroup) {
+    internal class CaptureCrop(
+        val x: Int,
+        val y: Int,
+        val width: Int,
+        val height: Int,
+        val scale: Float,
+        val sampleScaleX: Float,
+        val sampleScaleY: Float,
+    ) {
+        val gridX = floor(x * scale).toInt()
+        val gridY = floor(y * scale).toInt()
+        val bitmapWidth = (ceil((x + width) * scale).toInt() - gridX).coerceAtLeast(1)
+        val bitmapHeight = (ceil((y + height) * scale).toInt() - gridY).coerceAtLeast(1)
+        val uvOffsetX get() = (x * scale - gridX) / bitmapWidth
+        val uvOffsetY get() = (y * scale - gridY) / bitmapHeight
+        val uvScaleX get() = width * scale / bitmapWidth
+        val uvScaleY get() = height * scale / bitmapHeight
+    }
+
+    internal fun computeCrop(source: ViewGroup, inWindow: Boolean): CaptureCrop? {
         val savedScaleX = scaleX
         val savedScaleY = scaleY
         scaleX = 1f
         scaleY = 1f
 
-        val hostLoc = IntArray(2)
-        host.getLocationInWindow(hostLoc)
-        val viewLoc = IntArray(2)
-        getLocationInWindow(viewLoc)
-
-        val relX = viewLoc[0] - hostLoc[0]
-        val relY = viewLoc[1] - hostLoc[1]
+        if (inWindow) {
+            source.getLocationInWindow(sourceLoc)
+            getLocationInWindow(viewLoc)
+        } else {
+            source.getLocationOnScreen(sourceLoc)
+            getLocationOnScreen(viewLoc)
+        }
 
         scaleX = savedScaleX
         scaleY = savedScaleY
+
+        val relX = viewLoc[0] - sourceLoc[0]
+        val relY = viewLoc[1] - sourceLoc[1]
 
         val sx = savedScaleX.coerceAtLeast(1f)
         val sy = savedScaleY.coerceAtLeast(1f)
@@ -605,75 +661,94 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
         val cropX = (relX - extraX).coerceAtLeast(0)
         val cropY = (relY - extraY).coerceAtLeast(0)
-        val cropW = (width + 2 * extraX).coerceAtMost(host.width - cropX)
-        val cropH = (height + 2 * extraY).coerceAtMost(host.height - cropY)
+        val cropW = (width + 2 * extraX).coerceAtMost(source.width - cropX)
+        val cropH = (height + 2 * extraY).coerceAtMost(source.height - cropY)
 
-        if (cropW <= 0 || cropH <= 0) return
+        if (cropW <= 0 || cropH <= 0) return null
+        return CaptureCrop(cropX, cropY, cropW, cropH, captureScale(), sx, sy)
+    }
 
-        val ds = captureScale()
-        val croppedBitmap = createBitmap((cropW * ds).toInt().coerceAtLeast(1), (cropH * ds).toInt().coerceAtLeast(1))
-        val canvas = Canvas(croppedBitmap)
-        canvas.scale(ds, ds)
-        canvas.translate(-cropX.toFloat(), -cropY.toFloat())
+    internal fun captureRegion(source: ViewGroup, inWindow: Boolean) {
+        val crop = computeCrop(source, inWindow) ?: return
+        val ds = crop.scale
+        val bitmap = obtainCaptureBitmap(crop.bitmapWidth, crop.bitmapHeight)
+        val canvas = captureCanvas
+        canvas.setBitmap(bitmap)
+        val saveCount = canvas.save()
+        isCapturing = true
+        try {
+            canvas.translate(-crop.gridX.toFloat(), -crop.gridY.toFloat())
+            canvas.scale(ds, ds)
+            canvas.drawColor(Color.WHITE)
+            source.draw(canvas)
+        } catch (e: Exception) {
+            releaseCaptureBitmap(bitmap)
+            throw e
+        } finally {
+            isCapturing = false
+            canvas.restoreToCount(saveCount)
+            canvas.setBitmap(null)
+        }
+        submitCapture(bitmap, crop)
+    }
 
-        alpha = 0f
-        canvas.drawColor(Color.WHITE)
-        host.draw(canvas)
-        alpha = 1f
+    internal fun submitCapture(bitmap: Bitmap, crop: CaptureCrop) {
+        val sx = crop.sampleScaleX
+        val sy = crop.sampleScaleY
+        backdropStale = false
+        lastCapTranslationX = translationX
+        lastCapTranslationY = translationY
+        lastCapScaleX = sx
+        lastCapScaleY = sy
 
+        val uvOffsetX = crop.uvOffsetX
+        val uvOffsetY = crop.uvOffsetY
+        val uvScaleX = crop.uvScaleX
+        val uvScaleY = crop.uvScaleY
         glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(scaleX.coerceAtLeast(1f), scaleY.coerceAtLeast(1f))
-            renderer.setBackgroundTexture(croppedBitmap)
+            renderer.setBackdropSampleScale(sx, sy)
+            renderer.setBackdropUvTransform(uvOffsetX, uvOffsetY, uvScaleX, uvScaleY)
+            renderer.setBackgroundTexture(bitmap)
+            releaseCaptureBitmap(bitmap)
             notifyBackdropCaptured()
         }
     }
 
-    private fun captureFromRoot() {
-        val root = rootView as? ViewGroup ?: return
+    internal fun obtainCaptureBitmap(w: Int, h: Int): Bitmap {
+        val needed = w * h * 4
+        synchronized(bitmapPool) {
+            bitmapPool.removeAll { it.isRecycled }
+            bitmapPool.indexOfFirst { it.width == w && it.height == h }
+                .takeIf { it >= 0 }
+                ?.let { return bitmapPool.removeAt(it) }
+            val reusable = bitmapPool.indexOfFirst { it.allocationByteCount in needed..needed * 2 }
+            if (reusable >= 0) {
+                val b = bitmapPool.removeAt(reusable)
+                try {
+                    b.reconfigure(w, h, Bitmap.Config.ARGB_8888)
+                    return b
+                } catch (_: IllegalArgumentException) {
+                    b.recycle()
+                }
+            }
+        }
+        return createBitmap(w, h)
+    }
 
-        val savedScaleX = scaleX
-        val savedScaleY = scaleY
-        scaleX = 1f
-        scaleY = 1f
+    internal fun releaseCaptureBitmap(bitmap: Bitmap) {
+        synchronized(bitmapPool) {
+            if (!bitmap.isRecycled && bitmapPool.size < MAX_POOLED_BITMAPS) {
+                bitmapPool.add(bitmap)
+                return
+            }
+        }
+        bitmap.recycle()
+    }
 
-        val rootLoc = IntArray(2)
-        root.getLocationOnScreen(rootLoc)
-        val viewLoc = IntArray(2)
-        getLocationOnScreen(viewLoc)
-
-        scaleX = savedScaleX
-        scaleY = savedScaleY
-
-        val relX = viewLoc[0] - rootLoc[0]
-        val relY = viewLoc[1] - rootLoc[1]
-
-        val sx = savedScaleX.coerceAtLeast(1f)
-        val sy = savedScaleY.coerceAtLeast(1f)
-        val extraX = ((sx - 1f) * pivotX).toInt()
-        val extraY = ((sy - 1f) * pivotY).toInt()
-
-        val cropX = (relX - extraX).coerceAtLeast(0)
-        val cropY = (relY - extraY).coerceAtLeast(0)
-        val cropW = (width + 2 * extraX).coerceAtMost(root.width - cropX)
-        val cropH = (height + 2 * extraY).coerceAtMost(root.height - cropY)
-
-        if (cropW <= 0 || cropH <= 0) return
-
-        val ds = captureScale()
-        val croppedBitmap = createBitmap((cropW * ds).toInt().coerceAtLeast(1), (cropH * ds).toInt().coerceAtLeast(1))
-        val canvas = Canvas(croppedBitmap)
-        canvas.scale(ds, ds)
-        canvas.translate(-cropX.toFloat(), -cropY.toFloat())
-
-        alpha = 0f
-        canvas.drawColor(Color.WHITE)
-        root.draw(canvas)
-        alpha = 1f
-
-        glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(scaleX.coerceAtLeast(1f), scaleY.coerceAtLeast(1f))
-            renderer.setBackgroundTexture(croppedBitmap)
-            notifyBackdropCaptured()
+    private fun clearBitmapPool() {
+        synchronized(bitmapPool) {
+            bitmapPool.forEach { it.recycle() }
+            bitmapPool.clear()
         }
     }
 
@@ -683,10 +758,20 @@ open class PrismalFrameLayout @JvmOverloads constructor(
      */
     fun updateBackground() {
         if (width <= 0 || height <= 0) return
-        post {
-            captureAndSetBackground()
-            lastCaptureTime = System.currentTimeMillis()
-        }
+        if (capturePending) return
+        capturePending = true
+        post(captureRunnable)
+    }
+
+    internal fun updateBackgroundIfMoved() {
+        val sx = scaleX.coerceAtLeast(1f)
+        val sy = scaleY.coerceAtLeast(1f)
+        val moved = lastCapScaleX.isNaN() ||
+            abs(translationX - lastCapTranslationX) >= CAPTURE_MOVE_EPSILON_PX ||
+            abs(translationY - lastCapTranslationY) >= CAPTURE_MOVE_EPSILON_PX ||
+            abs(sx - lastCapScaleX) * width >= CAPTURE_MOVE_EPSILON_PX ||
+            abs(sy - lastCapScaleY) * height >= CAPTURE_MOVE_EPSILON_PX
+        if (moved) updateBackground()
     }
 
     /**
@@ -973,7 +1058,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
             translationX = transform.translationX
             translationY = transform.translationY
             if (progress > 0.02f || transform.scaleX > 1.02f) {
-                updateBackground()
+                updateBackgroundIfMoved()
             }
         }
         pushPressInteraction(progress, highlightX, highlightY, backdropPinch, glowStrength)
@@ -1024,7 +1109,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
 
 
     fun GLSurfaceView.queueAndRender(block: () -> Unit) {
-        queueEvent { block() }
-        requestRender()
+        renderer.post(block)
+        if (renderer.markRenderRequested()) requestRender()
+    }
+
+    private companion object {
+        const val MAX_POOLED_BITMAPS = 2
+        const val CAPTURE_MOVE_EPSILON_PX = 0.5f
+        const val CACHE_BAKE_DELAY_MS = 120L
     }
 }

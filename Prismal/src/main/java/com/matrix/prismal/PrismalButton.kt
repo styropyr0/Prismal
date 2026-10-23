@@ -10,6 +10,7 @@ import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
+import androidx.core.animation.doOnEnd
 
 /**
  * **PrismalButton** - A glass-like, interactive UI component that simulates realistic
@@ -118,6 +119,7 @@ class PrismalButton @JvmOverloads constructor(
                 val s = it.animatedValue as Float
                 prismalSurface.scaleX = s
                 prismalSurface.scaleY = s
+                prismalSurface.updateBackgroundIfMoved()
             }
         }
 
@@ -129,12 +131,12 @@ class PrismalButton @JvmOverloads constructor(
             addUpdateListener {
                 val strength = it.animatedValue as Float
                 prismalSurface.setNormalStrength(8f * strength)
-                prismalSurface.updateBackground()
             }
         }
 
         AnimatorSet().apply {
             playTogether(scaleAnim, pulseAnim)
+            doOnEnd { prismalSurface.updateBackgroundIfMoved() }
             start()
         }
     }

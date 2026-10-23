@@ -168,7 +168,7 @@ class PrismalSwitch @JvmOverloads constructor(
         thumb.scaleX = pressScale
         thumb.scaleY = pressScale
         if (pressScale > 1.05f || dragging) {
-            thumb.updateBackground()
+            thumb.updateBackgroundIfMoved()
         }
     }
 
