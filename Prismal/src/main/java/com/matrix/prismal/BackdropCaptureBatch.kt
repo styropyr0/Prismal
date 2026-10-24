@@ -79,7 +79,12 @@ internal class BackdropCaptureBatch private constructor(root: ViewGroup) : Runna
             canvas.translate(-union.left.toFloat(), -union.top.toFloat())
             canvas.scale(scale, scale)
             canvas.drawColor(Color.WHITE)
-            root.draw(canvas)
+            captureDepth++
+            try {
+                root.draw(canvas)
+            } finally {
+                captureDepth--
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             return

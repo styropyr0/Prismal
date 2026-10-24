@@ -71,7 +71,15 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs), View.OnTouchListener {
 
-    private val glSurface: GLSurfaceView = GLSurfaceView(context).apply {
+    private val glSurface: GLSurfaceView = object : GLSurfaceView(context) {
+        override fun draw(canvas: Canvas) {
+            if (captureDepth == 0) super.draw(canvas)
+        }
+
+        override fun dispatchDraw(canvas: Canvas) {
+            if (captureDepth == 0) super.dispatchDraw(canvas)
+        }
+    }.apply {
         setEGLContextClientVersion(2)
         setEGLConfigChooser(8, 8, 8, 8, 0, 0)
         holder.setFormat(PixelFormat.TRANSLUCENT)
@@ -690,7 +698,12 @@ open class PrismalFrameLayout @JvmOverloads constructor(
             canvas.translate(-crop.gridX.toFloat(), -crop.gridY.toFloat())
             canvas.scale(ds, ds)
             canvas.drawColor(Color.WHITE)
-            source.draw(canvas)
+            captureDepth++
+            try {
+                source.draw(canvas)
+            } finally {
+                captureDepth--
+            }
             onCaptureDrawn?.invoke(canvas, source, bitmap)
         } catch (e: Exception) {
             releaseCaptureBitmap(bitmap)
@@ -1132,3 +1145,6 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         const val CACHE_BAKE_DELAY_MS = 120L
     }
 }
+
+/** Non-zero while a backdrop capture draws the view tree; glass surfaces then skip their hole punch. */
+internal var captureDepth = 0

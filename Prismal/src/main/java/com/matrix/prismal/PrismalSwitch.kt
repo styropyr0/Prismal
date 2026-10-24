@@ -9,7 +9,6 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.MotionEvent
-import android.view.VelocityTracker
 import android.view.View
 import android.view.Gravity
 import android.view.ViewGroup
@@ -109,16 +108,16 @@ class PrismalSwitch @JvmOverloads constructor(
     private val srcLoc = IntArray(2)
     private val shadow = ThumbShadowView(context, dp(4f))
     private val overlay = View(context).also { it.setBackgroundColor(Color.WHITE) }
-    private val posSpring = SpringAnimator(1.0f, 1000f)
+    private val posSpring = SpringAnimator(1.0f, 1000f, threshold = 0.0005f)
     private val pressSpring = SpringAnimator(1.0f, 1000f)
     private val scaleXSpring = SpringAnimator(0.6f, 250f)
     private val scaleYSpring = SpringAnimator(0.7f, 250f)
-    private var dragging = false
+    private var pressed = false
+    private var releasePending = false
     private var didDrag = false
     private var lastRawX = 0f
     private var dragStartX = 0f
-    private var normVel = 0f
-    private var velTracker: VelocityTracker? = null
+    private var dragTarget = 0f
     private val touchSlop = android.view.ViewConfiguration.get(context).scaledTouchSlop
     private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t.coerceIn(0f, 1f)
     private fun dp(v: Float) =
@@ -171,16 +170,31 @@ class PrismalSwitch @JvmOverloads constructor(
         if (thumbHeightBlurFactor > 0f) dp(thumbHeightBlurFactor) else dp(5f) * lensScale()
 
     private fun applySquish() {
-        val pressScale = scaleXSpring.value
+        val v = posSpring.velocity / 50f
         thumb.pivotX = thumbW / 2f
         thumb.pivotY = thumbH / 2f
-        thumb.scaleX = pressScale
-        thumb.scaleY = pressScale
+        thumb.scaleX = scaleXSpring.value / (1f - (v * 0.75f).coerceIn(-0.2f, 0.2f))
+        thumb.scaleY = scaleYSpring.value * (1f - (v * 0.25f).coerceIn(-0.2f, 0.2f))
         shadow.follow(thumb)
-        if (pressScale > 1.05f || dragging) {
+        if (pressed || pressSpring.value > 0.02f) {
             thumb.updateBackdropScale()
             thumb.updateBackgroundIfMoved()
         }
+    }
+
+    private fun press() {
+        pressed = true
+        releasePending = false
+        scaleXSpring.animateTo(1.5f)
+        scaleYSpring.animateTo(1.5f)
+        pressSpring.animateTo(1f)
+    }
+
+    private fun release() {
+        pressed = false
+        scaleXSpring.animateTo(1f)
+        scaleYSpring.animateTo(1f)
+        pressSpring.animateTo(0f)
     }
 
     private fun applyFraction(f: Float) {
@@ -194,47 +208,31 @@ class PrismalSwitch @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                velTracker?.recycle()
-                velTracker = VelocityTracker.obtain().also { it.addMovement(event) }
-                dragging = true
                 didDrag = false
                 lastRawX = event.rawX
                 dragStartX = event.rawX
-                scaleXSpring.animateTo(1.5f)
-                scaleYSpring.animateTo(1.5f)
-                pressSpring.animateTo(1f)
+                dragTarget = posSpring.target
+                press()
                 parent?.requestDisallowInterceptTouchEvent(true)
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
-                velTracker!!.addMovement(event)
                 if (!didDrag && abs(event.rawX - dragStartX) > touchSlop) didDrag = true
+                val dx = event.rawX - lastRawX
+                lastRawX = event.rawX
                 if (didDrag) {
-                    velTracker!!.computeCurrentVelocity(1000)
-                    val travel = travelPx.coerceAtLeast(1f)
-                    normVel = normVel * 0.6f + (velTracker!!.xVelocity / travel) * 0.4f
-
-                    val dx = event.rawX - lastRawX
-                    lastRawX = event.rawX
-                    val newFrac = (fraction + dx / travel).coerceIn(0f, 1f)
-                    applyFraction(newFrac)
-                    applySquish()
+                    dragTarget = (dragTarget + dx / travelPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                    posSpring.animateTo(dragTarget)
                 }
                 return true
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                dragging = false
-                normVel = 0f
-                velTracker?.recycle(); velTracker = null
-                isOn = if (didDrag) fraction >= 0.5f else !isOn
+                isOn = if (didDrag) dragTarget >= 0.5f else !isOn
                 posSpring.animateTo(if (isOn) 1f else 0f)
                 onToggleChanged?.invoke(isOn)
-
-                scaleXSpring.animateTo(1f)
-                scaleYSpring.animateTo(1f)
-                pressSpring.animateTo(0f)
+                if (abs(posSpring.value - posSpring.target) < 0.025f) release() else releasePending = true
                 parent?.requestDisallowInterceptTouchEvent(false)
                 return true
             }
@@ -300,6 +298,10 @@ class PrismalSwitch @JvmOverloads constructor(
 
         posSpring.onUpdate = { f ->
             applyFraction(f)
+            if (releasePending && abs(f - posSpring.target) < 0.025f) {
+                releasePending = false
+                release()
+            }
             applySquish()
         }
         pressSpring.onUpdate = { applyPressState(it); applySquish() }
@@ -421,7 +423,6 @@ class PrismalSwitch @JvmOverloads constructor(
         super.onDetachedFromWindow()
         posSpring.cancel(); pressSpring.cancel()
         scaleXSpring.cancel(); scaleYSpring.cancel()
-        velTracker?.recycle(); velTracker = null
     }
 
     /**

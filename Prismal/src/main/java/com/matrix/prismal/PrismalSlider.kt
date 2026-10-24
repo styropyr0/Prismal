@@ -8,9 +8,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
-import android.os.SystemClock
 import android.view.MotionEvent
-import android.view.VelocityTracker
 import android.view.View
 import android.widget.FrameLayout
 import androidx.core.content.res.use
@@ -113,20 +111,16 @@ class PrismalSlider @JvmOverloads constructor(
     private val pressSpring = SpringAnimator(1.0f, 1000f)
     private val scaleXSpring = SpringAnimator(0.6f, 250f)
     private val scaleYSpring = SpringAnimator(0.7f, 250f)
-    private var dragging = false
+    private val posSpring = SpringAnimator(1.0f, 1000f, threshold = 0.0005f)
+    private val touchSlop = android.view.ViewConfiguration.get(context).scaledTouchSlop
+    private var pressed = false
+    private var releasePending = false
+    private var silent = false
+    private var dragTarget = 0f
     private var lastRawX = 0f
-    private var velTracker: VelocityTracker? = null
-    private var normVel = 0f
+    private var downX = 0f
     private var thumbBackdropReady = false
-    private var thumbCapturePending = false
-    private var thumbCaptureInFlight = false
-    private var lastThumbCaptureAt = 0L
-    private var lastCapturedThumbX = Float.NaN
 
-    private companion object {
-        const val THUMB_CAPTURE_MIN_MS = 48L
-        const val THUMB_CAPTURE_MOVE_PX = 6f
-    }
     private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t.coerceIn(0f, 1f)
     private fun dp(v: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
@@ -143,32 +137,33 @@ class PrismalSlider @JvmOverloads constructor(
         shadow.follow(thumb)
     }
 
-    private fun isThumbInGlassState(): Boolean =
-        dragging || pressSpring.target > 0f || pressSpring.value > 0.02f
+    private fun isThumbInGlassState(): Boolean = pressed || pressSpring.value > 0.02f
 
-    private fun scheduleThumbBackdropCapture(force: Boolean = false) {
-        if (!isThumbInGlassState()) return
-        if (thumbCaptureInFlight && !force) return
-        val now = SystemClock.uptimeMillis()
-        val moved = lastCapturedThumbX.isNaN() ||
-            abs(thumb.translationX - lastCapturedThumbX) >= THUMB_CAPTURE_MOVE_PX
-        if (!force && !moved && now - lastThumbCaptureAt < THUMB_CAPTURE_MIN_MS) {
-            if (!thumbCapturePending) {
-                thumbCapturePending = true
-                val delay = THUMB_CAPTURE_MIN_MS - (now - lastThumbCaptureAt)
-                postDelayed(thumbCaptureRunnable, delay.coerceAtLeast(1L))
-            }
-            return
-        }
-        thumbCapturePending = false
-        removeCallbacks(thumbCaptureRunnable)
-        thumbCaptureInFlight = true
-        lastThumbCaptureAt = now
-        lastCapturedThumbX = thumb.translationX
+    private fun updateThumbBackdrop() {
+        if (isThumbInGlassState()) thumb.updateBackground()
+    }
+
+    private fun press() {
+        pressed = true
+        releasePending = false
+        thumbBackdropReady = false
+        scaleXSpring.animateTo(1.5f)
+        scaleYSpring.animateTo(1.5f)
+        pressSpring.animateTo(1f)
+        applyPressState(pressSpring.value)
         thumb.updateBackground()
     }
 
-    private fun updateThumbBackdrop() = scheduleThumbBackdropCapture(force = true)
+    private fun release() {
+        pressed = false
+        scaleXSpring.animateTo(1f)
+        scaleYSpring.animateTo(1f)
+        pressSpring.animateTo(0f)
+    }
+
+    private fun releaseWhenSettled() {
+        if (abs(posSpring.value - posSpring.target) < 0.025f) release() else releasePending = true
+    }
 
     private fun applyPressState(t: Float) {
         val pressT = t.coerceIn(0f, 1f)
@@ -189,7 +184,7 @@ class PrismalSlider @JvmOverloads constructor(
             ColorUtils.setAlphaComponent(thumbShadowColor, (Color.alpha(thumbShadowColor) * pressT).toInt()),
             thumbShadowSoftness
         )
-        overlay.alpha = if (isThumbInGlassState() && !thumbBackdropReady) 1f else lerp(1f, 0f, pressT)
+        overlay.alpha = if (pressed && !thumbBackdropReady) 1f else lerp(1f, 0f, pressT)
         thumb.setPressInteraction(
             progress = pressT,
             highlightX = thumbW / 2f,
@@ -198,9 +193,6 @@ class PrismalSlider @JvmOverloads constructor(
             backdropPinch = lerp(1f, LiquidGlassInteraction.THUMB_BACKDROP_PINCH, pressT),
             glowStrength = pressT * LiquidGlassInteraction.THUMB_GLOW_STRENGTH,
         )
-        if (isThumbInGlassState() && !thumbBackdropReady && !thumbCaptureInFlight && !thumbCapturePending) {
-            scheduleThumbBackdropCapture(force = true)
-        }
     }
 
     private fun lensScale() = 1f
@@ -210,9 +202,9 @@ class PrismalSlider @JvmOverloads constructor(
         if (thumbHeightBlurFactor > 0f) dp(thumbHeightBlurFactor) else dp(10f) * lensScale()
 
     private fun applySquish() {
-        val v = normVel.coerceIn(-0.2f, 0.2f)
-        val sx = scaleXSpring.value / (1f - v * 0.75f)
-        val sy = scaleYSpring.value * (1f - abs(v) * 0.25f)
+        val v = posSpring.velocity / 10f
+        val sx = scaleXSpring.value / (1f - (v * 0.75f).coerceIn(-0.2f, 0.2f))
+        val sy = scaleYSpring.value * (1f - (v * 0.25f).coerceIn(-0.2f, 0.2f))
         thumb.apply {
             pivotX = thumbW / 2f
             pivotY = thumbH / 2f
@@ -220,64 +212,69 @@ class PrismalSlider @JvmOverloads constructor(
             scaleY = sy
         }
         shadow.follow(thumb)
-        if (isThumbInGlassState()) thumb.updateBackdropScale()
+        if (isThumbInGlassState()) {
+            thumb.updateBackdropScale()
+            thumb.updateBackgroundIfMoved()
+        }
     }
 
-    private fun updateProgress(dx: Float) {
-        progress = (progress + dx / trackLength()).coerceIn(0f, 1f)
+    private fun onPositionUpdate(p: Float) {
+        progress = p.coerceIn(0f, 1f)
         layoutThumb()
-        currentValue = progress * maxValue
-        onValueChanged?.invoke(currentValue)
+        val value = progress * maxValue
+        if (value != currentValue) {
+            currentValue = value
+            if (!silent) onValueChanged?.invoke(currentValue)
+        }
+        if (releasePending && abs(p - posSpring.target) < 0.025f) {
+            releasePending = false
+            release()
+        }
+        applySquish()
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private val touchListener = OnTouchListener { _, e ->
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                velTracker?.recycle()
-                velTracker = VelocityTracker.obtain().also { it.addMovement(e) }
-                dragging = true
-                thumbBackdropReady = false
-                thumbCaptureInFlight = false
-                lastCapturedThumbX = Float.NaN
-                removeCallbacks(thumbCaptureRunnable)
-                thumbCapturePending = false
                 lastRawX = e.rawX
-                scaleXSpring.animateTo(1.5f)
-                scaleYSpring.animateTo(1.5f)
-                pressSpring.animateTo(1f)
-                scheduleThumbBackdropCapture(force = true)
+                dragTarget = posSpring.target
+                press()
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (!dragging) return@OnTouchListener true
-                velTracker!!.addMovement(e)
-                velTracker!!.computeCurrentVelocity(1000)
-                normVel = normVel * 0.6f + (velTracker!!.xVelocity / trackLength()) * 0.4f
                 val dx = e.rawX - lastRawX
                 lastRawX = e.rawX
-                updateProgress(dx)
-                scheduleThumbBackdropCapture()
-                applySquish()
+                dragTarget = (dragTarget + dx / trackLength()).coerceIn(0f, 1f)
+                posSpring.animateTo(dragTarget)
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                dragging = false
-                thumbBackdropReady = false
-                thumbCaptureInFlight = false
-                lastCapturedThumbX = Float.NaN
-                removeCallbacks(thumbCaptureRunnable)
-                thumbCapturePending = false
-                normVel = 0f
-                velTracker?.recycle(); velTracker = null
-                scaleXSpring.animateTo(1f)
-                scaleYSpring.animateTo(1f)
-                pressSpring.animateTo(0f)
+                releaseWhenSettled()
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
         }
         true
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> downX = e.x
+            MotionEvent.ACTION_UP -> if (abs(e.x - downX) <= touchSlop) {
+                performClick()
+                press()
+                posSpring.animateTo(((e.x - thumbW / 4f) / trackLength()).coerceIn(0f, 1f))
+                releasePending = true
+            }
+        }
+        return true
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
     }
 
     init {
@@ -308,6 +305,7 @@ class PrismalSlider @JvmOverloads constructor(
         pressSpring.onUpdate = { applyPressState(it); applySquish() }
         scaleXSpring.onUpdate = { applySquish() }
         scaleYSpring.onUpdate = { applySquish() }
+        posSpring.onUpdate = ::onPositionUpdate
         pressSpring.snapTo(0f)
         scaleXSpring.snapTo(1f)
         scaleYSpring.snapTo(1f)
@@ -340,8 +338,6 @@ class PrismalSlider @JvmOverloads constructor(
         post { setupThumb(); applyPressState(0f) }
     }
 
-    private val thumbCaptureRunnable = Runnable { scheduleThumbBackdropCapture(force = true) }
-
     /** Re-applies thumb-only optical calibration. */
     fun recalibrateThumb() {
         setupThumb()
@@ -351,10 +347,8 @@ class PrismalSlider @JvmOverloads constructor(
     private fun setupThumb() {
         thumb.setBackdropHandledByChild(true)
         thumb.setOnBackdropCapturedListener {
-            thumbCaptureInFlight = false
             thumbBackdropReady = true
             applyPressState(pressSpring.value)
-            if (isThumbInGlassState() && thumb.translationX != lastCapturedThumbX) scheduleThumbBackdropCapture()
         }
         configureThumbGlass()
     }
@@ -423,11 +417,7 @@ class PrismalSlider @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        removeCallbacks(thumbCaptureRunnable)
-        thumbCapturePending = false
-        thumbCaptureInFlight = false
-        pressSpring.cancel(); scaleXSpring.cancel(); scaleYSpring.cancel()
-        velTracker?.recycle(); velTracker = null
+        pressSpring.cancel(); scaleXSpring.cancel(); scaleYSpring.cancel(); posSpring.cancel()
     }
 
     /**
@@ -437,10 +427,13 @@ class PrismalSlider @JvmOverloads constructor(
      * @param value The value to set.
      */
     fun setValue(value: Float) {
-        progress = value.coerceIn(0f, maxValue) / maxValue
-        currentValue = progress * maxValue
+        val p = value.coerceIn(0f, maxValue) / maxValue
+        progress = p
+        currentValue = p * maxValue
         post {
-            layoutThumb()
+            silent = true
+            posSpring.snapTo(p)
+            silent = false
             updateThumbBackdrop()
         }
     }
