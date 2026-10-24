@@ -74,3 +74,21 @@ internal object LiquidGlassInteraction {
         )
     }
 }
+
+/**
+ * iOS-style thumb lens: [bandPx] refraction band from the rim, [amountPx] displacement at the rim.
+ * Inverts the renderer's lens formula so both land at the given pixel values.
+ */
+internal fun com.matrix.prismal.PrismalFrameLayout.applyThumbLens(
+    bandPx: Float,
+    amountPx: Float,
+    press: Float,
+    dome: Float,
+    displacement: Float,
+) {
+    val band = bandPx.coerceAtLeast(1f)
+    setLiquidDomeStrength(dome)
+    setDisplacementScale(displacement)
+    setHeightBlurFactor(band / (1f + 0.55f * dome))
+    setLensRefractionScale(amountPx / ((1f + 0.45f * press) * band * 2f * displacement.coerceAtLeast(0.01f)))
+}

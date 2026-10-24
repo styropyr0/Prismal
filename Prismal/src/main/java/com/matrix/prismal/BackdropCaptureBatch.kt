@@ -43,7 +43,7 @@ internal class BackdropCaptureBatch private constructor(root: ViewGroup) : Runna
             }
         }
 
-        val separate = crops.filter { (v, c) -> crops.none { (o, oc) -> o !== v && overlaps(c, oc) } }
+        val separate = crops.filter { (v, c) -> v.onCaptureDrawn == null && crops.none { (o, oc) -> o !== v && overlaps(c, oc) } }
         val scale = separate.groupingBy { it.second.scale }.eachCount().maxByOrNull { it.value }?.key
         val group = separate.filter { it.second.scale == scale }
         val union = Rect()

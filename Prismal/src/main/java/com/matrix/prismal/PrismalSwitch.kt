@@ -11,9 +11,14 @@ import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
 import android.view.Gravity
+import android.view.ViewGroup
+import androidx.core.graphics.withSave
 import android.widget.FrameLayout
 import com.matrix.prismal.utils.LiquidGlassInteraction
 import com.matrix.prismal.utils.SpringAnimator
+import com.matrix.prismal.utils.applyThumbLens
+import androidx.core.graphics.ColorUtils
+import com.matrix.prismal.utils.ThumbShadowView
 import kotlin.math.abs
 import kotlin.math.min
 import androidx.core.graphics.toColorInt
@@ -60,17 +65,17 @@ class PrismalSwitch @JvmOverloads constructor(
     private var fraction = 0f
     private var onToggleChanged: ((Boolean) -> Unit)? = null
     private var onColor = "#34C759".toColorInt()
-    private var offColor = Color.argb(140, 0x78, 0x78, 0x78)
+    private var offColor = Color.argb(92, 0x78, 0x78, 0x80)
 
     private var restBlur = 0f
-    private var pressChromatic = 3f
-    private var thumbIOR = 1.45f
-    private var thumbBrightness = 1.12f
+    private var pressChromatic = 50f
+    private var thumbIOR = 1.4f
+    private var thumbBrightness = 1f
     private var thumbNormalStrength = 0.2f
-    private var thumbDisplacementScale = 1f
+    private var thumbDisplacementScale = 0.6f
+    private var thumbRefractionAmount = 10f
     private var thumbRestLensScale = 0.38f
-    private var thumbPressLensScale = 0.72f
-    private var thumbShadowColor = Color.argb(0, 0, 0, 0)
+    private var thumbShadowColor = Color.argb(38, 0, 0, 0)
     private var thumbShadowSoftness = 0.25f
     private var thumbThicknessPx = -1f
     private var thumbHighlightWidth = -1f
@@ -90,6 +95,7 @@ class PrismalSwitch @JvmOverloads constructor(
             }
 
         override fun onDraw(c: Canvas) {
+            if (thumb.isCapturing && !drawingTrackIntoThumb) return
             val r = height / 2f
             paint.color = lerpColor(offColor, onColor, frac)
             c.drawRoundRect(0f, 0f, width.toFloat(), height.toFloat(), r, r, paint)
@@ -97,6 +103,10 @@ class PrismalSwitch @JvmOverloads constructor(
     }
 
     private val thumb = PrismalFrameLayout(context)
+    private var drawingTrackIntoThumb = false
+    private val loc = IntArray(2)
+    private val srcLoc = IntArray(2)
+    private val shadow = ThumbShadowView(context, dp(4f))
     private val overlay = View(context).also { it.setBackgroundColor(Color.WHITE) }
     private val posSpring = SpringAnimator(1.0f, 1000f)
     private val pressSpring = SpringAnimator(1.0f, 1000f)
@@ -125,18 +135,23 @@ class PrismalSwitch @JvmOverloads constructor(
 
     private fun applyPressState(t: Float) {
         val pressT = t.coerceIn(0f, 1f)
-        val restHbfPx = thumbRefractionHeightPx(0f)
-        val pressHbfPx = thumbRefractionHeightPx(1f)
 
         thumb.setBlurRadius(lerp(restBlur, 0f, pressT))
-        thumb.setChromaticAberration(lerp(0f, pressChromatic, pressT))
-        thumb.setLensRefractionScale(lerp(thumbRestLensScale / 3, thumbPressLensScale / 3, pressT))
-        thumb.setHeightBlurFactor(lerp(restHbfPx, pressHbfPx, pressT))
-        thumb.setLiquidDomeStrength(0.2f)
-        thumb.setIOR(1.4f)
-        thumb.setBrightness(1f)
-        thumb.setThickness(0.2f)
-        thumb.setDisplacementScale(0.6f)
+        thumb.setChromaticAberration(pressChromatic * pressT)
+        thumb.applyThumbLens(
+            bandPx = thumbRefractionHeightPx() * pressT,
+            amountPx = dp(thumbRefractionAmount) * lensScale() * pressT,
+            press = pressT,
+            dome = 0.2f,
+            displacement = thumbDisplacementScale,
+        )
+        thumb.setIOR(thumbIOR)
+        thumb.setBrightness(thumbBrightness)
+        thumb.setThickness(if (thumbThicknessPx > 0f) thumbThicknessPx else 0.2f)
+        thumb.setShadowProperties(
+            ColorUtils.setAlphaComponent(thumbShadowColor, (Color.alpha(thumbShadowColor) * pressT).toInt()),
+            thumbShadowSoftness
+        )
         overlay.alpha = lerp(1f, 0f, pressT)
         thumb.setPressInteraction(
             progress = pressT,
@@ -148,18 +163,11 @@ class PrismalSwitch @JvmOverloads constructor(
         )
     }
 
-    /** Refraction band in px; scaled from thumb size. */
-    private fun thumbRefractionHeightPx(pressFraction: Float): Float {
-        val density = resources.displayMetrics.density
-        val minDimDp = min(thumbW, thumbH) / density
-        val fullDp = if (thumbHeightBlurFactor > 0f) {
-            thumbHeightBlurFactor
-        } else {
-            (minDimDp * 0.42f).coerceIn(4f, 12f)
-        }
-        val restDp = fullDp * 0.28f
-        return dp(lerp(restDp, fullDp, pressFraction.coerceIn(0f, 1f)))
-    }
+    private fun lensScale() = trackH / dp(28f)
+
+    /** Refraction band in px at full press. */
+    private fun thumbRefractionHeightPx(): Float =
+        if (thumbHeightBlurFactor > 0f) dp(thumbHeightBlurFactor) else dp(5f) * lensScale()
 
     private fun applySquish() {
         val pressScale = scaleXSpring.value
@@ -167,7 +175,9 @@ class PrismalSwitch @JvmOverloads constructor(
         thumb.pivotY = thumbH / 2f
         thumb.scaleX = pressScale
         thumb.scaleY = pressScale
+        shadow.follow(thumb)
         if (pressScale > 1.05f || dragging) {
+            thumb.updateBackdropScale()
             thumb.updateBackgroundIfMoved()
         }
     }
@@ -176,6 +186,7 @@ class PrismalSwitch @JvmOverloads constructor(
         fraction = f
         trackView.frac = f
         thumb.translationX = padPx + f * travelPx
+        shadow.follow(thumb)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -230,6 +241,10 @@ class PrismalSwitch @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
+    private companion object {
+        const val INNER_TRACK_SCALE = 0.75f
+    }
+
     override fun performClick(): Boolean {
         super.performClick()
         return true
@@ -273,6 +288,10 @@ class PrismalSwitch @JvmOverloads constructor(
             gravity = Gravity.CENTER_VERTICAL
         })
 
+        addView(shadow, LayoutParams(thumbW.toInt(), thumbH.toInt()).apply {
+            gravity = Gravity.CENTER_VERTICAL
+        })
+
         addView(thumb, LayoutParams(thumbW.toInt(), thumbH.toInt()).apply {
             gravity = Gravity.CENTER_VERTICAL
         })
@@ -300,9 +319,29 @@ class PrismalSwitch @JvmOverloads constructor(
         setupThumb()
     }
 
+    private fun drawTrackIntoThumb(c: Canvas, source: ViewGroup) {
+        source.getLocationInWindow(srcLoc)
+        getLocationInWindow(loc)
+        val ox = (loc[0] - srcLoc[0]).toFloat()
+        val oy = (loc[1] - srcLoc[1]).toFloat()
+        val cx = ox + thumb.left + thumb.translationX + thumbW / 2f
+        val cy = oy + thumb.top + thumbH / 2f
+        c.withSave {
+            scale(INNER_TRACK_SCALE, INNER_TRACK_SCALE, cx, cy)
+            translate(ox + trackView.left, oy + trackView.top)
+            drawingTrackIntoThumb = true
+            try {
+                trackView.draw(this)
+            } finally {
+                drawingTrackIntoThumb = false
+            }
+        }
+    }
+
     private fun setupThumb() {
         if (thumbW <= 0f || thumbH <= 0f) return
         thumb.setBackdropHandledByChild(true)
+        thumb.onCaptureDrawn = ::drawTrackIntoThumb
         (thumb.layoutParams as? LayoutParams)?.apply {
             width = thumbW.toInt()
             height = thumbH.toInt()
@@ -323,7 +362,7 @@ class PrismalSwitch @JvmOverloads constructor(
         val refractionHeightDp = if (thumbHeightBlurFactor > 0f) {
             thumbHeightBlurFactor
         } else {
-            (minDimDp * 0.42f).coerceIn(4f, 12f)
+            (minDimDp * 0.2f).coerceIn(3f, 12f)
         }
         val thicknessPx = if (thumbThicknessPx > 0f) {
             thumbThicknessPx
@@ -429,7 +468,9 @@ class PrismalSwitch @JvmOverloads constructor(
      *
      * @param v IOR value, typically between `1.0f` and `2.0f`.
      */
-    fun setThumbIOR(v: Float) = thumb.run { setIOR(v); updateBackground() }
+    fun setThumbIOR(v: Float) {
+        thumbIOR = v; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * Sets the blur radius for the thumb glass surface.
@@ -443,7 +484,9 @@ class PrismalSwitch @JvmOverloads constructor(
      *
      * @param v Brightness factor (default around `1.08f`).
      */
-    fun setThumbBrightness(v: Float) = thumb.run { setBrightness(v); updateBackground() }
+    fun setThumbBrightness(v: Float) {
+        thumbBrightness = v; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * Sets the normal-mapping strength on the thumb glass surface.
@@ -457,15 +500,27 @@ class PrismalSwitch @JvmOverloads constructor(
      *
      * @param v Distortion strength multiplier.
      */
-    fun setThumbDisplacementScale(v: Float) =
-        thumb.run { setDisplacementScale(v); updateBackground() }
+    fun setThumbDisplacementScale(v: Float) {
+        thumbDisplacementScale = v; applyPressState(pressSpring.value); updateBackground()
+    }
+
+    /**
+     * Sets how far the pressed thumb pulls the backdrop inward at its rim.
+     *
+     * @param v Displacement in dp.
+     */
+    fun setThumbRefractionAmount(v: Float) {
+        thumbRefractionAmount = v; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * Sets the simulated glass thickness on the thumb.
      *
      * @param v Thickness in pixels.
      */
-    fun setThumbThickness(v: Float) = thumb.run { setThickness(v); updateBackground() }
+    fun setThumbThickness(v: Float) {
+        thumbThicknessPx = v; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * Sets the refraction inset on the thumb - distance from the edge where refraction applies.
@@ -487,8 +542,9 @@ class PrismalSwitch @JvmOverloads constructor(
      *
      * @param v Aberration intensity, typically `0f`–`10f`.
      */
-    fun setThumbChromaticAberration(v: Float) =
-        thumb.run { setChromaticAberration(v); updateBackground() }
+    fun setThumbChromaticAberration(v: Float) {
+        pressChromatic = v; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * Sets the corner radius of the thumb capsule.
@@ -517,16 +573,18 @@ class PrismalSwitch @JvmOverloads constructor(
      * @param c Shadow color as an Android ColorInt (ARGB).
      * @param r Shadow softness / radius factor.
      */
-    fun setThumbShadow(c: Int, r: Float) =
-        thumb.run { setShadowProperties(c, r); updateBackground() }
+    fun setThumbShadow(c: Int, r: Float) {
+        thumbShadowColor = c; thumbShadowSoftness = r; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
-     * Sets the height-to-blur scaling factor on the thumb.
+     * Sets the width of the pressed thumb's refraction band, measured in from the rim.
      *
-     * @param v Blur factor applied based on simulated glass height.
+     * @param v Band width in dp; `<= 0` restores the iOS default.
      */
-    fun setThumbHeightBlurFactor(v: Float) =
-        thumb.run { setHeightBlurFactor(v); updateBackground() }
+    fun setThumbHeightBlurFactor(v: Float) {
+        thumbHeightBlurFactor = v; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * No-op - thumb dimensions scale proportionally with track height. Retained for API compatibility.
@@ -541,8 +599,9 @@ class PrismalSwitch @JvmOverloads constructor(
      * @param ior Index of refraction.
      * @param b Brightness multiplier.
      */
-    fun setThumbIORAndBrightness(ior: Float, b: Float) =
-        thumb.run { setIOR(ior); setBrightness(b); updateBackground() }
+    fun setThumbIORAndBrightness(ior: Float, b: Float) {
+        thumbIOR = ior; thumbBrightness = b; applyPressState(pressSpring.value); updateBackground()
+    }
 
     /**
      * Sets the glass tint color of the thumb.

@@ -565,7 +565,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
         GLES20.glUniform1i(backgroundTextureUniform, 0)
 
-        if (blurFboReady && blurTex2 != 0) {
+        if (blurFboReady && blurTex2 != 0 && blurRadius > 0.05f) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, blurTex2)
             GLES20.glUniform1i(uBlurredTexture, 1)
@@ -608,7 +608,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
         GLES20.glUniform1i(cBackground, 0)
-        if (blurFboReady && blurTex2 != 0) {
+        if (blurFboReady && blurTex2 != 0 && blurRadius > 0.05f) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, blurTex2)
             GLES20.glUniform1i(cBlurred, 1)

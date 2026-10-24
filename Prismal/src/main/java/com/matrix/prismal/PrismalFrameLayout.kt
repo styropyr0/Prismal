@@ -91,6 +91,9 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         captureAndSetBackground()
     }
     internal var isCapturing = false
+
+    /** Draws extra content into the captured backdrop, in [captureRegion] source coordinates. */
+    internal var onCaptureDrawn: ((Canvas, ViewGroup) -> Unit)? = null
     private var backdropStale = false
     private val visibleRect = Rect()
     private val captureCanvas = Canvas()
@@ -681,6 +684,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
             canvas.scale(ds, ds)
             canvas.drawColor(Color.WHITE)
             source.draw(canvas)
+            onCaptureDrawn?.invoke(canvas, source)
         } catch (e: Exception) {
             releaseCaptureBitmap(bitmap)
             throw e
@@ -705,8 +709,10 @@ open class PrismalFrameLayout @JvmOverloads constructor(
         val uvOffsetY = crop.uvOffsetY
         val uvScaleX = crop.uvScaleX
         val uvScaleY = crop.uvScaleY
+        val ssx = sx / scaleX.coerceAtLeast(1f)
+        val ssy = sy / scaleY.coerceAtLeast(1f)
         glSurface.queueAndRender {
-            renderer.setBackdropSampleScale(sx, sy)
+            renderer.setBackdropSampleScale(ssx, ssy)
             renderer.setBackdropUvTransform(uvOffsetX, uvOffsetY, uvScaleX, uvScaleY)
             renderer.setBackgroundTexture(bitmap)
             releaseCaptureBitmap(bitmap)
@@ -775,13 +781,13 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     }
 
     /**
-     * Pushes the current [scaleX]/[scaleY] to the backdrop sample scale uniform without
-     * triggering a full bitmap re-capture. Call this on every scale-animation frame so the
-     * glass correctly "zooms out" to cover the expanded visual area even between captures.
+     * Re-fits the last captured backdrop to the current [scaleX]/[scaleY] without a full
+     * bitmap re-capture. Call this on every scale-animation frame between captures.
      */
     fun updateBackdropScale() {
-        val sx = scaleX.coerceAtLeast(1f)
-        val sy = scaleY.coerceAtLeast(1f)
+        if (lastCapScaleX.isNaN()) return
+        val sx = lastCapScaleX / scaleX.coerceAtLeast(1f)
+        val sy = lastCapScaleY / scaleY.coerceAtLeast(1f)
         glSurface.queueAndRender { renderer.setBackdropSampleScale(sx, sy) }
     }
 
