@@ -99,7 +99,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.styropyr0:Prismal:v1.0.1'
+    implementation 'com.github.styropyr0:Prismal:v1.0.7'
 }
 ```
 
@@ -321,7 +321,7 @@ See also [PrismalScene] for root-level scene management.
 |-----------|-----------|
 | Large card (≥ 120 dp) | 18 dp (library default) |
 | Medium card (60 – 120 dp) | 8 – 12 dp |
-| Switch / slider thumb (24 dp) | 4 dp |
+| Switch / slider thumb (24 dp) | auto (near zero - the edge lens does the refraction) |
 | Icon button (52 – 56 dp) | 5 dp |
 
 ---
@@ -415,9 +415,9 @@ updateBackground()
 
 ### PrismalSwitch
 
-iOS-style toggle switch: 64 × 28 dp capsule track that colour-crossfades from grey to green, with a 40 × 24 dp capsule glass thumb. The thumb is frosted-white at rest and reveals the live glass material on press. Spring physics drive position, press scale, and velocity squish.
+iOS-style toggle switch: 64 × 28 dp capsule track that colour-crossfades from grey to green, with a 40 × 24 dp capsule glass thumb. The thumb is solid white with a soft drop shadow at rest. On press it grows 1.5× and turns into a clear liquid-glass lens: the track shows through it as a smaller pill (drawn at 0.75×), bent at the rim by a 5 dp refraction band with a faint chromatic fringe and inner shadow - the same look as the iOS 26 switch. Spring physics drive position, press scale, and velocity squish.
 
-Thumb travel is exactly `trackWidth − thumbWidth − 2 × padding` = **20 dp** at default size.
+Thumb travel is exactly `trackWidth − thumbWidth − 2 × padding` = **20 dp** at default size. Lens sizes are given for the default 28 dp track and scale with `psw_trackHeight`.
 
 #### XML Example
 
@@ -436,21 +436,21 @@ Thumb travel is exactly `trackWidth − thumbWidth − 2 × padding` = **20 dp**
 |-----------|------|---------|-------------|
 | `psw_isOn` | boolean | false | Initial toggle state |
 | `psw_trackHeight` | dimension | 28 dp | Track height; thumb and travel scale proportionally |
-| `psw_onColor` / `psw_offColor` | color | green / grey | Track colours |
+| `psw_onColor` / `psw_offColor` | color | `#34C759` / `#5C787880` | Track colours |
 | `psw_thumbCornerRadius` | dimension | auto | Thumb corner radius |
-| `psw_thumbIOR` | float | calibrated | Thumb index of refraction |
-| `psw_thumbBlurRadius` | float | calibrated | Thumb blur |
+| `psw_thumbIOR` | float | 1.4 | Thumb index of refraction |
+| `psw_thumbBlurRadius` | float | 0 | Thumb blur at rest (always 0 while pressed) |
 | `psw_thumbNormalStrength` | float | calibrated | Thumb normal strength |
-| `psw_thumbDisplacementScale` | float | calibrated | Thumb lens scale |
-| `psw_thumbChromaticAberration` | float | 0 | Thumb RGB split |
-| `psw_thumbBrightness` | float | calibrated | Thumb brightness |
-| `psw_thumbThickness` | dimension | calibrated | Thumb edge ramp |
+| `psw_thumbDisplacementScale` | float | 0.6 | Thumb parallax / Snell displacement |
+| `psw_thumbChromaticAberration` | float | 50 | RGB split at full press |
+| `psw_thumbBrightness` | float | 1.0 | Thumb brightness |
+| `psw_thumbThickness` | dimension | auto | Thumb Snell thickness |
 | `psw_thumbHighlightWidth` | float | calibrated | Thumb highlight band |
-| `psw_thumbHeightBlurFactor` | float | calibrated | Height-field blur factor |
+| `psw_thumbHeightBlurFactor` | float | 5 | Width of the pressed lens's refraction band, in dp |
 | `psw_thumbMinSmoothing` | float | calibrated | SDF smoothing |
 | `psw_thumbRefractionInset` | float | calibrated | Refraction inset |
 | `psw_thumbEdgeRefractionFalloff` | float | calibrated | Edge refraction falloff |
-| `psw_thumbShadowColor` / `psw_thumbShadowSoftness` | color / float | - | Thumb shadow |
+| `psw_thumbShadowColor` / `psw_thumbShadowSoftness` | color / float | `#26000000` / 0.25 | Inner shadow, faded in with the press |
 | `psw_thumbColor` | color | `#1AFFFFFF` | Thumb glass tint color (alpha controls blend strength) |
 | `psw_thumbShowNormals` | boolean | false | Debug normals on thumb |
 
@@ -474,7 +474,8 @@ setThumbChromaticAberration(value: Float)
 setThumbCornerRadius(value: Float)
 setThumbHighlightWidth(value: Float)
 setThumbShadow(color: Int, radius: Float)
-setThumbHeightBlurFactor(value: Float)
+setThumbHeightBlurFactor(dp: Float)     // refraction band width (default 5 dp)
+setThumbRefractionAmount(dp: Float)     // pull-in at the rim (default 10 dp)
 setThumbRefractionInset(value: Float)
 setThumbEdgeRefractionFalloff(value: Float)
 setThumbColor(color: Int)               // ARGB tint over thumb glass surface
@@ -484,7 +485,7 @@ setThumbColor(color: Int)               // ARGB tint over thumb glass surface
 
 ### PrismalSlider
 
-Horizontal slider: 6 dp capsule track with an accent-coloured fill, and a 40 × 24 dp capsule glass thumb. The thumb reveals the live glass material on press with velocity-based squish deformation. Calls `thumb.updateBackground()` on every `ACTION_MOVE` so the refracted background updates live as the thumb moves.
+Horizontal slider: 6 dp capsule track with an accent-coloured fill, and a 40 × 24 dp capsule glass thumb. As on iOS, the track is inset by a quarter of the thumb width at each end and the fill ends at the thumb's centre. The thumb is solid white with a soft drop shadow at rest; on press it grows 1.5× into a clear glass lens - the track shows through it at its true size and bends at the rim (10 dp refraction band, 14 dp pull-in), with a faint chromatic fringe and inner shadow. Velocity-based squish deforms the thumb while dragging, and the refracted background is re-captured as the thumb moves.
 
 #### XML Example
 
@@ -504,20 +505,20 @@ Horizontal slider: 6 dp capsule track with an accent-coloured fill, and a 40 × 
 | `psl_maxValue` | float | 100 | Maximum slider value |
 | `psl_trackColor` | color | #0088FF | Accent fill colour |
 | `psl_thumbCornerRadius` | dimension | auto | Thumb corner radius |
-| `psl_thumbIOR` | float | calibrated | Thumb index of refraction |
-| `psl_thumbBlurRadius` | float | calibrated | Thumb blur |
+| `psl_thumbIOR` | float | 1.4 | Thumb index of refraction |
+| `psl_thumbBlurRadius` | float | 0 | Thumb blur at rest (always 0 while pressed) |
 | `psl_thumbNormalStrength` | float | calibrated | Thumb normal strength |
-| `psl_thumbDisplacementScale` | float | calibrated | Thumb lens scale |
-| `psl_thumbChromaticAberration` | float | 0 | Thumb RGB split |
-| `psl_thumbBrightness` | float | calibrated | Thumb brightness |
-| `psl_thumbThickness` | dimension | calibrated | Thumb edge ramp |
+| `psl_thumbDisplacementScale` | float | 0.6 | Thumb parallax / Snell displacement |
+| `psl_thumbChromaticAberration` | float | 50 | RGB split at full press |
+| `psl_thumbBrightness` | float | 1.0 | Thumb brightness |
+| `psl_thumbThickness` | dimension | auto | Thumb Snell thickness |
 | `psl_thumbHighlightWidth` | float | calibrated | Thumb highlight band |
-| `psl_thumbHeightBlurFactor` | float | calibrated | Height-field blur factor |
+| `psl_thumbHeightBlurFactor` | float | 10 | Width of the pressed lens's refraction band, in dp |
 | `psl_thumbMinSmoothing` | float | calibrated | SDF smoothing |
 | `psl_thumbRefractionInset` | float | calibrated | Refraction inset |
 | `psl_thumbEdgeRefractionFalloff` | float | calibrated | Edge refraction falloff |
 | `psl_thumbParallaxScale` | float | calibrated | Backdrop parallax under thumb |
-| `psl_thumbShadowColor` / `psl_thumbShadowSoftness` | color / float | - | Thumb shadow |
+| `psl_thumbShadowColor` / `psl_thumbShadowSoftness` | color / float | `#26000000` / 0.25 | Inner shadow, faded in with the press |
 | `psl_thumbColor` | color | `#1AFFFFFF` | Thumb glass tint color (alpha controls blend strength) |
 | `psl_thumbShowNormals` | boolean | false | Debug normals on thumb |
 
@@ -541,10 +542,13 @@ setThumbThickness(value: Float)
 setThumbChromaticAberration(value: Float)
 setThumbCornerRadius(value: Float)
 setThumbShadow(color: Int, radius: Float)
-setThumbHeightBlurFactor(value: Float)
+setThumbHeightBlurFactor(dp: Float)     // refraction band width (default 10 dp)
+setThumbRefractionAmount(dp: Float)     // pull-in at the rim (default 14 dp)
 setThumbRefractionInset(value: Float)
 setThumbColor(color: Int)               // ARGB tint over thumb glass surface
 ```
+
+Thumb setters on `PrismalSlider` and `PrismalSwitch` persist across presses - the press animation reads them instead of resetting the thumb to fixed values.
 
 ---
 
@@ -711,7 +715,8 @@ updateBackground()
            → surface normals (finite differences + meniscus blend)
            → Snell's law double refraction offset
            → chromatic aberration (per-channel offsets)
-           → sample blurTex2 at refracted UV  (frosted background)
+           → sample blurTex2 at refracted UV  (frosted background;
+                                               raw bgTex when blur radius is 0)
            → dual Blinn-Phong specular (key + fill)
            → Fresnel rim highlights (lit border + opposite border)
            → caustic overlay
@@ -743,7 +748,14 @@ glassCard.setCaptureDownsample(null)
 
 When no mode is set, the scale is derived automatically from the blur radius (`3 / max(blurRadius, 3)`, clamped to 0.25 – 1.0).
 
-The blur pass FBO also runs at 50% of the view's resolution by default, independent of capture downsampling. The Gaussian sigma is corrected proportionally so the screen-space blur spread remains the same regardless of FBO resolution.
+The blur pass FBO also runs at 50% of the view's resolution by default, independent of capture downsampling. The Gaussian sigma is corrected proportionally so the screen-space blur spread remains the same regardless of FBO resolution. Glass with a blur radius of 0 skips the half-resolution blur texture and samples the full-resolution capture, so it stays sharp.
+
+### Static Layer Cache & Capture Batching
+
+- **Static cache** - while a glass view is idle, its geometry (refraction offsets, reflection weights, rim lighting) is baked once into cache textures and each frame runs a cheap compose pass instead of the full shader. Pressing or changing parameters switches back to the full shader, and the cache is rebuilt shortly after things settle.
+- **Redundant blur passes skipped** - the two Gaussian passes only re-run when the captured backdrop or blur radius actually changes.
+- **Batched captures** - captures requested in the same frame by non-overlapping glass views share a single draw of the window; each view copies its crop out of the shared bitmap. Capture bitmaps are pooled, and crops snap to the window pixel grid so cached and live frames line up exactly.
+- **Queued GL setters** - parameter setters are queued and applied at the start of the next GL frame instead of each taking the GLSurfaceView lock.
 
 ---
 
