@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg2"
     android:clipChildren="false"
-    android:clipToPadding="false"
-    android:orientation="vertical">
+    android:clipToPadding="false">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/homeScroll"
@@ -603,4 +602,13 @@
 
     </androidx.core.widget.NestedScrollView>
 
-</LinearLayout>
+    <com.matrix.prismal.PrismalTabBar
+        android:id="@+id/tabBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="50dp"
+        android:layout_marginBottom="28dp"
+        app:ptb_menu="@menu/tab_bar" />
+
+</FrameLayout>

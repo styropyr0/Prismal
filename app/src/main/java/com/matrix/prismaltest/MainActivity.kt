@@ -3,10 +3,10 @@ package com.matrix.prismaltest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +15,7 @@ import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalIconButton
 import com.matrix.prismal.PrismalSlider
 import com.matrix.prismal.PrismalSwitch
+import com.matrix.prismal.PrismalTabBar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
                 val imageUri: Uri? = result.data?.data
                 imageUri?.let {
                     pickedImageUri = it
-                    val rootLayout = findViewById<LinearLayout>(R.id.root)
+                    val rootLayout = findViewById<View>(R.id.root)
                     rootLayout.background = contentResolver.openInputStream(it)?.use { input ->
                         android.graphics.drawable.Drawable.createFromStream(input, it.toString())
                     }
@@ -137,13 +138,13 @@ class MainActivity : AppCompatActivity() {
     private fun setListeners() {
         nextPrismalButton.setOnClickListener {
             currIndex = if (currIndex == resList.size - 1) 0 else currIndex + 1
-            findViewById<LinearLayout>(R.id.root).setBackgroundResource(resList[currIndex])
+            findViewById<View>(R.id.root).setBackgroundResource(resList[currIndex])
             updateAllPrismalBackgrounds()
         }
 
         prevPrismalButton.setOnClickListener {
             currIndex = if (currIndex == 0) resList.size - 1 else currIndex - 1
-            findViewById<LinearLayout>(R.id.root).setBackgroundResource(resList[currIndex])
+            findViewById<View>(R.id.root).setBackgroundResource(resList[currIndex])
             updateAllPrismalBackgrounds()
         }
 
@@ -167,6 +168,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        findViewById<PrismalTabBar>(R.id.tabBar).setOnTabSelectedListener { index ->
+            Log.d("PrismalTabBar", "selected $index")
+        }
+
         prismalIconButton.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK).apply { type = "image/*" }
             imagePicker.launch(intent)
@@ -184,5 +189,6 @@ class MainActivity : AppCompatActivity() {
         prismalIconButton3.updateBackground()
         prismalFrameLayout2.updateBackground()
         notifFrames.forEach { it.updateBackground() }
+        findViewById<PrismalTabBar>(R.id.tabBar).updateBackground()
     }
 }

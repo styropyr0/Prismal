@@ -92,8 +92,15 @@ open class PrismalFrameLayout @JvmOverloads constructor(
     }
     internal var isCapturing = false
 
+    internal val surfaceView: android.view.SurfaceView get() = glSurface
+
+    internal fun setSurfaceOnTop() = glSurface.setZOrderOnTop(true)
+
+    internal fun setBackdropPassEnabled(enabled: Boolean) =
+        glSurface.queueAndRender { renderer.drawBackdropPass = enabled }
+
     /** Draws extra content into the captured backdrop, in [captureRegion] source coordinates. */
-    internal var onCaptureDrawn: ((Canvas, ViewGroup) -> Unit)? = null
+    internal var onCaptureDrawn: ((Canvas, ViewGroup, Bitmap) -> Unit)? = null
     private var backdropStale = false
     private val visibleRect = Rect()
     private val captureCanvas = Canvas()
@@ -684,7 +691,7 @@ open class PrismalFrameLayout @JvmOverloads constructor(
             canvas.scale(ds, ds)
             canvas.drawColor(Color.WHITE)
             source.draw(canvas)
-            onCaptureDrawn?.invoke(canvas, source)
+            onCaptureDrawn?.invoke(canvas, source, bitmap)
         } catch (e: Exception) {
             releaseCaptureBitmap(bitmap)
             throw e

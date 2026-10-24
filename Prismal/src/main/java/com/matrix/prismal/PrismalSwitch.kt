@@ -2,6 +2,7 @@ package com.matrix.prismal
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -319,7 +320,7 @@ class PrismalSwitch @JvmOverloads constructor(
         setupThumb()
     }
 
-    private fun drawTrackIntoThumb(c: Canvas, source: ViewGroup) {
+    private fun drawTrackIntoThumb(c: Canvas, source: ViewGroup, @Suppress("UNUSED_PARAMETER") bitmap: Bitmap) {
         source.getLocationInWindow(srcLoc)
         getLocationInWindow(loc)
         val ox = (loc[0] - srcLoc[0]).toFloat()

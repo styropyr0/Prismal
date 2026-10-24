@@ -203,6 +203,9 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
     private var heightBlurFactor = 8f
     private var sminSmoothing = 1.0f
     private var blurRadius = 2.5f
+
+    /** Draws the raw backdrop across the whole surface before the glass; off leaves it transparent outside the shape. */
+    var drawBackdropPass = true
     private var highlightWidth = 4.0f
     private var chromaticAberration = 0f
     private var brightness = 1.15f
@@ -453,16 +456,18 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
-        GLES20.glUseProgram(bgProgram)
-        bgQuadBuffer.position(0)
-        GLES20.glEnableVertexAttribArray(bgPosAttrib)
-        GLES20.glVertexAttribPointer(bgPosAttrib, 2, GLES20.GL_FLOAT, false, 0, bgQuadBuffer)
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
-        GLES20.glUniform1i(bgTextureUniform, 0)
-        setBgUvUniforms(0)
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
-        GLES20.glDisableVertexAttribArray(bgPosAttrib)
+        if (drawBackdropPass) {
+            GLES20.glUseProgram(bgProgram)
+            bgQuadBuffer.position(0)
+            GLES20.glEnableVertexAttribArray(bgPosAttrib)
+            GLES20.glVertexAttribPointer(bgPosAttrib, 2, GLES20.GL_FLOAT, false, 0, bgQuadBuffer)
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, backgroundTexture)
+            GLES20.glUniform1i(bgTextureUniform, 0)
+            setBgUvUniforms(0)
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6)
+            GLES20.glDisableVertexAttribArray(bgPosAttrib)
+        }
 
         val chromaMax = max(chromaticAberration, 0f) * 0.0018f * 1.45f + 1e-6f
         captureGlassState(glassState)

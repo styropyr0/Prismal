@@ -124,4 +124,12 @@
         <attr name="pib_fresnelReflectStrength" format="float" />
         <attr name="pib_lensRefractionScale" format="float" />
     </declare-styleable>
+
+    <declare-styleable name="PrismalTabBar">
+        <attr name="ptb_menu" format="reference" />
+        <attr name="ptb_selectedIndex" format="integer" />
+        <attr name="ptb_tintColor" format="color" />
+        <attr name="ptb_itemColor" format="color" />
+        <attr name="ptb_containerColor" format="color" />
+    </declare-styleable>
 </resources>
