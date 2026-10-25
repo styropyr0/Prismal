@@ -99,7 +99,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.styropyr0:Prismal:v1.0.7'
+    implementation 'com.github.styropyr0:Prismal:v1.0.8'
 }
 ```
 
