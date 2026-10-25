@@ -256,7 +256,7 @@ class PrismalTabBar @JvmOverloads constructor(
     private fun applyPress(t: Float) {
         val p = t.coerceIn(0f, 1f)
         droplet.applyThumbLens(bandPx = dp(14f) * p, amountPx = dp(4f) * p, press = p, dome = 0.2f, displacement = 0.6f)
-        droplet.setChromaticAberration(0f)
+        droplet.setChromaticAberration(20f * p)
         droplet.setShadowProperties(Color.argb((38 * p).toInt(), 0, 0, 0), 0.25f)
         droplet.setPressInteraction(
             progress = p,
