@@ -4,13 +4,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
+import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
@@ -134,15 +135,19 @@ class PrismalTabBar @JvmOverloads constructor(
     private val mainHandler = Handler(Looper.getMainLooper())
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val layerPaint = Paint()
-    private val clip = Path()
+    private val featherPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        maskFilter = BlurMaskFilter(dp(2.5f), BlurMaskFilter.Blur.NORMAL)
+    }
     private val rect = RectF()
+    private val clip = Path()
+    private val clipRect = RectF()
+    private val snapSrc = Rect()
     private val snapRect = RectF()
-    private val inverse = Matrix()
 
     private companion object {
         const val PRESSED_SCALE = 78f / 56f
         const val PARKED_Y = -100000f
-        const val BLUR_DOWNSCALE = 6
     }
 
     private fun dp(v: Float) =
@@ -230,10 +235,10 @@ class PrismalTabBar @JvmOverloads constructor(
         droplet.setBackdropPassEnabled(false)
         droplet.setCornerRadius(pillH / 2f)
         droplet.setNormalStrength(0.2f)
-        droplet.setFresnelReflectStrength(2f)
-        droplet.setRimStrength(0.75f)
+        droplet.setFresnelReflectStrength(1.2f)
+        droplet.setRimStrength(3f)
         droplet.setSpecular(1.2f, 120f)
-        droplet.setCausticIntensity(0.12f)
+        droplet.setCausticIntensity(0f)
         droplet.setMinSmoothing(2.5f)
         droplet.setHighlightWidth(0.45f)
         droplet.setLightDirection(-0.35f, -0.75f)
@@ -250,14 +255,14 @@ class PrismalTabBar @JvmOverloads constructor(
 
     private fun applyPress(t: Float) {
         val p = t.coerceIn(0f, 1f)
-        droplet.applyThumbLens(bandPx = dp(10f) * p, amountPx = dp(9f) * p, press = p, dome = 0.2f, displacement = 0.6f)
-        droplet.setChromaticAberration(12f * p)
+        droplet.applyThumbLens(bandPx = dp(14f) * p, amountPx = dp(4f) * p, press = p, dome = 0.2f, displacement = 0.6f)
+        droplet.setChromaticAberration(0f)
         droplet.setShadowProperties(Color.argb((38 * p).toInt(), 0, 0, 0), 0.25f)
         droplet.setPressInteraction(
             progress = p,
             applyTransform = false,
             backdropPinch = 1f,
-            glowStrength = p * 0.2f,
+            glowStrength = p * 0.08f,
         )
         val park = !pressed && p < 0.01f
         if (park != dropletParked) {
@@ -376,54 +381,52 @@ class PrismalTabBar @JvmOverloads constructor(
      * Draws a shrunken copy of the bar - its glass, tint and tinted tab content - into the
      * lens backdrop, so the lens shows a smaller bar whose edges and end caps bend at the rim.
      */
+    @Suppress("UNUSED_PARAMETER")
     private fun drawTabsIntoDroplet(c: Canvas, source: ViewGroup, bitmap: Bitmap) {
         source.getLocationInWindow(srcLoc)
         bar.getLocationInWindow(loc)
         val scale = bar.scaleX
         val left = (loc[0] - srcLoc[0]).toFloat()
         val top = (loc[1] - srcLoc[1]).toFloat()
-        val inset = (bar.height - pillH + dp(6f)) / 2f * scale
-        val insetX = inset * 1.2f
-        rect.set(left + insetX, top + inset, left + bar.width * scale - insetX, top + bar.height * scale - inset)
+        val inset = dp(6f) * scale
+        snapRect.set(left, top, left + bar.width * scale, top + bar.height * scale)
+        val insetX = inset * 1.4f
+        rect.set(snapRect.left + insetX, snapRect.top + inset, snapRect.right - insetX, snapRect.bottom - inset)
 
-        val bw = (bitmap.width / BLUR_DOWNSCALE).coerceAtLeast(1)
-        val bh = (bitmap.height / BLUR_DOWNSCALE).coerceAtLeast(1)
-        val soft = Bitmap.createScaledBitmap(bitmap, bw, bh, true)
         c.withSave {
-            if (matrix.invert(inverse)) {
-                withSave {
-                    concat(inverse)
-                    drawBitmap(soft, null, Rect(0, 0, bitmap.width, bitmap.height), bitmapPaint)
-                }
-            }
-
+            val feather = saveLayer(null, null)
+            val reach = dp(2.5f)
+            clipRect.set(rect.left - reach, rect.top - reach, rect.right + reach, rect.bottom + reach)
             clip.reset()
-            clip.addRoundRect(rect, rect.height() / 2f, rect.height() / 2f, Path.Direction.CW)
+            clip.addRoundRect(clipRect, clipRect.height() / 2f, clipRect.height() / 2f, Path.Direction.CW)
             clipPath(clip)
             barSnapshot?.let {
-                val rim = dp(3f) * scale
-                snapRect.set(rect.left - rim, rect.top - rim, rect.right + rim, rect.bottom + rim)
-                drawBitmap(it, null, snapRect, bitmapPaint)
+                val core = (it.height * 0.3f).toInt()
+                snapSrc.set(core, core, it.width - core, it.height - core)
+                drawBitmap(it, snapSrc, clipRect, bitmapPaint)
             }
 
             fillPaint.color = containerColor
-            drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fillPaint)
+            drawPaint(fillPaint)
 
             layerPaint.colorFilter = PorterDuffColorFilter(tintColor, PorterDuff.Mode.SRC_IN)
-            translate(left, top)
-            scale(scale, scale)
-            saveLayer(0f, 0f, bar.width.toFloat(), bar.height.toFloat(), layerPaint)
-            translate(row.left.toFloat(), row.top.toFloat())
-            for (tab in tabs) {
-                withSave {
-                    translate(tab.view.left.toFloat(), tab.view.top.toFloat())
-                    scale(tab.view.scaleX, tab.view.scaleY, tab.view.width / 2f, tab.view.height / 2f)
-                    tab.view.draw(this)
+            withSave {
+                translate(left, top)
+                scale(scale, scale)
+                saveLayer(0f, 0f, bar.width.toFloat(), bar.height.toFloat(), layerPaint)
+                translate(row.left.toFloat(), row.top.toFloat())
+                for (tab in tabs) {
+                    withSave {
+                        translate(tab.view.left.toFloat(), tab.view.top.toFloat())
+                        scale(tab.view.scaleX, tab.view.scaleY, tab.view.width / 2f, tab.view.height / 2f)
+                        tab.view.draw(this)
+                    }
                 }
+                restore()
             }
-            restore()
+            drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, featherPaint)
+            restoreToCount(feather)
         }
-        soft.recycle()
     }
 
     override fun drawChild(canvas: Canvas, child: View, drawingTime: Long): Boolean {
