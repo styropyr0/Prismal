@@ -190,10 +190,7 @@ void main() {
     float edgeDist = -distMask;
     float reflShell = smoothstep(clamp(minDim * 0.09, 1.8, 18.0), 0.0, edgeDist) * smoothstep(-3.0, 0.0, distMask);
     reflShell *= mix(0.78, 0.42, smallGlass);
-    float inset = min(max(u_refractionInset, 0.8), max(minDim * 0.06, 1.6));
-    inset = mix(inset, min(inset, minDim * 0.04), smallGlass);
-    float opacity = 1.0 - smoothstep(-inset * 0.5, 0.0, distMask);
-    opacity = mix(opacity, 1.0, smoothstep(0.0, 0.55, edgeDist));
+    float opacity = smoothstep(0.75, -0.75, distMask);
     if (opacity < 0.001) discard;
 
     float dome = clamp(u_liquidDome, 0.0, 2.0);
@@ -373,7 +370,6 @@ void main() {
     float shadowFalloff = avgDim * shadowExt;
     float innerShadow = 1.0 - smoothstep(0.0, shadowFalloff, edgeDist);
     innerShadow = pow(innerShadow, 2.35) * 0.62 * (0.22 + height * 0.68);
-    innerShadow *= 1.0 - smoothstep(0.0, clamp(minDim * 0.05, 0.6, 3.5), edgeDist) * 0.55;
     color = mix(color, u_shadowColor.rgb * 0.25, innerShadow * u_shadowColor.a);
     vec3 shaded = color;
     color = vec3(0.0);
@@ -384,7 +380,8 @@ void main() {
     specP *= (0.32 + 0.68 * height);
     float specS = pow(max(dot(N, Hs), 0.0), sh * 0.68) * sp * 0.48;
     specS *= (0.24 + 0.76 * height) * (0.42 + 0.58 * F);
-    color += (specP + specS) * vec3(0.99, 0.993, 1.0);
+    float specEdge = smoothstep(0.0, max(5.0, tw * 0.35), edgeDist);
+    color += (specP + specS) * specEdge * vec3(0.99, 0.993, 1.0);
 
     vec3 Vn = normalize(V);
     float dotNV = clamp(dot(N, Vn), 0.0, 1.0);
@@ -394,7 +391,9 @@ void main() {
     float rimBandTight = mix(0.82, 0.52, smallGlass);
     float bandFracR = mix(0.022, 0.042, smoothstep(62.0, 218.0, minDim));
     float bandR = clamp(minDim * bandFracR * rimBandTight, mix(0.28, 0.65, 1.0 - smallGlass), min(12.0, minDim * 0.1));
-    float shellRim = smoothstep(bandR, bandR * 0.06, edgeDist) * smoothstep(-2.2, 0.0, distMask);
+    float rimW = max(bandR * 1.8, 2.2);
+    float rimT = 1.0 - clamp(edgeDist / rimW, 0.0, 1.0);
+    float shellRim = rimT * rimT * smoothstep(-2.2, 0.0, distMask);
     float centerQuiet = smoothstep(minDim * 0.18, minDim * 0.62, edgeDist);
     float depthFade = mix(1.0, 0.62, centerQuiet);
 
@@ -429,11 +428,11 @@ void main() {
     float rimCorner = streakOpp * shellRim * u_rimStrength * 0.035 * FedgeRim * (0.35 + 0.65 * height);
     color += hiSoft * rimCorner * rimScale;
 
-    float faceSheenSoft = smoothstep(bandR * 1.8, bandR * 0.08, edgeDist) * smoothstep(-2.0, 0.0, distMask)
+    float faceSheenSoft = smoothstep(rimW * 1.8, 0.0, edgeDist) * smoothstep(-2.0, 0.0, distMask)
         * smoothstep(0.08, 0.82, edgeLight) * Fnv * schlickW * u_rimStrength * 0.022;
     color += hiSoft * faceSheenSoft * (0.48 + 0.52 * height) * rimScale;
 
-    float plusHL = smoothstep(bandR * 0.95, bandR * 0.05, edgeDist) * u_plainHighlight * u_rimStrength
+    float plusHL = rimT * u_plainHighlight * u_rimStrength
         * pow(max(edgeLight, 0.0), 2.2) * (1.0 - 0.55 * centerQuiet);
     plusHL *= mix(0.42, 0.06, smallGlass);
     color += plusHL * vec3(0.99, 0.995, 1.0);

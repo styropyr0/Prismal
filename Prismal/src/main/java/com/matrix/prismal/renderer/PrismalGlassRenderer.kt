@@ -374,7 +374,10 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
 
         GLES20.glClearColor(0f, 0f, 0f, 0f)
         GLES20.glEnable(GLES20.GL_BLEND)
-        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+        GLES20.glBlendFuncSeparate(
+            GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA,
+            GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA
+        )
 
         backgroundTexture = createPlaceholderTexture()
         backgroundTexWidth = 1
