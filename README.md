@@ -13,7 +13,7 @@
 
 ## High Performance Compose Successor - PrismalAGSL
 
-If you are working on a Jetpack Compose project, we recommend using the modern successor, [**PrismalAGSL**](https://github.com/styropyr0/PrismalAGSL).
+If you are working on a Jetpack Compose project, I recommend using the modern successor, [**PrismalAGSL**](https://github.com/styropyr0/PrismalAGSL).
 
 PrismalAGSL is built around modern Android graphics technologies, using **Android Graphics Shading Language (AGSL)** and **RuntimeShader** to provide a more efficient and robust rendering pipeline.
 
