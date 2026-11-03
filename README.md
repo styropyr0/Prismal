@@ -22,7 +22,7 @@ Compared to the previous approach, PrismalAGSL is significantly lighter on GPU a
 For new Compose projects, **PrismalAGSL is the recommended implementation**.
 
 - **PrismalAGSL:** https://github.com/styropyr0/PrismalAGSL
-- **JitPack:** `implementation("com.github.styropyr0:PrismalAGSL:Prismal:1.0.0")`
+- **JitPack:** `implementation("com.github.styropyr0:PrismalAGSL:1.0.0")`
 
 Both libraries share the same visual language (blur, refraction, glass controls). APIs differ — PrismalAGSL is not a drop-in replacement, but the recommended path for new Compose apps.
 
