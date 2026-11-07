@@ -269,8 +269,21 @@ class GlassPlaygroundActivity : AppCompatActivity() {
         persistFromUi()
     }
 
+    private val persistRunnable = Runnable { persistNow() }
+
     private fun persistFromUi() {
-        val a = IntArray(bars.size) { bars[it].getValue().toInt() }
+        hero.removeCallbacks(persistRunnable)
+        hero.postDelayed(persistRunnable, 400)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        hero.removeCallbacks(persistRunnable)
+        persistNow()
+    }
+
+    private fun persistNow() {
+        val a =IntArray(bars.size) { bars[it].getValue().toInt() }
         val p = GlassParams.fromControls(
             pBlur = a[0], pHeight = a[1], pLens = a[2], pChroma = a[3], pCorner = a[4],
             pDome = a[5], pFresnel = a[6], pIor = a[7], pThick = a[8], pNormal = a[9],

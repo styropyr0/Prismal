@@ -39,9 +39,14 @@ internal class SpringAnimator(
         val dt = ((nanos - lastNanos) / 1_000_000_000f).coerceAtMost(0.048f)
         lastNanos = nanos
 
-        val force = -k * (value - target) - d * velocity
-        velocity += force * dt
-        value += velocity * dt
+        var remaining = dt
+        while (remaining > 0f) {
+            val step = if (remaining > MAX_STEP) MAX_STEP else remaining
+            val force = -k * (value - target) - d * velocity
+            velocity += force * step
+            value += velocity * step
+            remaining -= step
+        }
 
         onUpdate?.invoke(value)
 
@@ -58,6 +63,10 @@ internal class SpringAnimator(
     }
 
     private fun scheduleNext() = Choreographer.getInstance().postFrameCallback(callback)
+
+    private companion object {
+        const val MAX_STEP = 1f / 240f
+    }
 
     fun animateTo(newTarget: Float) {
         target = newTarget
