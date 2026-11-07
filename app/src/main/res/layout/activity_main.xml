@@ -613,6 +613,7 @@
         app:ptb_lensBand="20dp"
         android:layout_marginBottom="28dp"
         app:ptb_containerColor="#BBFFFFFF"
+        app:ptb_pillColor="#FFFFFFFF"
         app:ptb_itemColor="@color/black"
         app:ptb_tintColor="#9DF23A"
         app:ptb_menu="@menu/tab_bar" />

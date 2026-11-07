@@ -119,7 +119,7 @@
                 app:ptb_lensAmount="3dp"
                 app:ptb_fontFamily="@font/plus_jakarta_sans_bold"
                 app:ptb_lensBand="20dp"
-                app:ptb_containerColor="#AAFFFFFF"
+                app:ptb_containerColor="#88FFFFFF"
                 app:ptb_menu="@menu/drag_tab_bar" />
 
         </LinearLayout>
