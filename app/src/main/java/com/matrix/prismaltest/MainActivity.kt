@@ -21,7 +21,7 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
-    private val resList: List<Int> = listOf(R.drawable.bg2)
+    private val resList: List<Int> = listOf(R.drawable.bg_default)
 
     private var currIndex = 0
     private lateinit var nextPrismalButton: PrismalIconButton

@@ -4,7 +4,7 @@
     android:id="@+id/parentContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg2"
+    android:background="@drawable/bg_default"
     android:clipChildren="false"
     android:clipToPadding="false">
 

@@ -36,7 +36,7 @@ class GlassPlaygroundActivity : AppCompatActivity() {
                 android.graphics.drawable.Drawable.createFromStream(input, uriString)
             }
         } ?: run {
-            val bgResId = intent.getIntExtra("BACKGROUND_RES_ID", R.drawable.bg2)
+            val bgResId = intent.getIntExtra("BACKGROUND_RES_ID", R.drawable.bg_default)
             if (bgResId != -1) root.setBackgroundResource(bgResId)
         }
 
