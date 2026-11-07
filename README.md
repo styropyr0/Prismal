@@ -70,13 +70,13 @@ Prismal renders an iOS-style liquid glass material on Android. Each component ca
 
 - **Physically based rendering** - Snell's law double refraction, Schlick Fresnel, dual Blinn-Phong specular, spherical meniscus edge profile
 - **Circular-arc height field** - `√(2t − t²)` cross-section guarantees zero thickness at the silhouette; no flat linear edges
-- **Dual border rim highlights** - both the directly lit rim and the opposite rim glow simultaneously, matching real polished glass
+- **Dual border rim highlights** - a thin, sharp highlight on the lit rim and on the opposite rim at the same time, like iOS glass; its thickness follows `highlightWidth`
 - **Two-pass Gaussian blur** - separable horizontal + vertical passes for efficient frosted-glass depth
 - **Spring physics** - `Choreographer`-driven damped harmonic oscillator replaces `ValueAnimator` for press, travel, and click feedback
 - **Animated glass cards** - `setOnClickWithAnimationListener()` adds spring press-scale and radial glow without conflicting with `setOnClickListener` or child controls
 - **Optional shared scene** - `pfl_sharedHierarchicalCapture` / `PrismalScene` for one root capture + one blur pass across multiple glass views (default: independent per view)
 - **Canonical material preset** - `PrismalLiquidGlass.applyBase()` applies the full calibrated optical recipe in one call
-- **Pre-built components** - `PrismalFrameLayout`, `PrismalIconButton`, `PrismalSwitch`, `PrismalSlider`, `PrismalButton`
+- **Pre-built components** - `PrismalFrameLayout`, `PrismalIconButton`, `PrismalSwitch`, `PrismalSlider`, `PrismalTabBar`, `PrismalButton`
 - **Fully customizable** - extensive XML attributes and runtime Kotlin API
 
 ---
@@ -99,7 +99,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation 'com.github.styropyr0:Prismal:v1.0.8'
+    implementation 'com.github.styropyr0:Prismal:v1.0.9'
 }
 ```
 
@@ -552,6 +552,78 @@ Thumb setters on `PrismalSlider` and `PrismalSwitch` persist across presses - th
 
 ---
 
+### PrismalTabBar
+
+iOS 26 style tab bar: a 64 dp frosted capsule with a tinted selection pill behind the selected tab. Press the pill and it turns into a clear glass lens that can be dragged between tabs; release snaps to the nearest tab, and tapping another tab slides the lens across. While pressed, the lens shows a slightly shrunken copy of the bar - its real glass, tint and tab content in the tint colour - with the edges bending at the rim. Spring physics drive the lens position, press scale and velocity squish. Default colours follow the system light / dark theme (read when the view is created); any colour you set stays fixed.
+
+Limitations: the bar cannot see other Prismal glass behind it, and while pressed the lens draws above the window, so a normal view overlapping the bar appears underneath it.
+
+#### XML Example
+
+```xml
+<com.matrix.prismal.PrismalTabBar
+    android:id="@+id/tabBar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:ptb_menu="@menu/tab_bar"
+    app:ptb_fontFamily="@font/plus_jakarta_sans_bold"
+    app:ptb_lensMinify="1.11" />
+```
+
+#### XML Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ptb_menu` | reference | - | Menu resource that supplies the tab icons and titles |
+| `ptb_selectedIndex` | integer | 0 | Initially selected tab |
+| `ptb_tintColor` | color | iOS blue | Selected tab colour and the colour of everything seen through the lens |
+| `ptb_itemColor` | color | theme | Unselected icon / label colour |
+| `ptb_containerColor` | color | theme | Frosted tint drawn over the bar glass (alpha = strength) |
+| `ptb_fontFamily` | reference / string | system | Tab label font |
+| `ptb_textSize` | dimension | 10sp | Tab label size |
+| `ptb_textStyle` | flags | bold | `normal`, `bold`, `italic` |
+| `ptb_lensBand` | dimension | 16dp | Width of the lens's refraction band at the rim |
+| `ptb_lensAmount` | dimension | 4dp | Displacement at the very rim; keep below the band to avoid folding |
+| `ptb_lensDome` | float | 0.35 | Domed bulge that curves the lens like a droplet |
+| `ptb_lensDisplacement` | float | 0.6 | How strongly content is pushed by the lens |
+| `ptb_lensChromaticAberration` | float | 20 | Colour fringing at the rim (0 disables it) |
+| `ptb_lensThickness` | dimension | 1.5dp | Optical thickness of the lens |
+| `ptb_lensIor` | float | 1.4 | Index of refraction of the lens |
+| `ptb_lensRim` | float | 3 | Rim highlight strength |
+| `ptb_lensMinify` | float | 1.11 | How much smaller content looks inside the lens (1 = normal size, max 2) |
+
+#### API
+
+```kotlin
+addTab(icon: Drawable?, label: CharSequence): Int
+addTab(iconRes: Int, label: CharSequence): Int
+setSelectedTab(index: Int, animate: Boolean = true)
+getSelectedTab(): Int
+setOnTabSelectedListener(l: (Int) -> Unit)
+setTintColor(color: Int)
+setItemColor(color: Int)
+setContainerColor(color: Int)
+updateBackground()
+getBar(): PrismalFrameLayout
+
+// Labels
+setLabelTypeface(typeface: Typeface?, style: Int = Typeface.BOLD)
+setLabelTextSize(sp: Float)
+
+// Lens
+setLensBand(dp: Float)
+setLensAmount(dp: Float)
+setLensDome(value: Float)
+setLensDisplacement(value: Float)
+setLensChromaticAberration(value: Float)
+setLensThickness(px: Float)
+setLensIor(value: Float)
+setLensRim(value: Float)
+setLensMinify(value: Float)
+```
+
+---
+
 ### PrismalButton
 
 General-purpose pressable glass container. Renders the glass material over any child views with a scale animation on press.
@@ -686,7 +758,7 @@ Ranges marked **clamped** are enforced in Kotlin; **shader cap** means the shade
 
 | Parameter | Setter | Default | Range | Notes |
 |---|---|---|---|---|
-| `highlightWidth` | `setHighlightWidth(v)` | `4.0` | `0.0 – ~12.0` | Width (in shader units) of the plain Fresnel highlight band at the silhouette. |
+| `highlightWidth` | `setHighlightWidth(v)` | `4.0` | `0.0 – ~8.0` | Thickness of the rim highlight along the silhouette, about `0.8 + 1.6 × v` px (minimum 1 px). |
 | `shadowColor` | `setShadowProperties(color, softness)` | `rgba(0,0,0,76)` | Any ARGB | Drop-shadow colour. Alpha controls opacity. |
 | `shadowSoftness` | `setShadowProperties(color, softness)` | `0.2` | `0.0 – 20.0+` | `≤ 1` = hard shadow; `> 1` = softness (divided by 20 in shader for smooth spread). |
 
@@ -787,14 +859,13 @@ N = normalize(mix(N, N_meniscus, menBlend));
 
 ### Dual Border Rim Highlights
 
-Two rim terms illuminate both the lit border and the opposite border simultaneously. A real glass slab lit from one side shows a highlight on the far edge due to total internal reflection - the `abs()` in `borderAlign` reproduces this:
+Two matching rim terms illuminate the lit border and the opposite border. A thin, sharp highlight on each side, one facing the light and one facing away, reads as polished glass edge-lit from one corner, as on iOS. The band is `highlightWidth` thick, and the opposite side runs at about 80% of the lit side's strength:
 
 ```glsl
-float borderAlign = pow(abs(dot(gN, Lxy)), 1.0);    // both borders
-float litAlign    = pow(max(0.0, dot(gN, Lxy)), 1.3); // lit border only
+float rimW = clamp(0.8 + u_highlightWidth * 1.6, 1.0, 14.0);
 
-float rimBothBorders = borderAlign * shellRim * u_rimStrength * 0.26;
-float rimLitSide     = litAlign    * shellRim * u_rimStrength * 0.32;
+float litHairline = pow(max( edgeLight, 0.0), 3.6) * shellRim;
+float oppGlow     = pow(max(-edgeLight, 0.0), 3.6) * shellRim * (0.7 + 0.3 * schlickW);
 ```
 
 ### Snell's Law Double Refraction
