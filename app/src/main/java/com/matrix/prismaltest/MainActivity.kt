@@ -119,7 +119,7 @@ class MainActivity : AppCompatActivity() {
         notifFrames.forEach { frame ->
             GlassPlaygroundPrefs.applyTo(this, frame)
         }
-        GlassPlaygroundPrefs.applyToIconButtons(this, prismalIconButton2, prismalIconButton3)
+        GlassPlaygroundPrefs.applyToIconButtons(this, prismalIconButton, prismalIconButton2, prismalIconButton3)
         prismalSwitch.recalibrateThumb()
         prismalSlider.recalibrateThumb()
         prismalSlider1.recalibrateThumb()
