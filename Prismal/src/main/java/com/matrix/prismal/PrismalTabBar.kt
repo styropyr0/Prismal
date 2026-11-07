@@ -36,6 +36,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.use
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withSave
+import com.matrix.prismal.utils.Haptics
 import com.matrix.prismal.utils.SpringAnimator
 import com.matrix.prismal.utils.ThumbShadowView
 import com.matrix.prismal.utils.applyThumbLens
@@ -513,6 +514,7 @@ class PrismalTabBar @JvmOverloads constructor(
                     val h = dragValue.roundToInt()
                     if (h != highlightIndex) {
                         highlightIndex = h
+                        Haptics.selectionTick(this)
                         updateItemColors()
                     }
                 }

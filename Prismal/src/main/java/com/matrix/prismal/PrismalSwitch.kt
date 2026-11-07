@@ -15,6 +15,7 @@ import android.view.ViewGroup
 import androidx.core.graphics.withSave
 import android.widget.FrameLayout
 import com.matrix.prismal.utils.LiquidGlassInteraction
+import com.matrix.prismal.utils.Haptics
 import com.matrix.prismal.utils.SpringAnimator
 import com.matrix.prismal.utils.applyThumbLens
 import androidx.core.graphics.ColorUtils
@@ -229,7 +230,9 @@ class PrismalSwitch @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val wasOn = isOn
                 isOn = if (didDrag) dragTarget >= 0.5f else !isOn
+                if (isOn != wasOn) Haptics.toggle(this, isOn)
                 posSpring.animateTo(if (isOn) 1f else 0f)
                 onToggleChanged?.invoke(isOn)
                 if (abs(posSpring.value - posSpring.target) < 0.025f) release() else releasePending = true
