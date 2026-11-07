@@ -9,6 +9,8 @@ import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.matrix.prismal.PrismalFrameLayout
 import com.matrix.prismal.PrismalLiquidGlass
 import com.matrix.prismal.PrismalSlider
@@ -29,6 +31,11 @@ class DragShowActivity : AppCompatActivity() {
         setContentView(R.layout.drag_show_layout)
 
         val parent = findViewById<FrameLayout>(R.id.parentContainer)
+        ViewCompat.setOnApplyWindowInsetsListener(parent) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, bars.top, 0, bars.bottom)
+            insets
+        }
 
         intent.getStringExtra("BACKGROUND_URI")?.let { uriString ->
             val uri = uriString.toUri()

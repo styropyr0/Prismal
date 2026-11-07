@@ -8,106 +8,121 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <FrameLayout
-        android:id="@+id/draggableContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipChildren="false"
-        android:clipToPadding="false">
-
-        <com.matrix.prismal.PrismalFrameLayout
-            android:id="@+id/prismalFrame4"
-            android:layout_width="260dp"
-            android:layout_height="170dp"
-            android:layout_gravity="center_horizontal|top"
-            android:layout_marginTop="110dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:fontFamily="@font/plus_jakarta_sans_bold"
-                android:text="Drag me"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp" />
-
-        </com.matrix.prismal.PrismalFrameLayout>
-
-        <com.matrix.prismal.PrismalFrameLayout
-            android:id="@+id/glassCircle"
-            android:layout_width="110dp"
-            android:layout_height="110dp"
-            android:layout_gravity="start|top"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="330dp" />
-
-        <com.matrix.prismal.PrismalFrameLayout
-            android:id="@+id/glassPill"
-            android:layout_width="190dp"
-            android:layout_height="68dp"
-            android:layout_gravity="end|top"
-            android:layout_marginTop="360dp"
-            android:layout_marginEnd="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:fontFamily="@font/plus_jakarta_sans_bold"
-                android:text="Liquid"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp" />
-
-        </com.matrix.prismal.PrismalFrameLayout>
-
-        <com.matrix.prismal.PrismalFrameLayout
-            android:id="@+id/glassSquare"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center_horizontal|top"
-            android:layout_marginTop="480dp" />
-
-    </FrameLayout>
-
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="28dp"
+        android:layout_height="match_parent"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="vertical">
 
+        <FrameLayout
+            android:id="@+id/draggableContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <com.matrix.prismal.PrismalFrameLayout
+                android:id="@+id/prismalFrame4"
+                android:layout_width="260dp"
+                android:layout_height="160dp"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:fontFamily="@font/plus_jakarta_sans_bold"
+                    android:text="Drag me"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp" />
+
+            </com.matrix.prismal.PrismalFrameLayout>
+
+            <com.matrix.prismal.PrismalFrameLayout
+                android:id="@+id/glassCircle"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:layout_gravity="start|top"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="200dp" />
+
+            <com.matrix.prismal.PrismalFrameLayout
+                android:id="@+id/glassSquare"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:layout_gravity="end|top"
+                android:layout_marginTop="200dp"
+                android:layout_marginEnd="32dp" />
+
+            <com.matrix.prismal.PrismalFrameLayout
+                android:id="@+id/glassPill"
+                android:layout_width="190dp"
+                android:layout_height="68dp"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="330dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:fontFamily="@font/plus_jakarta_sans_bold"
+                    android:text="Liquid"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+
+            </com.matrix.prismal.PrismalFrameLayout>
+
+        </FrameLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="18dp"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginBottom="28dp"
             android:clipChildren="false"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:clipToPadding="false"
+            android:orientation="vertical">
 
-            <com.matrix.prismal.PrismalSlider
-                android:id="@+id/dragSlider"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:clipChildren="false" />
+                android:layout_marginBottom="18dp"
+                android:clipChildren="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <com.matrix.prismal.PrismalSwitch
-                android:id="@+id/dragSwitch"
-                android:layout_width="wrap_content"
+                <com.matrix.prismal.PrismalSlider
+                    android:id="@+id/dragSlider"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clipChildren="false" />
+
+                <com.matrix.prismal.PrismalSwitch
+                    android:id="@+id/dragSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    app:psw_trackHeight="31dp" />
+
+            </LinearLayout>
+
+            <com.matrix.prismal.PrismalTabBar
+                android:id="@+id/dragTabBar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                app:psw_trackHeight="31dp" />
+                app:ptb_itemColor="@color/black"
+                app:ptb_tintColor="#0076FF"
+                app:ptb_lensAmount="3dp"
+                app:ptb_fontFamily="@font/plus_jakarta_sans_bold"
+                app:ptb_lensBand="20dp"
+                app:ptb_containerColor="#AAFFFFFF"
+                app:ptb_menu="@menu/drag_tab_bar" />
 
         </LinearLayout>
-
-        <com.matrix.prismal.PrismalTabBar
-            android:id="@+id/dragTabBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:ptb_menu="@menu/drag_tab_bar" />
 
     </LinearLayout>
 
