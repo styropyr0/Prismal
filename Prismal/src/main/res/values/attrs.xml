@@ -131,5 +131,21 @@
         <attr name="ptb_tintColor" format="color" />
         <attr name="ptb_itemColor" format="color" />
         <attr name="ptb_containerColor" format="color" />
+        <attr name="ptb_lensBand" format="dimension" />
+        <attr name="ptb_lensAmount" format="dimension" />
+        <attr name="ptb_lensDome" format="float" />
+        <attr name="ptb_lensDisplacement" format="float" />
+        <attr name="ptb_lensChromaticAberration" format="float" />
+        <attr name="ptb_lensThickness" format="dimension" />
+        <attr name="ptb_lensIor" format="float" />
+        <attr name="ptb_lensRim" format="float" />
+        <attr name="ptb_lensMinify" format="float" />
+        <attr name="ptb_fontFamily" format="reference|string" />
+        <attr name="ptb_textSize" format="dimension" />
+        <attr name="ptb_textStyle">
+            <flag name="normal" value="0" />
+            <flag name="bold" value="1" />
+            <flag name="italic" value="2" />
+        </attr>
     </declare-styleable>
 </resources>

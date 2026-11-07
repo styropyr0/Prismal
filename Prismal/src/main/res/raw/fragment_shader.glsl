@@ -297,6 +297,7 @@ void main() {
 
     vec2 baseOffset = lensDeltaUv + snellOff + bulgeUv;
     float pinchMix = 1.0 - smoothstep(0.0, 0.72, tDeep);
+    if (u_backdropPinch > 1.0) pinchMix = mix(1.0, pinchMix, 0.2);
     vec2 uvCenter = backdropUv(v_screenTexCoord, baseOffset, pinchMix);
     float avgDim = (u_glassSize.x + u_glassSize.y) * 0.5;
 

@@ -30,6 +30,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
+import android.graphics.Typeface
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.use
 import androidx.core.graphics.createBitmap
@@ -60,7 +62,9 @@ import kotlin.math.sign
  * ```
  *
  * XML attributes: `ptb_menu`, `ptb_selectedIndex`, `ptb_tintColor`, `ptb_itemColor`,
- * `ptb_containerColor` (see [R.styleable.PrismalTabBar]).
+ * `ptb_containerColor`, `ptb_lensBand`, `ptb_lensAmount`, `ptb_lensDome`, `ptb_lensDisplacement`,
+ * `ptb_lensChromaticAberration`, `ptb_lensThickness`, `ptb_lensIor`, `ptb_lensRim`, `ptb_lensMinify`,
+ * `ptb_fontFamily`, `ptb_textSize`, `ptb_textStyle` (see [R.styleable.PrismalTabBar]).
  *
  * @author Saurav Sajeev
  */
@@ -109,6 +113,20 @@ class PrismalTabBar @JvmOverloads constructor(
     }
     private val droplet = PrismalFrameLayout(context)
     private val dropletShadow = ThumbShadowView(context, dp(6f))
+
+    private var labelTypeface: Typeface? = null
+    private var labelStyle = Typeface.BOLD
+    private var labelSizeSp = 10f
+
+    private var lensBandDp = 16f
+    private var lensAmountDp = 4f
+    private var lensDome = 0.35f
+    private var lensDisplacement = 0.6f
+    private var lensChromatic = 20f
+    private var lensThicknessPx = dp(1.5f)
+    private var lensIor = 1.4f
+    private var lensRim = 3f
+    private var lensMinify = 1.11f
 
     private val valueSpring = SpringAnimator(1f, 1000f)
     private val pressSpring = SpringAnimator(1f, 1000f)
@@ -203,6 +221,24 @@ class PrismalTabBar @JvmOverloads constructor(
             tintColor = a.getColor(R.styleable.PrismalTabBar_ptb_tintColor, tintColor)
             itemColor = a.getColor(R.styleable.PrismalTabBar_ptb_itemColor, itemColor)
             containerColor = a.getColor(R.styleable.PrismalTabBar_ptb_containerColor, containerColor)
+            val density = resources.displayMetrics.density
+            lensBandDp = a.getDimension(R.styleable.PrismalTabBar_ptb_lensBand, dp(lensBandDp)) / density
+            lensAmountDp = a.getDimension(R.styleable.PrismalTabBar_ptb_lensAmount, dp(lensAmountDp)) / density
+            lensDome = a.getFloat(R.styleable.PrismalTabBar_ptb_lensDome, lensDome)
+            lensDisplacement = a.getFloat(R.styleable.PrismalTabBar_ptb_lensDisplacement, lensDisplacement)
+            lensChromatic = a.getFloat(R.styleable.PrismalTabBar_ptb_lensChromaticAberration, lensChromatic)
+            lensThicknessPx = a.getDimension(R.styleable.PrismalTabBar_ptb_lensThickness, lensThicknessPx)
+            lensIor = a.getFloat(R.styleable.PrismalTabBar_ptb_lensIor, lensIor)
+            lensRim = a.getFloat(R.styleable.PrismalTabBar_ptb_lensRim, lensRim)
+            lensMinify = a.getFloat(R.styleable.PrismalTabBar_ptb_lensMinify, lensMinify)
+            labelStyle = a.getInt(R.styleable.PrismalTabBar_ptb_textStyle, labelStyle)
+            labelSizeSp = a.getDimension(R.styleable.PrismalTabBar_ptb_textSize, sp(labelSizeSp)) / resources.displayMetrics.scaledDensity
+            val fontRes = a.getResourceId(R.styleable.PrismalTabBar_ptb_fontFamily, 0)
+            labelTypeface = if (fontRes != 0) {
+                ResourcesCompat.getFont(context, fontRes)
+            } else {
+                a.getString(R.styleable.PrismalTabBar_ptb_fontFamily)?.let { Typeface.create(it, Typeface.NORMAL) }
+            }
             val menuRes = a.getResourceId(R.styleable.PrismalTabBar_ptb_menu, 0)
             if (menuRes != 0) {
                 val menu = PopupMenu(context, this).menu
@@ -236,7 +272,7 @@ class PrismalTabBar @JvmOverloads constructor(
         droplet.setCornerRadius(pillH / 2f)
         droplet.setNormalStrength(0.2f)
         droplet.setFresnelReflectStrength(1.2f)
-        droplet.setRimStrength(3f)
+        droplet.setRimStrength(lensRim)
         droplet.setSpecular(1.2f, 120f)
         droplet.setCausticIntensity(0f)
         droplet.setMinSmoothing(2.5f)
@@ -248,20 +284,26 @@ class PrismalTabBar @JvmOverloads constructor(
         droplet.setGlassColor(Color.TRANSPARENT)
         droplet.setParallaxScale(0.4f)
         droplet.setBlurRadius(0f)
-        droplet.setIOR(1.4f)
-        droplet.setThickness(0.2f)
+        droplet.setIOR(lensIor)
+        droplet.setThickness(lensThicknessPx)
         droplet.setBrightness(1f)
     }
 
     private fun applyPress(t: Float) {
         val p = t.coerceIn(0f, 1f)
-        droplet.applyThumbLens(bandPx = dp(14f) * p, amountPx = dp(4f) * p, press = p, dome = 0.2f, displacement = 0.6f)
-        droplet.setChromaticAberration(20f * p)
+        droplet.applyThumbLens(
+            bandPx = dp(lensBandDp) * p,
+            amountPx = dp(lensAmountDp) * p,
+            press = p,
+            dome = lensDome,
+            displacement = lensDisplacement,
+        )
+        droplet.setChromaticAberration(lensChromatic * p)
         droplet.setShadowProperties(Color.argb((38 * p).toInt(), 0, 0, 0), 0.25f)
         droplet.setPressInteraction(
             progress = p,
             applyTransform = false,
-            backdropPinch = 1f,
+            backdropPinch = 1f + (lensMinify - 1f) * p,
             glowStrength = p * 0.08f,
         )
         val park = !pressed && p < 0.01f
@@ -550,11 +592,10 @@ class PrismalTabBar @JvmOverloads constructor(
         val iconView = ImageView(context).apply { setImageDrawable(icon?.mutate()) }
         val labelView = TextView(context).apply {
             text = label
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-            paint.isFakeBoldText = true
             gravity = Gravity.CENTER
             maxLines = 1
         }
+        applyLabelStyle(labelView)
         val item = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
@@ -569,6 +610,44 @@ class PrismalTabBar @JvmOverloads constructor(
         updateItemColors()
         requestLayout()
         return tabs.size - 1
+    }
+
+    private fun sp(v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, v, resources.displayMetrics)
+
+    private fun applyLabelStyle(label: TextView) {
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSizeSp)
+        if (labelTypeface == null && labelStyle == Typeface.BOLD) {
+            label.setTypeface(null, Typeface.NORMAL)
+            label.paint.isFakeBoldText = true
+        } else {
+            label.paint.isFakeBoldText = false
+            label.setTypeface(labelTypeface, labelStyle)
+        }
+    }
+
+    private fun refreshLabels() {
+        tabs.forEach { applyLabelStyle(it.label) }
+        requestLayout()
+        if (!dropletParked) droplet.updateBackground()
+    }
+
+    /**
+     * Sets the font of the tab labels.
+     *
+     * @param typeface Font to use, or `null` for the default font.
+     * @param style One of [Typeface.NORMAL], [Typeface.BOLD], [Typeface.ITALIC], [Typeface.BOLD_ITALIC] (default bold).
+     */
+    @JvmOverloads
+    fun setLabelTypeface(typeface: Typeface?, style: Int = labelStyle) {
+        labelTypeface = typeface
+        labelStyle = style
+        refreshLabels()
+    }
+
+    /** Sets the tab label text size in sp (default 10). */
+    fun setLabelTextSize(sp: Float) {
+        labelSizeSp = sp.coerceAtLeast(1f)
+        refreshLabels()
     }
 
     /** @see addTab */
@@ -647,6 +726,47 @@ class PrismalTabBar @JvmOverloads constructor(
         bar.updateBackground()
         if (!dropletParked) droplet.updateBackground()
     }
+
+    private fun refreshLens() {
+        droplet.setRimStrength(lensRim)
+        droplet.setIOR(lensIor)
+        droplet.setThickness(lensThicknessPx)
+        applyPress(pressSpring.value)
+        if (!dropletParked) droplet.updateBackground()
+    }
+
+    /**
+     * Width in dp of the rim band where the lens bends the content (default 16).
+     * Close to the pill's half height the curve spans the whole lens like a droplet.
+     */
+    fun setLensBand(dp: Float) { lensBandDp = dp.coerceAtLeast(1f); refreshLens() }
+
+    /** Displacement in dp at the very rim of the lens (default 4). Keep below the band to avoid folding. */
+    fun setLensAmount(dp: Float) { lensAmountDp = dp.coerceAtLeast(0f); refreshLens() }
+
+    /** Strength of the domed bulge that curves the whole surface like a droplet (default 0.35). */
+    fun setLensDome(v: Float) { lensDome = v.coerceIn(0f, 2f); refreshLens() }
+
+    /** Scales how strongly the content is pushed by the lens (default 0.6). */
+    fun setLensDisplacement(v: Float) { lensDisplacement = v.coerceIn(0.05f, 2f); refreshLens() }
+
+    /** Colour fringing at the rim (default 20). 0 disables it. */
+    fun setLensChromaticAberration(v: Float) { lensChromatic = v.coerceAtLeast(0f); refreshLens() }
+
+    /** Optical thickness of the lens in pixels (default 1.5dp). */
+    fun setLensThickness(px: Float) { lensThicknessPx = px.coerceAtLeast(0.01f); refreshLens() }
+
+    /** Index of refraction of the lens (default 1.4). */
+    fun setLensIor(v: Float) { lensIor = v.coerceIn(1f, 2.5f); refreshLens() }
+
+    /**
+     * How much smaller the content looks inside the lens (default 1.11, about 90% size). 1 shows it at normal size;
+     * higher values converge more of the surroundings into the lens, like iOS.
+     */
+    fun setLensMinify(v: Float) { lensMinify = v.coerceIn(1f, 2f); refreshLens() }
+
+    /** Brightness of the highlight along the lens rim (default 3). */
+    fun setLensRim(v: Float) { lensRim = v.coerceAtLeast(0f); refreshLens() }
 
     /** Returns the [PrismalFrameLayout] behind the tabs, for further glass customisation. */
     fun getBar(): PrismalFrameLayout = bar

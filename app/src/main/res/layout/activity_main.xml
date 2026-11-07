@@ -606,9 +606,15 @@
         android:id="@+id/tabBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:ptb_fontFamily="@font/plus_jakarta_sans"
         android:layout_gravity="bottom"
-        android:layout_marginHorizontal="50dp"
+        android:layout_marginHorizontal="28dp"
+        app:ptb_lensAmount="3dp"
+        app:ptb_lensBand="20dp"
         android:layout_marginBottom="28dp"
+        app:ptb_containerColor="#BBFFFFFF"
+        app:ptb_itemColor="@color/black"
+        app:ptb_tintColor="#9DF23A"
         app:ptb_menu="@menu/tab_bar" />
 
 </FrameLayout>

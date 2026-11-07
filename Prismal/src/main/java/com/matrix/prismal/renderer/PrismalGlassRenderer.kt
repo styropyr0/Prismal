@@ -1064,7 +1064,7 @@ internal class PrismalGlassRenderer(private val context: Context) : GLSurfaceVie
         glowStrength: Float = 1f,
     ) {
         pressProgress = progress.coerceIn(0f, 1f)
-        backdropPinch = pinch.coerceIn(0.5f, 1f)
+        backdropPinch = pinch.coerceIn(0.5f, 2f)
         glowCenterX = glowX.coerceIn(0f, 1f)
         glowCenterY = glowY.coerceIn(0f, 1f)
         this.glowStrength = glowStrength.coerceIn(0f, 1f)
