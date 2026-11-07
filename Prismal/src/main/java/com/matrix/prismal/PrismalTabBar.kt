@@ -63,7 +63,7 @@ import kotlin.math.sign
  * ```
  *
  * XML attributes: `ptb_menu`, `ptb_selectedIndex`, `ptb_tintColor`, `ptb_itemColor`,
- * `ptb_containerColor`, `ptb_lensBand`, `ptb_lensAmount`, `ptb_lensDome`, `ptb_lensDisplacement`,
+ * `ptb_containerColor`, `ptb_pillColor`, `ptb_lensBand`, `ptb_lensAmount`, `ptb_lensDome`, `ptb_lensDisplacement`,
  * `ptb_lensChromaticAberration`, `ptb_lensThickness`, `ptb_lensIor`, `ptb_lensRim`, `ptb_lensMinify`,
  * `ptb_fontFamily`, `ptb_textSize`, `ptb_textStyle` (see [R.styleable.PrismalTabBar]).
  *
@@ -83,7 +83,7 @@ class PrismalTabBar @JvmOverloads constructor(
     private var tintColor = if (night) Color.rgb(0x00, 0x91, 0xFF) else Color.rgb(0x00, 0x88, 0xFF)
     private var itemColor = if (night) Color.WHITE else Color.BLACK
     private var containerColor = if (night) Color.argb(102, 0x12, 0x12, 0x12) else Color.argb(102, 0xFA, 0xFA, 0xFA)
-    private val restPillColor = if (night) Color.argb(26, 255, 255, 255) else Color.argb(26, 0, 0, 0)
+    private var restPillColor = if (night) Color.argb(26, 255, 255, 255) else Color.argb(26, 0, 0, 0)
 
     private var selectedIndex = 0
     private var highlightIndex = 0
@@ -222,6 +222,7 @@ class PrismalTabBar @JvmOverloads constructor(
             tintColor = a.getColor(R.styleable.PrismalTabBar_ptb_tintColor, tintColor)
             itemColor = a.getColor(R.styleable.PrismalTabBar_ptb_itemColor, itemColor)
             containerColor = a.getColor(R.styleable.PrismalTabBar_ptb_containerColor, containerColor)
+            restPillColor = a.getColor(R.styleable.PrismalTabBar_ptb_pillColor, restPillColor)
             val density = resources.displayMetrics.density
             lensBandDp = a.getDimension(R.styleable.PrismalTabBar_ptb_lensBand, dp(lensBandDp)) / density
             lensAmountDp = a.getDimension(R.styleable.PrismalTabBar_ptb_lensAmount, dp(lensAmountDp)) / density
@@ -708,6 +709,16 @@ class PrismalTabBar @JvmOverloads constructor(
     fun setItemColor(color: Int) {
         itemColor = color
         updateItemColors()
+    }
+
+    /**
+     * Sets the colour of the pill behind the selected tab while the lens is not pressed.
+     *
+     * @param color ARGB color int; alpha controls strength (default is a faint white or black by theme).
+     */
+    fun setPillColor(color: Int) {
+        restPillColor = color
+        restPill.invalidate()
     }
 
     /**

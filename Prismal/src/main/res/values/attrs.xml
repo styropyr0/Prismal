@@ -131,6 +131,7 @@
         <attr name="ptb_tintColor" format="color" />
         <attr name="ptb_itemColor" format="color" />
         <attr name="ptb_containerColor" format="color" />
+        <attr name="ptb_pillColor" format="color" />
         <attr name="ptb_lensBand" format="dimension" />
         <attr name="ptb_lensAmount" format="dimension" />
         <attr name="ptb_lensDome" format="float" />

@@ -582,6 +582,7 @@ Limitations: the bar cannot see other Prismal glass behind it, and while pressed
 | `ptb_tintColor` | color | iOS blue | Selected tab colour and the colour of everything seen through the lens |
 | `ptb_itemColor` | color | theme | Unselected icon / label colour |
 | `ptb_containerColor` | color | theme | Frosted tint drawn over the bar glass (alpha = strength) |
+| `ptb_pillColor` | color | faint white / black by theme | Pill behind the selected tab while the lens is not pressed (alpha = strength) |
 | `ptb_fontFamily` | reference / string | system | Tab label font |
 | `ptb_textSize` | dimension | 10sp | Tab label size |
 | `ptb_textStyle` | flags | bold | `normal`, `bold`, `italic` |
@@ -606,6 +607,7 @@ setOnTabSelectedListener(l: (Int) -> Unit)
 setTintColor(color: Int)
 setItemColor(color: Int)
 setContainerColor(color: Int)
+setPillColor(color: Int)
 updateBackground()
 getBar(): PrismalFrameLayout
 
