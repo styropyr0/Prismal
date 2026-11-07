@@ -77,6 +77,7 @@ Prismal renders an iOS-style liquid glass material on Android. Each component ca
 - **Optional shared scene** - `pfl_sharedHierarchicalCapture` / `PrismalScene` for one root capture + one blur pass across multiple glass views (default: independent per view)
 - **Canonical material preset** - `PrismalLiquidGlass.applyBase()` applies the full calibrated optical recipe in one call
 - **Pre-built components** - `PrismalFrameLayout`, `PrismalIconButton`, `PrismalSwitch`, `PrismalSlider`, `PrismalTabBar`, `PrismalButton`
+- **iOS-style haptics** - `PrismalSwitch` ticks when it toggles and `PrismalTabBar` ticks as the lens crosses each tab; the slider stays silent, as on iOS. Haptics follow the system touch-feedback setting
 - **Fully customizable** - extensive XML attributes and runtime Kotlin API
 
 ---
@@ -415,7 +416,7 @@ updateBackground()
 
 ### PrismalSwitch
 
-iOS-style toggle switch: 64 × 28 dp capsule track that colour-crossfades from grey to green, with a 40 × 24 dp capsule glass thumb. The thumb is solid white with a soft drop shadow at rest. On press it grows 1.5× and turns into a clear liquid-glass lens: the track shows through it as a smaller pill (drawn at 0.75×), bent at the rim by a 5 dp refraction band with a faint chromatic fringe and inner shadow - the same look as the iOS 26 switch. Spring physics drive position, press scale, and velocity squish.
+iOS-style toggle switch: 64 × 28 dp capsule track that colour-crossfades from grey to green, with a 40 × 24 dp capsule glass thumb. The thumb is solid white with a soft drop shadow at rest. On press it grows 1.5× and turns into a clear liquid-glass lens: the track shows through it as a smaller pill (drawn at 0.75×), bent at the rim by a 5 dp refraction band with a faint chromatic fringe and inner shadow - the same look as the iOS 26 switch. Spring physics drive position, press scale, and velocity squish. A haptic fires when the switch toggles (a tap, or a drag that ends in the other state); setting it from code is silent. Android 14+ uses the system toggle on / off haptic, older versions a clock tick.
 
 Thumb travel is exactly `trackWidth − thumbWidth − 2 × padding` = **20 dp** at default size. Lens sizes are given for the default 28 dp track and scale with `psw_trackHeight`.
 
@@ -555,6 +556,8 @@ Thumb setters on `PrismalSlider` and `PrismalSwitch` persist across presses - th
 ### PrismalTabBar
 
 iOS 26 style tab bar: a 64 dp frosted capsule with a tinted selection pill behind the selected tab. Press the pill and it turns into a clear glass lens that can be dragged between tabs; release snaps to the nearest tab, and tapping another tab slides the lens across. While pressed, the lens shows a slightly shrunken copy of the bar - its real glass, tint and tab content in the tint colour - with the edges bending at the rim. Spring physics drive the lens position, press scale and velocity squish. Default colours follow the system light / dark theme (read when the view is created); any colour you set stays fixed.
+
+Dragging the lens across tabs gives a selection tick for each tab it crosses (`SEGMENT_FREQUENT_TICK` on Android 14+, a clock tick before). Tapping a tab gives no haptic, as on iOS.
 
 Limitations: the bar cannot see other Prismal glass behind it, and while pressed the lens draws above the window, so a normal view overlapping the bar appears underneath it.
 
