@@ -190,7 +190,7 @@ void main() {
     float edgeDist = -distMask;
     float reflShell = smoothstep(clamp(minDim * 0.09, 1.8, 18.0), 0.0, edgeDist) * smoothstep(-3.0, 0.0, distMask);
     reflShell *= mix(0.78, 0.42, smallGlass);
-    float opacity = smoothstep(0.75, -0.75, distMask);
+    float opacity = smoothstep(1.0, -1.0, distMask);
     if (opacity < 0.001) discard;
 
     float dome = clamp(u_liquidDome, 0.0, 2.0);
@@ -392,7 +392,7 @@ void main() {
     float rimBandTight = mix(0.82, 0.52, smallGlass);
     float bandFracR = mix(0.022, 0.042, smoothstep(62.0, 218.0, minDim));
     float bandR = clamp(minDim * bandFracR * rimBandTight, mix(0.28, 0.65, 1.0 - smallGlass), min(12.0, minDim * 0.1));
-    float rimW = max(bandR * 1.8, 2.2);
+    float rimW = clamp(0.8 + u_highlightWidth * 1.6, 1.0, 14.0);
     float rimT = 1.0 - clamp(edgeDist / rimW, 0.0, 1.0);
     float shellRim = rimT * rimT * smoothstep(-2.2, 0.0, distMask);
     float centerQuiet = smoothstep(minDim * 0.18, minDim * 0.62, edgeDist);
@@ -420,9 +420,9 @@ void main() {
 
     float schlickW = F;
     float litHairline = pow(max(edgeLight, 0.0), 3.6) * shellRim;
-    float oppGlow = pow(max(-edgeLight, 0.0), 1.05) * shellRim * (0.28 + 0.72 * FedgeRim * schlickW);
+    float oppGlow = pow(max(-edgeLight, 0.0), 3.6) * shellRim * (0.7 + 0.3 * schlickW);
     float rimLitSide = litHairline * u_rimStrength * mix(0.92, 1.18, smallGlass) * (0.58 + 0.42 * height) * depthFade;
-    float rimOpposite = oppGlow * u_rimStrength * mix(0.34, 0.48, smallGlass) * (0.4 + 0.6 * height) * depthFade;
+    float rimOpposite = oppGlow * u_rimStrength * mix(0.78, 1.0, smallGlass) * (0.58 + 0.42 * height) * depthFade;
     color += hiSoft * rimLitSide * rimScale;
     color += mix(hiVeil, oppTint, 0.42) * rimOpposite * rimScale;
 
